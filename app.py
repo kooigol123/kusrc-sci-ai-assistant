@@ -179,6 +179,8 @@ def load_context_from_db():
         rows = ScrapedPage.query.all()
         CHAT_CONTEXT = [{"source": r.url, "category": r.category, "content": r.content} for r in rows]
         print(f"[Context] Loaded {len(CHAT_CONTEXT)} pages from DB")
+    # โหลดหลักสูตรต่อท้ายเสมอ กันข้อมูลหายหลัง scrape เสร็จ
+    load_curriculum_pdfs()
 
 # ──────────────────────────────────────────
 # Scraper
@@ -311,41 +313,138 @@ def clean_response(text):
     return re.sub(r"\n\s*\n\s*\n", "\n\n", text).strip()
 
 def ask_gemini(user_message, history=None):
+    # ดักคำทักทายและคำถามเล่นทั่วไปก่อนยิง API เพื่อประหยัดโควต้า
+    msg_clean = re.sub(r'[\s\?\!\.\,~…]+$', '', user_message.strip().lower())
+    msg_norm = re.sub(r'(.)\1{2,}', r'\1', msg_clean)
+    msg_nospace = msg_clean.replace(" ", "")
+
+    _greetings = {
+        "สวัสดี", "สวัสดีครับ", "สวัสดีครับผม", "สวัสดีคับ", "สวัสดีค้าบ",
+        "สวัสดีค่ะ", "สวัสดีคะ", "สวัสดีค่า", "สวัสดีจ้า", "สวัสดีฮะ",
+        "หวัดดี", "หวัดดีครับ", "หวัดดีคับ", "หวัดดีค้าบ", "หวัดดีค่ะ",
+        "ดีครับ", "ดีคับ", "ดีค้าบ", "ดีค่ะ", "ดีจ้า", "ทัก", "ทักครับ", "ทักทาย",
+        "ฮัลโหล", "ฮโหล", "hello", "hi", "hey", "good morning", "good afternoon",
+    }
+    if msg_clean in _greetings or msg_norm in _greetings:
+        return (
+            "สวัสดีครับ มีข้อมูลด้านใดของคณะวิทยาศาสตร์ ศรีราชา ให้ช่วยค้นหาไหมครับ "
+            "สามารถสอบถามเรื่องหลักสูตร การลงทะเบียน แบบฟอร์มคำร้อง หรือทุนการศึกษาได้เลยครับ",
+            [], [],
+        )
+
+    _thanks = {
+        "ขอบคุณ", "ขอบคุณครับ", "ขอบคุณคับ", "ขอบคุณค้าบ", "ขอบคุณค่ะ", "ขอบคุณคะ", "ขอบคุณค่า",
+        "ขอบคุณมาก", "ขอบคุณมากครับ", "ขอบคุณมากค่ะ", "ขอบใจ", "ขอบใจจ้า",
+        "โอเค", "โอเคครับ", "โอเคค่ะ", "รับทราบ", "เข้าใจแล้ว",
+        "ok", "okay", "thanks", "thank you", "thx", "ty",
+    }
+    if msg_clean in _thanks or msg_norm in _thanks:
+        return (
+            "ยินดีครับ หากมีข้อสงสัยเพิ่มเติมเกี่ยวกับคณะวิทยาศาสตร์ ศรีราชา สอบถามได้ตลอดเลยครับ",
+            [], [],
+        )
+
+    _model_exact = {
+        "ชื่ออะไร", "ชื่อไร", "คุณชื่ออะไร", "เธอชื่ออะไร", "บอทชื่ออะไร",
+        "ใครสร้าง", "ใครพัฒนา", "โมเดล", "model",
+    }
+    _model_phrases = (
+        "ใช้โมเดล", "โมเดลอะไร", "โมเดลไร", "โมเดลไหน",
+        "ใช้modelอะไร", "ใช้modelไร", "ใช้modelไหน", "ใช้modelตัวไหน",
+        "modelอะไร", "modelไร", "modelไหน",
+        "ใช้aiอะไร", "ใช้aiไร", "ใช้aiตัวไหน", "ใช้aiไหน", "เป็นaiอะไร", "aiรุ่นไหน",
+        "ใช้เอไออะไร", "ใช้เอไอไร", "เป็นเอไออะไร", "llmอะไร",
+        "ใช้gpt", "ใช่gpt", "chatgpt", "ใช้gemini", "geminiอะไร", "geminiรุ่น", "ใช้claude",
+        "คุณคือใคร", "คุณเป็นใคร", "เธอคือใคร", "เธอเป็นใคร", "นายคือใคร", "แกคือใคร",
+        "เป็นบอทอะไร", "ใครสร้างคุณ", "ใครสร้างบอท", "ใครพัฒนาระบบ",
+    )
+    if msg_clean in _model_exact or (len(msg_clean) <= 60 and any(p in msg_nospace for p in _model_phrases)):
+        return (
+            "ผมคือ Science Assistant ระบบผู้ช่วยอัจฉริยะของคณะวิทยาศาสตร์ ศรีราชา มหาวิทยาลัยเกษตรศาสตร์ "
+            "พัฒนาขึ้นเพื่อช่วยตอบคำถามเกี่ยวกับหลักสูตร การลงทะเบียน เอกสารคำร้อง และข้อมูลภายในคณะครับ "
+            "พิมพ์เรื่องที่ต้องการสอบถามได้เลยครับ",
+            [], [],
+        )
+
+    _playful = {
+        "เทส", "เทสๆ", "ทดสอบ", "ทดสอบระบบ", "test", "testing", "ping",
+        "อยู่ไหม", "อยู่ป่าว", "มีใครอยู่ไหม", "บอท", "แอดมิน",
+        "หิวข้าว", "กินข้าวยัง", "ทำไรอยู่", "ทำอะไรอยู่", "เหงา", "เบื่อ",
+        "รักนะ", "น่ารัก", "เก่งจัง", "ฉลาดไหม",
+    }
+    if (
+        len(msg_clean) <= 1
+        or msg_clean in _playful
+        or msg_norm in _playful
+        or re.fullmatch(r'5{2,}\+*|ฮ่าๆ+|haha+|lol|อิอิ', msg_clean)
+    ):
+        return (
+            "ระบบพร้อมใช้งานครับ สามารถพิมพ์คำถามเกี่ยวกับหลักสูตร การลงทะเบียน "
+            "เอกสารคำร้อง หรือข้อมูลของคณะวิทยาศาสตร์ ศรีราชา ได้เลยครับ",
+            [], [],
+        )
+
     msg_lower = user_message.lower()
-    # คำค้นจากการ split (ภาษาอังกฤษ/มีช่องว่าง) + 3-gram สำหรับภาษาไทย
-    kw = [w for w in msg_lower.split() if len(w) > 1]
-    compact = msg_lower.replace(" ", "")
+    # ตัดคำฟุ่มเฟือยออกก่อนทำ 3-gram กันไม่ให้ทุกหน้าในเว็บติดผลค้นหาหมด
+    _stop_words = (
+        "คณะวิทยาศาสตร์", "มหาวิทยาลัยเกษตรศาสตร์", "วิทยาเขตศรีราชา",
+        "ม.เกษตร", "ศรีราชา", "เกษตร", "ต้องทำยังไง", "ทำยังไง", "ยังไง",
+        "อย่างไร", "อะไรบ้าง", "เมื่อไหร่", "เท่าไหร่", "ที่ไหน", "ได้ไหม",
+        "คือใคร", "ครับ", "ค่ะ", "คะ", "นะ",
+    )
+    cleaned_msg = msg_lower
+    for sw in _stop_words:
+        cleaned_msg = cleaned_msg.replace(sw, " ")
+    cleaned_msg = cleaned_msg.strip()
+    search_src = cleaned_msg if len(cleaned_msg) >= 2 else msg_lower
+
+    kw = [w for w in search_src.split() if len(w) > 1]
+    compact = search_src.replace(" ", "")
     kw += [compact[i:i+3] for i in range(len(compact) - 2)]
+    kw = list(dict.fromkeys(kw))
 
-    def _matches(text):
+    def _score(text):
+        if not kw or not text:
+            return 0
         t = text.lower()
-        return any(w in t for w in kw)
+        return sum(1 for w in kw if w in t)
 
-    # กรองเฉพาะหน้าที่เกี่ยวข้องกับคำถาม
+    # กรองและเรียงลำดับเฉพาะหน้าที่เกี่ยวข้องมากสุด
     context_str = ""
     if CHAT_CONTEXT:
-        filtered = [d for d in CHAT_CONTEXT if _matches(d["content"]) or _matches(d.get("category", ""))]
+        scored_docs = []
+        for idx, d in enumerate(CHAT_CONTEXT):
+            sc = _score(d["content"]) + _score(d.get("category", "")) * 3
+            if sc > 0:
+                scored_docs.append((sc, idx, d))
+        scored_docs.sort(key=lambda x: (-x[0], x[1]))
+        filtered = [d for _, _, d in scored_docs]
+
         # ปฏิทินการศึกษา: ถ้าคำถามเกี่ยวกับวัน/สอบ/ลงทะเบียน ให้ดันปฏิทินขึ้นหน้าสุดเสมอ
         _cal_kw = ("สอบ", "ปฏิทิน", "เปิดเทอม", "ปิดเทอม", "เปิดภาค", "ปิดภาค",
                    "ลงทะเบียน", "ถอน", "เพิ่มวิชา", "กำหนดการ", "เทอม", "ภาคเรียน", "วันสุดท้าย")
         if any(k in msg_lower for k in _cal_kw):
             cal_docs = [d for d in CHAT_CONTEXT if "ปฏิทิน" in d.get("category", "")]
             filtered = cal_docs + [d for d in filtered if d not in cal_docs]
-        docs_to_use = filtered[:8] if filtered else CHAT_CONTEXT[:5]
+        docs_to_use = filtered[:5] if filtered else CHAT_CONTEXT[:2]
         context_str = "\n\nRelevant Information:\n"
         for doc in docs_to_use:
-            limit = 8000 if "ปฏิทิน" in doc.get("category", "") else 2000
+            limit = 5000 if "ปฏิทิน" in doc.get("category", "") else 1500
             context_str += f"Source: {doc['source']} ({doc['category']})\nContent: {doc['content'][:limit]}\n\n"
 
     # เพิ่ม FAQ จาก Excel ที่เกี่ยวข้อง
     faq_str = ""
     if FAQ_CONTEXT:
-        matched_faq = [e for e in FAQ_CONTEXT if _matches(e["q"]) or _matches(e["a"])]
-        if not matched_faq:
-            matched_faq = FAQ_CONTEXT[:5]
-        faq_str = "\n\nข้อมูล FAQ ที่เกี่ยวข้อง:\n"
-        for e in matched_faq[:10]:
-            faq_str += f"Q: {e['q']}\nA: {e['a']}\n\n"
+        scored_faq = []
+        for idx, e in enumerate(FAQ_CONTEXT):
+            sc = _score(e["q"]) * 2 + _score(e["a"])
+            if sc > 0:
+                scored_faq.append((sc, idx, e))
+        scored_faq.sort(key=lambda x: (-x[0], x[1]))
+        if scored_faq:
+            faq_str = "\n\nข้อมูล FAQ ที่เกี่ยวข้อง:\n"
+            for _, _, e in scored_faq[:5]:
+                faq_str += f"Q: {e['q']}\nA: {e['a']}\n\n"
 
     system = f"""{prompt}
 {context_str}{faq_str}
@@ -367,10 +466,9 @@ def ask_gemini(user_message, history=None):
 - links ที่ใส่ได้ เช่น MyTCAS, เว็บคณะ, ระบบลงทะเบียน, admission.ku.ac.th ฯลฯ
 - ถ้าไม่มีลิงค์ที่เกี่ยวข้องให้ใส่ []
 """
-    model = genai.GenerativeModel(model_name="gemini-3.5-flash-lite", system_instruction=system)
     messages = []
     if history:
-        for h in history[-10:]:
+        for h in history[-6:]:
             messages.append({"role": h["role"], "parts": [{"text": h["parts"]}]})
     messages.append({"role": "user", "parts": [{"text": user_message}]})
 
@@ -459,30 +557,41 @@ def line_login():
 def line_callback():
     code  = request.args.get("code")
     state = request.args.get("state")
-    if state != flask_session.get("oauth_state"):
-        print(f"[DEBUG] MISMATCH: {state} != {flask_session.get('oauth_state')}")
-        # ข้ามไปก่อนเพื่อ debug
-
-    token_res = requests.post("https://api.line.me/oauth2/v2.1/token", data={
-        "grant_type":    "authorization_code",
-        "code":          code,
-        "redirect_uri":  LINE_REDIRECT_URI,
-        "client_id":     LINE_CLIENT_ID,
-        "client_secret": LINE_CLIENT_SECRET,
-    })
-    print("[DEBUG LINE RESPONSE]:", token_res.status_code, token_res.json())
-    access_token = token_res.json().get("access_token")
-    if not access_token:
+    saved_state = flask_session.pop("oauth_state", None)
+    # เทียบ state เฉพาะตอนมี session เดิม กันพังเวลาสลับ localhost/127.0.0.1 ตอน dev
+    if not code or (saved_state and state != saved_state):
         return redirect(url_for("login_page"))
 
-    profile = requests.get("https://api.line.me/v2/profile",
-        headers={"Authorization": f"Bearer {access_token}"}
-    ).json()
+    try:
+        token_res = requests.post("https://api.line.me/oauth2/v2.1/token", data={
+            "grant_type":    "authorization_code",
+            "code":          code,
+            "redirect_uri":  LINE_REDIRECT_URI,
+            "client_id":     LINE_CLIENT_ID,
+            "client_secret": LINE_CLIENT_SECRET,
+        }, timeout=10)
+        access_token = token_res.json().get("access_token") if token_res.ok else None
+        if not access_token:
+            return redirect(url_for("login_page"))
 
-    user = LineUser.query.filter_by(line_user_id=profile["userId"]).first()
+        prof_res = requests.get(
+            "https://api.line.me/v2/profile",
+            headers={"Authorization": f"Bearer {access_token}"},
+            timeout=10,
+        )
+        profile = prof_res.json() if prof_res.ok else {}
+    except Exception as e:
+        print(f"[LINE Auth] Callback error: {e}")
+        return redirect(url_for("login_page"))
+
+    line_uid = profile.get("userId")
+    if not line_uid:
+        return redirect(url_for("login_page"))
+
+    user = LineUser.query.filter_by(line_user_id=line_uid).first()
     if not user:
         user = LineUser(
-            line_user_id = profile["userId"],
+            line_user_id = line_uid,
             display_name = profile.get("displayName"),
             picture_url  = profile.get("pictureUrl"),
             login_count  = 1,
@@ -495,7 +604,8 @@ def line_callback():
         user.login_count  = (user.login_count or 1) + 1
     db.session.commit()
 
-    flask_session["line_user_id"]      = profile["userId"]
+    flask_session["db_user_id"]        = user.id
+    flask_session["line_user_id"]      = line_uid
     flask_session["line_display_name"] = profile.get("displayName")
     flask_session["line_picture"]      = profile.get("pictureUrl")
     return redirect(url_for("index"))
@@ -508,27 +618,42 @@ def line_logout():
 @app.route("/api/top_questions")
 def api_top_questions():
     """Top 5 คำถามยอดนิยม — public endpoint"""
+    default_chips = [
+        "มีสาขาอะไรบ้าง",
+        "ค่าเทอมเท่าไหร่",
+        "ขอเอกสารทำยังไง",
+        "การลงทะเบียนเรียน",
+        "มีทุนการศึกษาไหม",
+    ]
     try:
         from collections import Counter
         import re as _re2
         def normalize_chip(text):
             text = _re2.sub(r'(ครับ|ค่ะ|คะ|นะ|หน่อย|ได้ไหม|ไหม|บ้าง|เลย|นะครับ|นะคะ)\s*$', '', text.strip().lower()).strip()
-            if _re2.match(r'^(สวัสดี|หวัดดี|ดีครับ|hello|hi|hey)', text): return 'สวัสดี'
             if _re2.search(r'(สาขา|หลักสูตร|มีสาขา)', text): return 'มีสาขาอะไรบ้าง'
             if _re2.search(r'(รับสมัคร|สมัครเรียน|tcas)', text): return 'รับสมัครนิสิตใหม่เมื่อไหร่'
             if _re2.search(r'(ทุน|scholarship)', text): return 'มีทุนการศึกษาไหม'
             if _re2.search(r'(ค่าเทอม|ค่าเรียน|tuition)', text): return 'ค่าเทอมเท่าไหร่'
             if _re2.search(r'(ลา|ป่วย|ขาด|leave)', text): return 'ลาป่วยหรือขาดเรียนทำยังไง'
             if _re2.search(r'(เอกสาร|แบบฟอร์ม|คำร้อง)', text): return 'ขอเอกสารทำยังไง'
-            if _re2.search(r'(อาจารย์|ดร\.|ผศ\.)', text): return 'ข้อมูลอาจารย์'
+            if _re2.search(r'(อาจารย์|ดร\.|ผศ\.|คณบดี)', text): return 'ข้อมูลอาจารย์และผู้บริหาร'
             if _re2.search(r'(ลงทะเบียน|เพิ่มวิชา|ถอนวิชา)', text): return 'การลงทะเบียนเรียน'
             if _re2.search(r'(สอบ|ชดเชย)', text): return 'การสอบและขอสอบชดเชย'
-            return text[:40]
-        all_msgs = [r.user_message for r in ChatLog.query.with_entities(ChatLog.user_message).all()]
-        top5 = [{"question": q, "count": c} for q, c in Counter([normalize_chip(m) for m in all_msgs]).most_common(5)]
+            # คืนค่า None ถ้าไม่เข้าหมวดหมู่ กันข้อความดิบของผู้ใช้หลุดออก public API
+            return None
+        rows = (ChatLog.query.with_entities(ChatLog.user_message)
+                .order_by(ChatLog.id.desc()).limit(500).all())
+        mapped = [c for r in rows if (c := normalize_chip(r.user_message))]
+        top5 = [{"question": q, "count": cnt} for q, cnt in Counter(mapped).most_common(5)]
+        seen = {item["question"] for item in top5}
+        for q in default_chips:
+            if len(top5) >= 5:
+                break
+            if q not in seen:
+                top5.append({"question": q, "count": 0})
         return jsonify({"questions": top5})
     except Exception:
-        return jsonify({"questions": []})
+        return jsonify({"questions": [{"question": q, "count": 0} for q in default_chips]})
 
 # ──────────────────────────────────────────
 # Routes — ต้อง login LINE
@@ -549,15 +674,23 @@ def chat():
     if not GEMINI_API_KEY:
         return jsonify({"response": "ขออภัยครับ ระบบยังไม่พร้อมใช้งาน กรุณาติดต่อผู้ดูแลระบบ", "suggested_files": []})
 
-    # ── Rate limit: จำกัด 30 ข้อความ/นาที ต่อ session ──
     session_id = data.get("session_id") or request.headers.get("X-Session-Id", "anonymous")
+    db_user_id = flask_session.get("db_user_id")
+    if not db_user_id and flask_session.get("line_user_id"):
+        u = LineUser.query.filter_by(line_user_id=flask_session["line_user_id"]).first()
+        if u:
+            db_user_id = u.id
+            flask_session["db_user_id"] = u.id
+
+    # จำกัด 10 ข้อความ/นาที ต่อบัญชีผู้ใช้ กันโควต้า Gemini 15 RPM เต็ม
     now = datetime.utcnow()
     one_min_ago = now - _td(minutes=1)
-    recent_count = ChatLog.query.filter(
-        ChatLog.session_id == session_id,
-        ChatLog.timestamp >= one_min_ago
-    ).count()
-    if recent_count >= 30:
+    rate_q = ChatLog.query.filter(ChatLog.timestamp >= one_min_ago)
+    if db_user_id:
+        rate_q = rate_q.filter(ChatLog.user_id == db_user_id)
+    else:
+        rate_q = rate_q.filter(ChatLog.session_id == session_id)
+    if rate_q.count() >= 10:
         return jsonify({"response": "ขออภัยครับ คุณส่งข้อความถี่เกินไป กรุณารอสักครู่แล้วลองใหม่ครับ", "suggested_files": []})
 
     # ── ตรวจสอบความยาวข้อความ ──
@@ -577,7 +710,7 @@ def chat():
                 user_message = user_msg,
                 bot_answer   = bot_text,
                 session_id   = session_id,
-                user_id      = None,
+                user_id      = db_user_id,
             )
             db.session.add(log)
             db.session.commit()
@@ -623,7 +756,7 @@ def api_documents():
 @app.route("/api/feedback", methods=["POST"])
 @login_required
 def save_feedback():
-    data   = request.get_json(silent=True)
+    data   = request.get_json(silent=True) or {}
     log_id = data.get("log_id")
     score  = data.get("score")
     if not log_id or score not in (1, -1):
@@ -950,6 +1083,8 @@ def initialize_app():
         count = ScrapedPage.query.count()
         if count == 0:
             print("[Startup] DB ว่าง → scrape ทันที")
+            # โหลด PDF หลักสูตรมารอไว้ก่อนระหว่างรอดึงหน้าเว็บในพื้นหลัง
+            load_curriculum_pdfs()
             is_production = os.environ.get("FLASK_ENV") == "production"
             if is_production:
                 def delayed_scrape():
@@ -961,9 +1096,6 @@ def initialize_app():
         else:
             print(f"[Startup] DB มี {count} หน้า → โหลดจาก DB ข้าม scrape")
             load_context_from_db()
-
-        # โหลด PDF หลักสูตรเข้า context
-        load_curriculum_pdfs()
 
         # migrate FAQ จาก Excel → DB (ครั้งแรกเท่านั้น) แล้วโหลดจาก DB
         migrate_faq_from_excel()
