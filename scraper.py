@@ -45,7 +45,10 @@ PRIORITY_PAGES = {
 SKIP_PATTERNS = [
     "wp-admin", "wp-login", "wp-json", "xmlrpc",
     "feed", "comment", "attachment", "?replytocom",
-    ".pdf", ".jpg", ".jpeg", ".png", ".gif", ".zip",
+    "wp-content/uploads", "sdc_download",
+    ".pdf", ".jpg", ".jpeg", ".png", ".gif", ".zip", ".rar",
+    ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
+    "mailto:", "tel:", "javascript:",
     "facebook.com", "youtube.com", "twitter.com", "instagram.com",
     "page/", "?page_id", "#",
 ]
@@ -55,7 +58,7 @@ def should_skip(url):
 
 def is_same_domain(url):
     parsed = urlparse(url)
-    return parsed.netloc in ("sci.src.ku.ac.th", "admissions.src.ku.ac.th", "")
+    return parsed.scheme in ("http", "https") and parsed.netloc in ("sci.src.ku.ac.th", "admissions.src.ku.ac.th")
 
 def scrape_page(url):
     try:

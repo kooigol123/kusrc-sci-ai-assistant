@@ -49,7 +49,7 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_recycle": 300,
 }
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY") or secrets.token_hex(32)
-app.config["PERMANENT_SESSION_LIFETIME"] = _td(hours=12)
+app.config["PERMANENT_SESSION_LIFETIME"] = _td(minutes=15)
 db = SQLAlchemy(app)
 
 # Admin credentials (ตั้งผ่าน env เท่านั้น — ไม่มี default เพื่อกันรหัสหลุดใน repo สาธารณะ)
@@ -437,10 +437,17 @@ def ask_gemini(user_message, history=None):
         scored_docs.sort(key=lambda x: (-x[0], x[1]))
         filtered = [d for _, _, d in scored_docs]
 
+        # ค่าเทอม / หลักสูตรปกติ-พิเศษ: ดันข้อมูลหลักสูตรขึ้นหน้าสุด
+        if any(k in msg_lower for k in ("ค่าเทอม", "ค่าธรรมเนียม", "หลักสูตรพิเศษ", "ภาคพิเศษ")):
+            prog_docs = [d for d in filtered if "program" in d.get("category", "") or "curriculum" in d.get("category", "")]
+            if not prog_docs:
+                prog_docs = [d for d in CHAT_CONTEXT if "program" in d.get("category", "") or "curriculum" in d.get("category", "")]
+            filtered = prog_docs + [d for d in filtered if d not in prog_docs]
+
         # ปฏิทินการศึกษา: ถ้าคำถามเกี่ยวกับวัน/สอบ/ลงทะเบียน ให้ดันปฏิทินขึ้นหน้าสุดเสมอ
         _cal_kw = ("สอบ", "ปฏิทิน", "เปิดเทอม", "ปิดเทอม", "เปิดภาค", "ปิดภาค",
                    "ลงทะเบียน", "ถอน", "เพิ่มวิชา", "กำหนดการ", "เทอม", "ภาคเรียน", "วันสุดท้าย")
-        if any(k in msg_lower for k in _cal_kw):
+        if any(k in msg_lower for k in _cal_kw) and "ค่าเทอม" not in msg_lower:
             cal_docs = [d for d in CHAT_CONTEXT if "ปฏิทิน" in d.get("category", "")]
             filtered = cal_docs + [d for d in filtered if d not in cal_docs]
         docs_to_use = filtered[:5] if filtered else CHAT_CONTEXT[:2]
