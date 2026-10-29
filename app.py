@@ -49,6 +49,7 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_recycle": 300,
 }
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY") or secrets.token_hex(32)
+app.config["PERMANENT_SESSION_LIFETIME"] = _td(hours=12)
 db = SQLAlchemy(app)
 
 # Admin credentials (ตั้งผ่าน env เท่านั้น — ไม่มี default เพื่อกันรหัสหลุดใน repo สาธารณะ)
@@ -620,6 +621,7 @@ def line_callback():
         user.login_count  = (user.login_count or 1) + 1
     db.session.commit()
 
+    flask_session.permanent            = True
     flask_session["db_user_id"]        = user.id
     flask_session["line_user_id"]      = line_uid
     flask_session["line_display_name"] = profile.get("displayName")
