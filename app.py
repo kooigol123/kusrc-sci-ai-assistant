@@ -60,8 +60,8 @@ GEMINI_API_KEY2 = os.getenv("GEMINI_API_KEY2")
 GEMINI_API_KEY3 = os.getenv("GEMINI_API_KEY3")
 
 # LINE Login
-LINE_CLIENT_ID     = os.getenv("LINE_CLIENT_ID")
-LINE_CLIENT_SECRET = os.getenv("LINE_CLIENT_SECRET")
+LINE_CLIENT_ID     = os.getenv("LINE_CLIENT_ID") or os.getenv("LINE_CHANNEL_ID")
+LINE_CLIENT_SECRET = os.getenv("LINE_CLIENT_SECRET") or os.getenv("LINE_CHANNEL_SECRET")
 LINE_REDIRECT_URI  = os.getenv("LINE_REDIRECT_URI")
 
 # ──────────────────────────────────────────
@@ -367,7 +367,7 @@ def ask_gemini(user_message, history=None):
 - links ที่ใส่ได้ เช่น MyTCAS, เว็บคณะ, ระบบลงทะเบียน, admission.ku.ac.th ฯลฯ
 - ถ้าไม่มีลิงค์ที่เกี่ยวข้องให้ใส่ []
 """
-    model = genai.GenerativeModel(model_name="gemini-2.5-flash-lite", system_instruction=system)
+    model = genai.GenerativeModel(model_name="gemini-3.5-flash-lite", system_instruction=system)
     messages = []
     if history:
         for h in history[-10:]:
@@ -376,7 +376,7 @@ def ask_gemini(user_message, history=None):
 
     def _call_gemini(api_key):
         genai.configure(api_key=api_key)
-        m = genai.GenerativeModel(model_name="gemini-2.5-flash-lite", system_instruction=system)
+        m = genai.GenerativeModel(model_name="gemini-3.5-flash-lite", system_instruction=system)
         return m.generate_content(messages)
 
     # ลอง key แรกก่อน ถ้าพังสลับ key 2 และ key 3 อัตโนมัติ
@@ -454,6 +454,7 @@ def line_login():
     }
     return redirect("https://access.line.me/oauth2/v2.1/authorize?" + urlencode(params))
 
+@app.route("/auth/callback")
 @app.route("/auth/line/callback")
 def line_callback():
     code  = request.args.get("code")
@@ -469,6 +470,7 @@ def line_callback():
         "client_id":     LINE_CLIENT_ID,
         "client_secret": LINE_CLIENT_SECRET,
     })
+    print("[DEBUG LINE RESPONSE]:", token_res.status_code, token_res.json())
     access_token = token_res.json().get("access_token")
     if not access_token:
         return redirect(url_for("login_page"))
@@ -1033,6 +1035,6 @@ if _os.environ.get("WERKZEUG_RUN_MAIN") != "true":
     initialize_app()
 
 if __name__ == "__main__":
-    port  = int(os.environ.get("PORT", 10000))
+    port  = int(os.environ.get("PORT", 3000))
     debug = _os.environ.get("FLASK_ENV") != "production"
     app.run(host="0.0.0.0", port=port, debug=debug, use_reloader=False)

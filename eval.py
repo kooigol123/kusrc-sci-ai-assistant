@@ -152,7 +152,7 @@ def run_evaluation():
     print("=" * 60)
 
     # Import app context
-    from test import app, ask_gemini, CHAT_CONTEXT
+    from app import app, ask_gemini, CHAT_CONTEXT
     print(f"  Knowledge base: {len(CHAT_CONTEXT)} documents loaded")
     print("=" * 60)
 

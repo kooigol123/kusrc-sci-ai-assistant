@@ -1,6 +1,7 @@
 # Environment variables (ห้าม push ขึ้น GitHub เด็ดขาด)
 .env
 echo "venv/
+venv/
 __pycache__/
 *.pyc
 .env

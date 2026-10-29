@@ -32,6 +32,6 @@ SESSION_COOKIE_SAMESITE = 'Lax'
 PERMANENT_SESSION_LIFETIME = 3600  # 1 hour
 
 # AI Settings
-AI_MODEL = "gemini-1.5-flash"
+AI_MODEL = "gemini-3.5-flash"
 AI_MAX_TOKENS = 1000
 AI_TEMPERATURE = 0.7
