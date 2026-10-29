@@ -86,10 +86,11 @@ prompt = """
    - 13 ขอคืนสภาพนิสิต(Student Reinstatement)-Revised.pdf
    - 20 คำร้องขอลงทะเบียนเรียนเพิ่ม (Add Registration).pdf
    - 8 ขอเทียบรายวิชา(course transfer)-Revised.pdf
-   - 6 ขอย้ายหลักสูตรหรือสาขาวิชาเอก(change major)-Revised.pdf
+   - การย้ายสาขา (เปลี่ยนสาขาวิชา): ใช้แบบฟอร์ม 6 ขอย้ายหลักสูตรหรือสาขาวิชาเอก(change major)-Revised.pdf
    - 19 คำร้องขอหนังสือรับรองรายวิชา(กรณีสอบวิชาชีพ)(Course Certificate)-Revised.pdf
    - 18 ขอคืนเงิน (Refund of tuition fee)-Revised.pdf
    - 3 ขอผ่อนผัน(Postpone tuition)-Revised.pdf
+   - การขอ Transcript (ใบแสดงผลการเรียน): ยื่นคำร้องผ่านระบบ MyKU หรือยื่นที่ฝ่ายการศึกษา อาคาร 25 ชั้น 1
 
 7. บุคลากรและติดต่อ
    - คณบดีและผู้บริหาร
