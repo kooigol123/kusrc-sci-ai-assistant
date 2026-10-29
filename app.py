@@ -21,10 +21,11 @@ from dotenv import load_dotenv
 load_dotenv()
 
 try:
-    from scraper import get_kusrc_data
+    from scraper import get_kusrc_data, scrape_calendar
 except Exception as e:
     print("SCRAPER ERROR:", traceback.format_exc())
     get_kusrc_data = None
+    scrape_calendar = None
 
 try:
     from prompt import prompt
@@ -198,6 +199,21 @@ def run_scrape(trigger="auto"):
         log_id = log.id
     try:
         print(f"[Scraper] Starting ({trigger})...")
+        # ดึงปฏิทินการศึกษาเข้า DB ก่อนทันที ไม่ต้องรอดึงเว็บครบ 60 หน้า
+        if scrape_calendar:
+            cal_items = scrape_calendar()
+            if cal_items:
+                with app.app_context():
+                    for item in cal_items:
+                        existing = ScrapedPage.query.filter_by(url=item["source"]).first()
+                        if existing:
+                            existing.content = item["content"]
+                            existing.category = item["category"]
+                            existing.last_scraped = datetime.utcnow()
+                        else:
+                            db.session.add(ScrapedPage(url=item["source"], category=item["category"], content=item["content"]))
+                    db.session.commit()
+                load_context_from_db()
         data = get_kusrc_data()
         with app.app_context():
             current_urls = set()
@@ -429,7 +445,7 @@ def ask_gemini(user_message, history=None):
         docs_to_use = filtered[:5] if filtered else CHAT_CONTEXT[:2]
         context_str = "\n\nRelevant Information:\n"
         for doc in docs_to_use:
-            limit = 5000 if "ปฏิทิน" in doc.get("category", "") else 1500
+            limit = 8000 if "ปฏิทิน" in doc.get("category", "") else 1500
             context_str += f"Source: {doc['source']} ({doc['category']})\nContent: {doc['content'][:limit]}\n\n"
 
     # เพิ่ม FAQ จาก Excel ที่เกี่ยวข้อง
