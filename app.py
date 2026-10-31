@@ -38,7 +38,10 @@ except Exception as e:
 # ──────────────────────────────────────────
 app = Flask(__name__)
 
-_DB_URL = os.getenv("DATABASE_URL", "sqlite:///science_assistant.db")
+_DB_URL = os.getenv("DATABASE_URL")
+if not _DB_URL:
+    _BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+    _DB_URL = f"sqlite:///{os.path.join(_BASE_DIR, 'science_assistant.db')}"
 if _DB_URL.startswith("postgres://"):
     _DB_URL = _DB_URL.replace("postgres://", "postgresql://", 1)
 
@@ -556,6 +559,31 @@ def ask_gemini(user_message, history=None):
     good_files = [m for m in (_match_pdf(f) for f in parsed.get("files", [])) if m]
     links      = parsed.get("links", [])
     good_links = [l for l in links if isinstance(l, dict) and l.get("title") and l.get("url")]
+
+    # เติมลิงก์ระบบสำคัญให้อัตโนมัติ ป้องกันกรณีโมเดลลืมส่ง links ในบางคำตอบ
+    existing_urls = {l.get("url") for l in good_links}
+    msg_check = (user_message + " " + bot_text).lower()
+
+    if any(k in msg_check for k in ("ตารางเรียน", "ตารางสอน")) and "https://regis.src.ku.ac.th/res/select_std.php" not in existing_urls:
+        good_links.append({
+            "title": "ตรวจสอบตารางเรียนนิสิต",
+            "url": "https://regis.src.ku.ac.th/res/select_std.php",
+            "desc": "ตรวจสอบตารางเรียนตามรหัสนิสิตหรือรายวิชา"
+        })
+        if "https://regis.src.ku.ac.th/res/cs_sectx.php" not in existing_urls:
+            good_links.append({
+                "title": "ตรวจสอบรายวิชาที่เปิดสอน",
+                "url": "https://regis.src.ku.ac.th/res/cs_sectx.php",
+                "desc": "ค้นหารายวิชาและหมู่เรียนที่เปิดสอน"
+            })
+
+    if any(k in msg_check for k in ("ตารางสอบ", "ห้องสอบ", "วันสอบ", "table_test")) and "https://regis.src.ku.ac.th/res/table_test/?c_level=Bachelor" not in existing_urls:
+        good_links.append({
+            "title": "ตรวจสอบตารางสอบ",
+            "url": "https://regis.src.ku.ac.th/res/table_test/?c_level=Bachelor",
+            "desc": "ตรวจสอบตารางสอบและห้องสอบประจำภาคการศึกษา"
+        })
+
     return bot_text, good_files, good_links
 
 # ──────────────────────────────────────────
