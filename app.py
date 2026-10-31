@@ -49,7 +49,7 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_recycle": 300,
 }
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY") or secrets.token_hex(32)
-app.config["PERMANENT_SESSION_LIFETIME"] = _td(minutes=15)
+app.config["PERMANENT_SESSION_LIFETIME"] = _td(hours=12)
 db = SQLAlchemy(app)
 
 # Admin credentials (ตั้งผ่าน env เท่านั้น — ไม่มี default เพื่อกันรหัสหลุดใน repo สาธารณะ)
@@ -280,7 +280,7 @@ def start_scheduler():
             try:
                 with app.app_context():
                     from datetime import timedelta as _td
-                    cutoff = datetime.utcnow() - _td(days=3)
+                    cutoff = datetime.utcnow() - _td(days=30)
                     deleted = ChatLog.query.filter(ChatLog.timestamp < cutoff).delete()
                     db.session.commit()
                     if deleted:
@@ -438,10 +438,12 @@ def ask_gemini(user_message, history=None):
         filtered = [d for _, _, d in scored_docs]
 
         # ค่าเทอม / หลักสูตรปกติ-พิเศษ: ดันข้อมูลหลักสูตรขึ้นหน้าสุด
-        if any(k in msg_lower for k in ("ค่าเทอม", "ค่าธรรมเนียม", "หลักสูตรพิเศษ", "ภาคพิเศษ")):
-            prog_docs = [d for d in filtered if "program" in d.get("category", "") or "curriculum" in d.get("category", "")]
-            if not prog_docs:
-                prog_docs = [d for d in CHAT_CONTEXT if "program" in d.get("category", "") or "curriculum" in d.get("category", "")]
+        if any(k in msg_lower for k in ("ค่าเทอม", "ค่าธรรมเนียม", "ค่าเล่าเรียน", "หลักสูตรพิเศษ", "ภาคพิเศษ")):
+            prog_docs = [d for d in filtered if "program" in d.get("category", "")]
+            if len(prog_docs) < 5:
+                for d in CHAT_CONTEXT:
+                    if "program" in d.get("category", "") and d not in prog_docs:
+                        prog_docs.append(d)
             filtered = prog_docs + [d for d in filtered if d not in prog_docs]
 
         # ปฏิทินการศึกษา: ถ้าคำถามเกี่ยวกับวัน/สอบ/ลงทะเบียน ให้ดันปฏิทินขึ้นหน้าสุดเสมอ
@@ -450,7 +452,13 @@ def ask_gemini(user_message, history=None):
         if any(k in msg_lower for k in _cal_kw) and "ค่าเทอม" not in msg_lower:
             cal_docs = [d for d in CHAT_CONTEXT if "ปฏิทิน" in d.get("category", "")]
             filtered = cal_docs + [d for d in filtered if d not in cal_docs]
-        docs_to_use = filtered[:5] if filtered else CHAT_CONTEXT[:2]
+        is_overview = any(p in msg_nospace for p in (
+            "มีข้อมูลอะไรบ้าง", "มีข้อมูลด้านไหน", "มีข้อมูลเรื่องอะไร", "มีข้อมูลอะไร",
+            "ช่วยอะไรได้บ้าง", "ช่วยเรื่องอะไรได้บ้าง", "ทำอะไรได้บ้าง", "ถามอะไรได้บ้าง",
+            "มีบริการอะไรบ้าง", "ค้นหาอะไรได้บ้าง", "รู้เรื่องอะไรบ้าง", "มีอะไรให้ถามบ้าง",
+            "ในระบบมีข้อมูลอะไร", "มีข้อมูลเกี่ยวกับอะไร"
+        ))
+        docs_to_use = [] if is_overview else (filtered[:5] if filtered else CHAT_CONTEXT[:2])
         context_str = "\n\nRelevant Information:\n"
         for doc in docs_to_use:
             limit = 8000 if "ปฏิทิน" in doc.get("category", "") else 1500
@@ -864,13 +872,17 @@ def api_admin_stats():
         from sqlalchemy import func
         from datetime import timedelta
         from collections import Counter
-        today = datetime.utcnow().date()
+        thai_now = datetime.utcnow() + timedelta(hours=7)
+        thai_today = thai_now.date()
         total_chats  = ChatLog.query.count()
-        today_chats  = ChatLog.query.filter(func.date(ChatLog.timestamp) == today).count()
+        today_start_utc = datetime(thai_today.year, thai_today.month, thai_today.day) - timedelta(hours=7)
+        today_chats  = ChatLog.query.filter(ChatLog.timestamp >= today_start_utc).count()
         daily = []
         for i in range(6, -1, -1):
-            d = today - timedelta(days=i)
-            cnt = ChatLog.query.filter(func.date(ChatLog.timestamp) == d).count()
+            d = thai_today - timedelta(days=i)
+            start_utc = datetime(d.year, d.month, d.day) - timedelta(hours=7)
+            end_utc = start_utc + timedelta(days=1)
+            cnt = ChatLog.query.filter(ChatLog.timestamp >= start_utc, ChatLog.timestamp < end_utc).count()
             daily.append({"date": d.strftime("%d/%m"), "count": cnt})
 
         raw_msgs = [r.user_message.strip().lower() for r in ChatLog.query.with_entities(ChatLog.user_message).all()]

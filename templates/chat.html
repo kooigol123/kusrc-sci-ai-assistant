@@ -509,6 +509,67 @@
         .send-btn:active {
             transform: scale(0.98);
         }
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .input-wrapper.waiting {
+            opacity: 0.75;
+            background: #f9fafb;
+        }
+        .inline-resources {
+            margin-top: 10px;
+            padding: 10px 12px;
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-left: 3px solid #1a5f3f;
+            border-radius: 8px;
+            font-size: 0.82rem;
+        }
+        .inline-res-header {
+            color: #166534;
+            font-weight: 600;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .inline-res-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .inline-res-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 10px;
+            background: #ffffff;
+            color: #1a5f3f;
+            border: 1px solid #86efac;
+            border-radius: 999px;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .inline-res-btn:hover {
+            background: #1a5f3f;
+            color: #ffffff;
+            border-color: #1a5f3f;
+        }
+        @keyframes cardPulse {
+            0% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.55); }
+            70% { box-shadow: 0 0 0 10px rgba(249, 115, 22, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0); }
+        }
+        .card-highlight-pulse {
+            animation: cardPulse 1s ease-out 2;
+            border: 1px solid #f97316;
+        }
 
         /* Sidebar */
         .sidebar {
@@ -991,7 +1052,7 @@
             </div>
 
             <!-- Downloads -->
-            <div class="card">
+            <div class="card" id="downloads-card">
                 <div class="card-header">
                     <div class="card-title">
                         <i class="fas fa-file-download"></i>
@@ -1059,6 +1120,13 @@
                 `;
                 content.appendChild(item);
             });
+            const dlCard = document.getElementById('downloads-card');
+            if (dlCard) {
+                dlCard.classList.remove('card-highlight-pulse');
+                void dlCard.offsetWidth;
+                dlCard.classList.add('card-highlight-pulse');
+                setTimeout(() => dlCard.classList.remove('card-highlight-pulse'), 2200);
+            }
         }
 
         // Show bot-suggested links in quick-links sidebar
@@ -1093,7 +1161,8 @@
             const section = document.getElementById('suggested-links-section');
             const list    = document.getElementById('suggested-links-list');
 
-            // กรอง duplicate ด้วย normalized URL
+            list.innerHTML = '';
+            shownLinkUrls.clear();
             const newLinks = links.filter(l => {
                 const norm = normalizeUrl(l.url || '');
                 if (!norm || shownLinkUrls.has(norm)) return false;
@@ -1127,6 +1196,10 @@
             section.style.display = 'block';
             card.style.display = 'block';
             document.getElementById('suggested-links-placeholder').style.display = 'none';
+            card.classList.remove('card-highlight-pulse');
+            void card.offsetWidth;
+            card.classList.add('card-highlight-pulse');
+            setTimeout(() => card.classList.remove('card-highlight-pulse'), 2200);
         }
 
         // Download PDF
@@ -1171,7 +1244,39 @@
             return text;
         }
 
-        function addMessage(message, isUser = false) {
+        function buildInlineResourcesHtml(extra) {
+            if (!extra) return '';
+            const links = extra.links || [];
+            const files = extra.files || [];
+            if (!links.length && !files.length) return '';
+            let html = '<div class="inline-resources">';
+            if (links.length) {
+                html += '<div class="inline-res-header"><i class="fas fa-external-link-alt"></i> ลิงก์ที่เกี่ยวข้อง (แสดงในแถบ "ผลการค้นหา" ด้านขวา หรือกดเปิดที่นี่):</div><div class="inline-res-list">';
+                links.forEach(l => {
+                    if (l && l.url) {
+                        html += `<a class="inline-res-btn" href="${escapeHtml(l.url)}" target="_blank" rel="noopener noreferrer"><i class="fas fa-link"></i> ${escapeHtml(l.title || l.url)}</a>`;
+                    }
+                });
+                html += '</div>';
+            }
+            if (files.length) {
+                if (links.length) html += '<div style="margin-top:8px;"></div>';
+                html += '<div class="inline-res-header"><i class="fas fa-file-pdf"></i> เอกสารแนะนำ (แสดงในแถบ "เอกสารดาวน์โหลด" ด้านขวา):</div><div class="inline-res-list">';
+                files.forEach(name => {
+                    const pdf = allPdfData.find(p => p.name === name) || allPdfData.find(p => p.name.toLowerCase().includes(name.toLowerCase()));
+                    if (pdf && pdf.id) {
+                        html += `<a class="inline-res-btn" href="/download/${pdf.id}"><i class="fas fa-download"></i> ${escapeHtml(pdf.name)}</a>`;
+                    } else {
+                        html += `<span class="inline-res-btn"><i class="fas fa-file-pdf"></i> ${escapeHtml(name)}</span>`;
+                    }
+                });
+                html += '</div>';
+            }
+            html += '</div>';
+            return html;
+        }
+
+        function addMessage(message, isUser = false, extra = null) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
             
@@ -1190,12 +1295,13 @@
                 `;
             } else {
                 const msgId = 'msg_' + Date.now();
+                const extraHtml = buildInlineResourcesHtml(extra);
                 messageDiv.innerHTML = `
                     <div class="message-avatar">
                         <i class="fas fa-robot"></i>
                     </div>
                     <div class="message-wrapper">
-                        <div class="message-content">${formatMessage(message)}</div>
+                        <div class="message-content">${formatMessage(message)}${extraHtml}</div>
                         <div class="message-time">${getCurrentTime()}</div>
                         <div class="feedback-row" id="fb_${msgId}">
                             <button class="feedback-btn" onclick="sendFeedback('${msgId}', 1, this)">
@@ -1216,14 +1322,29 @@
 
         // map msgId → chat_log id จาก server
         const msgLogMap = {};
+        let isWaitingForBot = false;
+        const sendBtn = chatForm.querySelector('.send-btn');
+        const inputWrapper = chatForm.querySelector('.input-wrapper');
+        const defaultPlaceholder = userInput.getAttribute('placeholder') || 'พิมพ์คำถามหรือข้อความของคุณ...';
+
+        function setChatWaiting(waiting) {
+            isWaitingForBot = waiting;
+            userInput.disabled = waiting;
+            if (sendBtn) sendBtn.disabled = waiting;
+            if (inputWrapper) inputWrapper.classList.toggle('waiting', waiting);
+            userInput.setAttribute('placeholder', waiting ? 'กำลังรอคำตอบจาก Science Assistant...' : defaultPlaceholder);
+            if (!waiting) userInput.focus();
+        }
 
         // Handle chat form submission
         chatForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            if (isWaitingForBot) return;
             const message = userInput.value.trim();
             
             if (!message) return;
             
+            setChatWaiting(true);
             // Add user message to chat
             addMessage(message, true);
             userInput.value = '';
@@ -1246,7 +1367,10 @@
                 typingIndicator.style.display = 'none';
                 
                 if (response.ok) {
-                    addMessage(data.response, false);
+                    addMessage(data.response, false, {
+                        links: data.suggested_links || [],
+                        files: data.suggested_files || []
+                    });
                     // เก็บ log_id สำหรับ feedback
                     const lastBot = chatMessages.querySelector('.message.bot:last-of-type');
                     if (lastBot && data.log_id) {
@@ -1270,6 +1394,8 @@
                 typingIndicator.style.display = 'none';
                 console.error('Error:', error);
                 addMessage('ขออภัยครับ ไม่สามารถเชื่อมต่อได้', false);
+            } finally {
+                setChatWaiting(false);
             }
         });
 
@@ -1337,6 +1463,7 @@
         }
 
         function sendSuggestion(btn, text) {
+            if (isWaitingForBot) return;
             // ใส่ข้อความในช่อง input แล้ว submit ทันที
             const input = document.getElementById('user-input');
             input.value = text;

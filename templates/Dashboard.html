@@ -381,7 +381,7 @@ function renderTopQuestions(questions) {
   el.innerHTML = questions.map((q, i) => `
     <div class="top-q-item">
       <div class="top-q-rank">${i+1}</div>
-      <div class="top-q-text">${q.question.length > 60 ? q.question.slice(0,60)+'...' : q.question}</div>
+      <div class="top-q-text">${escHtml(q.question.length > 60 ? q.question.slice(0,60)+'...' : q.question)}</div>
       <div class="top-q-count">${q.count} ครั้ง</div>
     </div>
   `).join('');
@@ -409,8 +409,8 @@ function renderLogs(logs) {
       <td style="color:#9ca3af">${startNum - i}</td>
       <td style="white-space:nowrap;font-size:.8rem">${l.timestamp}</td>
       <td style="font-size:.75rem;color:#6b7280;font-family:monospace">${l.session_id.slice(0,12)}...</td>
-      <td>${l.user_message.length > 60 ? l.user_message.slice(0,60)+'...' : l.user_message}</td>
-      <td style="color:#6b7280">${l.bot_answer}</td>
+      <td>${escHtml(l.user_message.length > 60 ? l.user_message.slice(0,60)+'...' : l.user_message)}</td>
+      <td style="color:#6b7280">${escHtml(l.bot_answer)}</td>
     </tr>
   `).join('');
 }
@@ -497,9 +497,9 @@ function renderUsers(users) {
         <div style="display:flex;align-items:center;gap:10px;">
           ${u.picture_url
             ? `<img src="${u.picture_url}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid #bbf7d0;">`
-            : `<div style="width:32px;height:32px;border-radius:50%;background:#06C755;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;color:white;">${(u.display_name||'?')[0]}</div>`
+            : `<div style="width:32px;height:32px;border-radius:50%;background:#06C755;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;color:white;">${escHtml((u.display_name||'?')[0])}</div>`
           }
-          <span style="font-weight:500">${u.display_name || '-'}</span>
+          <span style="font-weight:500">${escHtml(u.display_name || '-')}</span>
         </div>
       </td>
       <td style="font-size:.75rem;color:#6b7280;font-family:monospace">${u.line_user_id.slice(0,12)}...</td>
@@ -566,7 +566,7 @@ function searchFAQ() {
 }
 
 function escHtml(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return (s == null ? '' : String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 function editFAQ(id, q, a) {
