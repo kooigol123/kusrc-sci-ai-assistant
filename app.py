@@ -1260,7 +1260,8 @@ def ping():
 
 @app.route("/login")
 def login_page():
-    if flask_session.get("line_user_id") or (flask_session.get("is_guest") and get_setting("guest_mode", "false") == "true"):
+    # ถ้าล็อกอินด้วย LINE ตัวจริงแล้ว ให้ redirect ไปหน้าแชท
+    if flask_session.get("line_user_id") and not flask_session.get("is_guest"):
         return redirect(url_for("index"))
     guest_mode = (get_setting("guest_mode", "false") == "true")
     return render_template("login.html", guest_mode_enabled=guest_mode)
@@ -1281,6 +1282,8 @@ def guest_login():
 
 @app.route("/auth/line")
 def line_login():
+    if not LINE_CLIENT_ID:
+        return redirect(url_for("login_page"))
     state = secrets.token_hex(16)
     flask_session["oauth_state"] = state
     params = {
@@ -1345,6 +1348,8 @@ def line_callback():
     db.session.commit()
 
     flask_session.permanent            = True
+    flask_session["is_guest"]          = False
+    flask_session.pop("guest_question_count", None)
     flask_session["db_user_id"]        = user.id
     flask_session["line_user_id"]      = line_uid
     flask_session["line_display_name"] = profile.get("displayName")
@@ -1451,7 +1456,7 @@ def chat():
                 "guest_count": guest_count,
                 "remaining_quota": 0,
                 "quota_exceeded": True,
-                "login_url": url_for("login_page")
+                "login_url": url_for("line_login") if LINE_CLIENT_ID else url_for("login_page")
             }), 403
 
     # ── ตรวจสอบความยาวข้อความ ──
@@ -1499,7 +1504,7 @@ def chat():
             "guest_count": guest_count,
             "remaining_quota": remaining_quota,
             "quota_exceeded": quota_exhausted,
-            "login_url": url_for("login_page") if quota_exhausted else None
+            "login_url": (url_for("line_login") if LINE_CLIENT_ID else url_for("login_page")) if quota_exhausted else None
         })
     except Exception as e:
         print(f"[Chat Error] {e}")

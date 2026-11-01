@@ -219,7 +219,7 @@
             <span>หรือทดลองใช้งานโดยไม่เข้าสู่ระบบ</span>
         </div>
 
-        <a href="/auth/guest" class="guest-btn">
+        <a href="/auth/guest" class="guest-btn" id="login-guest-btn">
             <i class="fas fa-flask"></i>
             ทดลองใช้งาน
         </a>
@@ -235,5 +235,24 @@
     <p class="ku-brand">
         พัฒนาโดยนิสิตหลักสูตรวิทยาการคอมพิวเตอร์ คณะวิทยาศาสตร์ ศรีราชา มหาวิทยาลัยเกษตรศาสตร์ วิทยาเขตศรีราชา<br>
     </p>
+    {% if guest_mode_enabled %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const guestBtn = document.getElementById('login-guest-btn');
+            if (guestBtn && localStorage.getItem('guest_quota_exhausted') === 'true') {
+                guestBtn.innerHTML = '<i class="fas fa-lock" style="color:#9ca3af;"></i> ทดลองใช้งาน (ครบสิทธิ์ 5 คำถามแล้ว)';
+                guestBtn.style.opacity = '0.65';
+                guestBtn.style.cursor = 'not-allowed';
+                guestBtn.style.background = '#f3f4f6';
+                guestBtn.style.borderColor = '#d1d5db';
+                guestBtn.style.color = '#9ca3af';
+                guestBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    alert('คุณใช้สิทธิ์ทดลองใช้งานครบ 5 คำถามแล้วครับ กรุณาเข้าสู่ระบบด้วย LINE เพื่อพูดคุยต่อได้ไม่จำกัด');
+                });
+            }
+        });
+    </script>
+    {% endif %}
 </body>
 </html>
