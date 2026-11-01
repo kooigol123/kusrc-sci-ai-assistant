@@ -20,6 +20,7 @@
             font-family: 'Sarabun', 'Sukhumvit Set', 'Thonburi', sans-serif;
             background: #f5f5f5;
             min-height: 100vh;
+            overflow-x: hidden;
         }
 
         
@@ -360,12 +361,19 @@
 
         /* ── Quick Suggest Chips ── */
         .suggest-bar {
-            padding: 10px 16px 8px;
+            padding: 8px 16px 6px;
             display: flex;
             align-items: center;
             gap: 8px;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
             border-bottom: 1px solid #f0f0f0;
+        }
+        .suggest-bar::-webkit-scrollbar {
+            display: none;
         }
         .suggest-label {
             font-size: 0.72rem;
@@ -374,12 +382,24 @@
             display: flex;
             align-items: center;
             gap: 4px;
+            flex-shrink: 0;
+        }
+        #suggest-chips {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+        }
+        #suggest-chips::-webkit-scrollbar {
+            display: none;
         }
         .suggest-chip {
             display: inline-flex;
             align-items: center;
-            gap: 5px;
-            padding: 4px 11px;
+            padding: 5px 12px;
             background: #f0fdf4;
             border: 1px solid #bbf7d0;
             border-radius: 99px;
@@ -389,15 +409,48 @@
             transition: all 0.2s;
             font-family: inherit;
             white-space: nowrap;
+            flex-shrink: 0;
         }
         .suggest-chip:hover {
             background: #1a5f3f;
             color: white;
             border-color: #1a5f3f;
         }
-        .suggest-chip i {
-            font-size: 0.65rem;
-            opacity: 0.6;
+
+        /* ── Quota Action Button (LINE Login in Chat) ── */
+        .quota-action-btn,
+        .message-content a.quota-action-btn {
+            background: #06C755 !important;
+            color: #ffffff !important;
+            border: none !important;
+            border-bottom: none !important;
+            outline: none !important;
+            text-decoration: none !important;
+            border-radius: 8px;
+            padding: 9px 18px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+            transition: all 0.2s ease;
+        }
+
+        .quota-action-btn:hover,
+        .message-content a.quota-action-btn:hover {
+            background: #05a847 !important;
+            color: #ffffff !important;
+            border: none !important;
+            border-bottom: none !important;
+            text-decoration: none !important;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.16);
+        }
+
+        .quota-action-btn:active,
+        .message-content a.quota-action-btn:active {
+            transform: translateY(0);
         }
 
         .typing-indicator {
@@ -791,100 +844,71 @@
             margin-top: 2px;
         }
 
-        /* Responsive */
-        @media (max-width: 1024px) {
-            .container {
-                grid-template-columns: 1fr;
-                padding: 0;
-                gap: 0;
-            }
-            .chat-section {
-                order: 1;
-                border-radius: 0;
-                height: calc(100vh - 68px);
-            }
-            .sidebar {
-                order: 2;
-                padding: 16px;
-                gap: 16px;
-            }
+        /* ── Bot Avatar & Mascot ── */
+        .bot .message-avatar,
+        .message-avatar.bot-avatar {
+            background: white !important;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            overflow: hidden;
+            padding: 2px;
         }
 
-        @media (max-width: 768px) {
-            .main-header { padding: 10px 16px; }
-            .header-text h1 { font-size: 0.95rem; }
-            .header-text p { font-size: 0.75rem; }
-            .ku-logo { width: 36px; height: 36px; }
-
-            .chat-section {
-                height: calc(100dvh - 62px);
-                height: calc(100vh - 62px);
-            }
-            .chat-messages { padding: 14px; }
-            .message-content { max-width: 88%; font-size: 0.9rem; }
-            .user .message-content { max-width: 88%; }
-
-            /* Input */
-            .chat-input .input-wrapper { margin: 8px 12px 10px; }
-            .input-wrapper input { font-size: 16px; padding: 8px 4px; }
-            .send-btn { width: 42px; height: 42px; }
-
-            /* Suggest chips — scroll แนวนอนบนมือถือ */
-            .suggest-bar {
-                flex-wrap: nowrap !important;
-                overflow-x: auto;
-                overflow-y: hidden;
-                -webkit-overflow-scrolling: touch;
-                scrollbar-width: none;
-                padding: 8px 12px 6px;
-                gap: 6px;
-            }
-            .suggest-bar::-webkit-scrollbar { display: none; }
-            .suggest-label { flex-shrink: 0; }
-            .suggest-chip { flex-shrink: 0; }
-            #suggest-chips {
-                flex-wrap: nowrap !important;
-                display: flex;
-                gap: 6px;
-            }
-
-            /* Welcome screen */
-            .welcome-screen { padding: 30px 16px; }
-            .welcome-icon { font-size: 2.5rem; margin-bottom: 12px; }
-            .welcome-screen h3 { font-size: 1.1rem; }
-            .welcome-screen p { font-size: 0.85rem; }
+        .bot-avatar-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 50%;
+            display: block;
+            transform: scaleX(-1);
         }
 
-        @media (max-width: 768px) {
-            .header-text h1 {
-                font-size: 1rem;
-            }
-
-            .header-text p {
-                font-size: 0.8rem;
-            }
-
-            .top-bar-content {
-                flex-direction: column;
-                gap: 5px;
-            }
+        .welcome-avatar-img {
+            width: 72px;
+            height: 72px;
+            object-fit: contain;
+            border-radius: 50%;
+            background: white;
+            box-shadow: 0 4px 16px rgba(26,95,63,0.16);
+            border: 2px solid #e2e8f0;
+            padding: 6px;
+            margin-bottom: 8px;
+            display: inline-block;
         }
+
+        /* ── Mobile Sidebar Drawer Controls (Hidden on Desktop) ── */
+        .mobile-sidebar-toggle {
+            display: none;
+        }
+        .sidebar-drawer-header {
+            display: none;
+        }
+        .sidebar-drawer-footer {
+            display: none;
+        }
+        .sidebar-backdrop {
+            display: none;
+        }
+
+        /* ── User Profile & LINE Login in Navbar ── */
         .line-user-info {
             display: flex;
             align-items: center;
             gap: 10px;
         }
         .line-avatar {
-            width: 30px;
-            height: 30px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
-            border: 2px solid rgba(255,255,255,0.5);
+            border: 2px solid rgba(255,255,255,0.6);
             object-fit: cover;
             background: #ffffff;
+            display: block;
+            flex-shrink: 0;
         }
         .line-avatar-placeholder {
-            width: 30px;
-            height: 30px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
             background: #06C755;
             display: flex;
@@ -898,7 +922,7 @@
         .line-display-name {
             font-size: 0.85rem;
             color: rgba(255,255,255,0.9);
-            max-width: 130px;
+            max-width: 140px;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -914,10 +938,410 @@
             font-family: inherit;
             text-decoration: none;
             transition: all 0.2s;
+            white-space: nowrap;
+            flex-shrink: 0;
         }
-        .logout-btn:hover { background: rgba(255,255,255,0.25); }
+        .logout-btn:hover {
+            background: rgba(255,255,255,0.25);
+        }
+
+        /* Responsive */
+        /* 1. Tablet & Mobile (<= 1024px): Full-width chat + Slide-out Drawer */
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+                padding: 0;
+                margin: 0;
+                gap: 0;
+                min-width: 0;
+                width: 100%;
+                max-width: 100%;
+                height: calc(100vh - 96px);
+                height: calc(100dvh - 96px);
+            }
+
+            .chat-section {
+                border-radius: 0;
+                box-shadow: none;
+                border: none;
+                min-width: 0;
+                width: 100%;
+                max-width: 100%;
+                height: 100%;
+                display: flex;
+                flex-direction: column;
+            }
+
+            .chat-messages {
+                flex: 1;
+                min-height: 0;
+                overflow-y: auto;
+            }
+
+            .chat-input {
+                flex-shrink: 0;
+            }
+
+            /* Hide Main Footer on Tablet & Mobile (Credits moved into Slide-out Drawer) */
+            .site-footer {
+                display: none !important;
+            }
+
+            /* Toggle Button in Chat Header (Visible on both Tablet & Mobile) */
+            .mobile-sidebar-toggle {
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                padding: 6px 12px;
+                background: #f0fdf4;
+                border: 1px solid #bbf7d0;
+                color: #1a5f3f;
+                border-radius: 8px;
+                font-size: 0.82rem;
+                font-weight: 600;
+                cursor: pointer;
+                font-family: inherit;
+                transition: all 0.2s;
+            }
+
+            .mobile-sidebar-toggle:active {
+                background: #dcfce7;
+            }
+
+            /* Slide-out Drawer for Sidebar (Hidden off-screen until toggled) */
+            .sidebar {
+                position: fixed;
+                top: 0;
+                right: -100%;
+                width: 78%;
+                max-width: 310px;
+                height: 100%;
+                height: 100dvh;
+                background: #f8fafc;
+                z-index: 1050;
+                transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                box-shadow: -4px 0 24px rgba(0,0,0,0.18);
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+                padding: 14px 12px 20px;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            /* Compact Drawer Cards & Quick Links */
+            .sidebar .card {
+                box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            }
+            .sidebar .card-header {
+                padding: 8px 12px;
+            }
+            .sidebar .card-title {
+                font-size: 0.82rem;
+            }
+            .sidebar .card-content {
+                padding: 8px 10px;
+            }
+            .sidebar .quick-links {
+                gap: 6px;
+            }
+            .sidebar .quick-link {
+                padding: 8px 10px;
+                gap: 10px;
+                border-radius: 6px;
+            }
+            .sidebar .quick-link-icon {
+                width: 30px;
+                height: 30px;
+                font-size: 0.85rem;
+                flex-shrink: 0;
+            }
+            .sidebar .quick-link-title {
+                font-size: 0.82rem;
+            }
+            .sidebar .quick-link-desc {
+                font-size: 0.7rem;
+            }
+            .sidebar .quick-link i.fa-chevron-right {
+                font-size: 0.75rem;
+            }
+
+            /* Compact Placeholders in Drawer */
+            .sidebar #suggested-links-placeholder,
+            .sidebar #downloads-placeholder {
+                padding: 10px 8px !important;
+            }
+            .sidebar #suggested-links-placeholder i,
+            .sidebar #downloads-placeholder i {
+                font-size: 1.1rem !important;
+                margin-bottom: 3px !important;
+            }
+            .sidebar #suggested-links-placeholder p,
+            .sidebar #downloads-placeholder p {
+                font-size: 0.74rem !important;
+                line-height: 1.35 !important;
+                margin: 0 !important;
+            }
+
+            .sidebar.open {
+                right: 0;
+            }
+
+            .sidebar-drawer-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding-bottom: 12px;
+                border-bottom: 1px solid #e2e8f0;
+                margin-bottom: 4px;
+            }
+
+            .sidebar-drawer-title {
+                font-weight: 600;
+                font-size: 0.95rem;
+                color: #1a5f3f;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .sidebar-close-btn {
+                background: #e2e8f0;
+                border: none;
+                color: #475569;
+                width: 32px;
+                height: 32px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                font-size: 0.9rem;
+            }
+
+            .sidebar-close-btn:active {
+                background: #cbd5e1;
+            }
+
+            .sidebar-drawer-footer {
+                display: block;
+                text-align: center;
+                font-size: 0.7rem;
+                color: #94a3b8;
+                padding: 12px 10px 10px;
+                margin-top: auto;
+                line-height: 1.5;
+                border-top: 1px solid #e2e8f0;
+                background: #f8fafc;
+                border-radius: 0 0 0 12px;
+            }
+
+            .drawer-credit-title {
+                font-weight: 700;
+                color: #475569;
+                font-size: 0.72rem;
+                margin-bottom: 3px;
+            }
+
+            .drawer-credit-dept {
+                color: #64748b;
+                margin-bottom: 6px;
+                line-height: 1.35;
+                font-size: 0.67rem;
+            }
+
+            .drawer-credit-dept strong {
+                color: #1a5f3f;
+                font-weight: 600;
+            }
+
+            .drawer-credit-team {
+                display: flex;
+                flex-direction: column;
+                gap: 2px;
+                font-size: 0.66rem;
+                color: #64748b;
+            }
+
+            .drawer-credit-team .student-id {
+                color: #1a5f3f;
+                font-weight: 600;
+                margin-left: 4px;
+            }
+
+            /* Backdrop Overlay */
+            .sidebar-backdrop {
+                position: fixed;
+                inset: 0;
+                background: rgba(15, 23, 42, 0.45);
+                backdrop-filter: blur(2px);
+                z-index: 1040;
+                display: none;
+            }
+
+            .sidebar-backdrop.active {
+                display: block;
+            }
+
+            /* Horizontal Scroll Suggest Chips on Tablet & Mobile */
+            .suggest-bar {
+                flex-wrap: nowrap !important;
+                overflow-x: auto;
+                overflow-y: hidden;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+                padding: 8px 14px 6px;
+                gap: 6px;
+                min-width: 0;
+                width: 100%;
+            }
+            .suggest-bar::-webkit-scrollbar { display: none; }
+            .suggest-label { flex-shrink: 0; }
+            .suggest-chip { flex-shrink: 0; white-space: nowrap; }
+            #suggest-chips {
+                flex-wrap: nowrap !important;
+                display: flex;
+                gap: 6px;
+                min-width: 0;
+                overflow-x: auto;
+                scrollbar-width: none;
+            }
+            #suggest-chips::-webkit-scrollbar { display: none; }
+        }
+
+        /* 2. Specific Mobile Refinements (<= 768px): Full-Screen App Height & Compact Navbar */
         @media (max-width: 768px) {
-            .line-display-name { display: none; }
+            body {
+                height: 100vh;
+                height: 100dvh;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+            }
+
+            .top-bar {
+                display: none;
+            }
+
+            .header {
+                flex-shrink: 0;
+                box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+            }
+
+            .main-header {
+                padding: 8px 14px;
+            }
+
+            .header-text h1 {
+                font-size: 0.95rem;
+                margin-bottom: 0;
+            }
+
+            .header-text p {
+                display: none;
+            }
+
+            .ku-logo {
+                width: 34px;
+                height: 34px;
+            }
+
+            .line-display-name {
+                display: none;
+            }
+
+            .logout-btn {
+                padding: 5px 10px;
+                font-size: 0.75rem;
+            }
+
+            .container {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                height: calc(100dvh - 50px);
+                min-height: 0;
+                min-width: 0;
+                width: 100%;
+                padding: 0;
+                margin: 0;
+                overflow: hidden;
+            }
+
+            .chat-section {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                height: 100%;
+                min-height: 0;
+                min-width: 0;
+                width: 100%;
+                border-radius: 0;
+                box-shadow: none;
+                border: none;
+            }
+
+            .chat-header {
+                flex-shrink: 0;
+                padding: 10px 14px;
+                background: white;
+                border-bottom: 1px solid #f1f5f9;
+            }
+
+            .chat-title {
+                font-size: 0.95rem;
+            }
+
+            .chat-messages {
+                flex: 1;
+                min-height: 0;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+                padding: 12px 14px;
+            }
+
+            .message-content {
+                max-width: 88%;
+                font-size: 0.9rem;
+            }
+
+            .user .message-content {
+                max-width: 88%;
+            }
+
+            /* Pinned Input at Bottom */
+            .chat-input {
+                flex-shrink: 0;
+                background: white;
+                border-top: 1px solid #e5e7eb;
+                min-width: 0;
+                width: 100%;
+            }
+
+            .chat-input .input-wrapper {
+                margin: 6px 12px 10px;
+                padding: 8px 12px;
+            }
+
+            .input-wrapper input {
+                font-size: 16px;
+                padding: 6px 4px;
+            }
+
+            .send-btn {
+                width: 38px;
+                height: 38px;
+            }
+
+            /* Welcome screen */
+            .welcome-screen { padding: 24px 16px; }
+            .welcome-screen h3 { font-size: 1.05rem; }
+            .welcome-screen p { font-size: 0.82rem; }
+
+            /* Hide Main Footer on Mobile */
+            .site-footer {
+                display: none !important;
+            }
         }
     </style>
 </head>
@@ -962,6 +1386,10 @@
                     <i class="fas fa-comments"></i>
                     ผู้ช่วยอัจฉริยะ Science Assistant
                 </div>
+                <button type="button" class="mobile-sidebar-toggle" id="mobile-sidebar-toggle" aria-label="เปิดเมนูด่วน">
+                    <i class="fas fa-bars"></i>
+                    <span>เมนูด่วน</span>
+                </button>
             </div>
 
 
@@ -969,15 +1397,15 @@
             <div class="chat-messages" id="chat-messages">
                 <div class="welcome-screen">
                     <div class="welcome-icon">
-                        <i class="fas fa-robot"></i>
+                        <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Science Assistant Mascot" class="welcome-avatar-img">
                     </div>
                     <h3>ยินดีต้อนรับเข้าสู่ระบบช่วยเหลือนิสิต</h3>
                     <p>ผมพร้อมช่วยเหลือคุณเกี่ยวกับเอกสาร การลงทะเบียน<br>และข้อมูลต่างๆ ของคณะวิทยาศาสตร์ครับ</p>
                 </div>
 
                 <div class="typing-indicator" id="typing-indicator" style="display:none;">
-                    <div class="message-avatar" style="background: #1a5f3f; color: white; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-                        <i class="fas fa-robot"></i>
+                    <div class="message-avatar bot-avatar">
+                        <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Bot" class="bot-avatar-img">
                     </div>
                     <div class="typing-bubble">
                         <div class="dot"></div>
@@ -991,7 +1419,7 @@
                 <!-- Suggest Bar อยู่ในกล่องเดียวกับ input -->
                 <div class="suggest-bar" id="suggest-bar" style="display:none;">
                     <span class="suggest-label"><i class="fas fa-fire"></i> ถามบ่อย:</span>
-                    <div id="suggest-chips" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+                    <div id="suggest-chips"></div>
                 </div>
                 <form class="input-wrapper" id="chat-form">
                     <input 
@@ -1008,7 +1436,16 @@
         </div>
 
         <!-- Sidebar -->
-        <aside class="sidebar">
+        <aside class="sidebar" id="sidebar-drawer">
+            <div class="sidebar-drawer-header">
+                <div class="sidebar-drawer-title">
+                    <i class="fas fa-bars"></i>
+                    <span>เมนูด่วน</span>
+                </div>
+                <button type="button" class="sidebar-close-btn" id="sidebar-close-btn" aria-label="ปิดเมนู">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
             <!-- ทางลัด (Shortcuts) - always visible on top -->
             <div class="card">
                 <div class="card-header" style="background: linear-gradient(135deg, #475569 0%, #64748b 100%)">
@@ -1106,8 +1543,22 @@
                     </div>
                 </div>
             </div>
+            <div class="sidebar-drawer-footer">
+                <div class="drawer-credit-title">Science Assistant &nbsp;|&nbsp; Powered by Gemini AI</div>
+                <div class="drawer-credit-dept">
+                    พัฒนาโดย <strong>นิสิตหลักสูตรวิทยาการคอมพิวเตอร์</strong><br>
+                    คณะวิทยาศาสตร์ ศรีราชา มหาวิทยาลัยเกษตรศาสตร์
+                </div>
+                <div class="drawer-credit-team">
+                    <div>นายภัทราวุธ สุขบท <span class="student-id">6530250182</span></div>
+                    <div>นายอุกฤษฎ์ จรเอ้กา <span class="student-id">6530250298</span></div>
+                    <div>นายทรงวุฒิ สุดตาลัย <span class="student-id">6530250379</span></div>
+                </div>
+            </div>
         </aside>
     </div>
+    <!-- Mobile Sidebar Backdrop -->
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
 
     <script>
         // PDF Data cache - loaded once from backend
@@ -1404,8 +1855,8 @@
                 if (extra && extra.actionButton) {
                     extraHtml += `
                         <div style="margin-top: 12px;">
-                            <a href="${escapeHtml(extra.actionButton.url)}" style="background:#06C755; color:white; border-radius:8px; padding:9px 18px; text-decoration:none; font-weight:700; font-size:0.85rem; display:inline-flex; align-items:center; gap:8px; box-shadow:0 2px 6px rgba(6,199,85,0.25); transition:transform 0.15s ease;">
-                                <i class="fab fa-line" style="font-size:1.1rem;"></i> ${escapeHtml(extra.actionButton.text)}
+                            <a href="${escapeHtml(extra.actionButton.url)}" class="quota-action-btn">
+                                <i class="fab fa-line" style="font-size:1.15rem;"></i> ${escapeHtml(extra.actionButton.text)}
                             </a>
                         </div>
                     `;
@@ -1429,8 +1880,8 @@
                     }
 
                     messageDiv.innerHTML = `
-                        <div class="message-avatar">
-                            <i class="fas fa-robot"></i>
+                        <div class="message-avatar bot-avatar">
+                            <img src="/static/img/logo.png" alt="Bot" class="bot-avatar-img">
                         </div>
                         <div class="message-wrapper">
                             <div class="message-content"><span class="stream-text"></span><span class="stream-cursor">▌</span></div>
@@ -1488,8 +1939,8 @@
                     return messageDiv;
                 } else {
                     messageDiv.innerHTML = `
-                        <div class="message-avatar">
-                            <i class="fas fa-robot"></i>
+                        <div class="message-avatar bot-avatar">
+                            <img src="/static/img/logo.png" alt="Bot" class="bot-avatar-img">
                         </div>
                         <div class="message-wrapper">
                             <div class="message-content">${formatMessage(message)}${extraHtml}</div>
@@ -1511,6 +1962,7 @@
             displayMessages.push({ text: message, isUser, extra, time: timeStr });
             if (displayMessages.length > 50) displayMessages.shift(); // เก็บสูงสุด 50 ข้อความต่อ session
             saveChatToSession();
+            updateSuggestBarVisibility();
             return renderMessageToDom(message, isUser, extra, timeStr, stream, onFinish);
         }
 
@@ -1531,6 +1983,7 @@
                         scrollToBottom();
                     }
                 }
+                updateSuggestBarVisibility();
             } catch (e) {
                 console.warn('[SessionStorage] Load failed:', e);
             }
@@ -1560,6 +2013,10 @@
                 activeStreamCancel = null;
             }
             if (isWaitingForBot) return;
+            if ("{{ 'true' if session.get('is_guest') else 'false' }}" === "true" && localStorage.getItem('guest_quota_exhausted') === 'true') {
+                lockGuestInput();
+                return;
+            }
             const message = userInput.value.trim();
             
             if (!message) return;
@@ -1590,6 +2047,7 @@
                     const onBotFinish = () => {
                         // จัดการโควตาโหมดทดลองใช้งาน (Guest Mode: เมื่อตอบครบ 5 คำถาม ให้บอทพิมพ์บอกเหมือนคำตอบ)
                         if (data.is_guest && data.quota_exceeded) {
+                            localStorage.setItem('guest_quota_exhausted', 'true');
                             const typingIndicator = document.getElementById('typing-indicator');
                             if (chatMessages && typingIndicator) {
                                 chatMessages.appendChild(typingIndicator);
@@ -1605,7 +2063,7 @@
                                         isQuotaNotice: true,
                                         actionButton: {
                                             text: 'เข้าสู่ระบบด้วย LINE เพื่อคุยต่อ',
-                                            url: data.login_url || '/login'
+                                            url: data.login_url || '/auth/line'
                                         }
                                     },
                                     true
@@ -1642,6 +2100,7 @@
                         return;
                     }
                     if (response.status === 403 && data && data.quota_exceeded) {
+                        localStorage.setItem('guest_quota_exhausted', 'true');
                         addMessage(
                             data.response || 'คุณใช้สิทธิ์ทดลองใช้งานครบ 5 คำถามแล้วครับ หากต้องการพูดคุยต่อ กรุณาเข้าสู่ระบบผ่าน LINE ได้เลยครับ',
                             false,
@@ -1649,7 +2108,7 @@
                                 isQuotaNotice: true,
                                 actionButton: {
                                     text: 'เข้าสู่ระบบด้วย LINE เพื่อคุยต่อ',
-                                    url: data.login_url || '/login'
+                                    url: data.login_url || '/auth/line'
                                 }
                             }
                         );
@@ -1693,6 +2152,19 @@
             saveChatToSession();
         }
 
+        function updateSuggestBarVisibility() {
+            const bar = document.getElementById('suggest-bar');
+            if (!bar) return;
+            if (displayMessages && displayMessages.length > 0) {
+                bar.style.display = 'none';
+            } else {
+                const chips = document.getElementById('suggest-chips');
+                if (chips && chips.children.length > 0) {
+                    bar.style.display = 'flex';
+                }
+            }
+        }
+
         // ── Load Top 3 Popular Questions ──────────────
         async function loadSuggestChips(retryCount = 0) {
                 try {
@@ -1717,11 +2189,11 @@
                 console.log('bar:', bar, 'chips:', chips);  // เพิ่มบรรทัดนี้
                 chips.innerHTML = top3.map(q => `
                     <button class="suggest-chip" onclick="sendSuggestion(this, '${q.question.replace(/'/g, "\'")}')">
-                        <i class="fas fa-search"></i>${q.question}
+                        ${q.question}
                     </button>
                 `).join('');
 
-                bar.style.display = 'flex';
+                updateSuggestBarVisibility();
                 console.log('bar displayed');  // เพิ่มบรรทัดนี้
             } catch(e) {
                 // retry ถ้า error
@@ -1733,10 +2205,10 @@
 
         function sendSuggestion(btn, text) {
             if (isWaitingForBot) return;
-            // ใส่ข้อความในช่อง input แล้ว submit ทันที
+            const bar = document.getElementById('suggest-bar');
+            if (bar) bar.style.display = 'none';
             const input = document.getElementById('user-input');
             input.value = text;
-            // highlight chip ชั่วคราว
             btn.style.background = '#1a5f3f';
             btn.style.color = 'white';
             setTimeout(() => {
@@ -1790,8 +2262,18 @@
             loadSuggestChips();
             loadChatFromSession();
             setInterval(loadSuggestChips, 5 * 60 * 1000); // reload ทุก 5 นาที
-            const isGuestLimitReached = "{{ 'true' if session.get('is_guest') and session.get('guest_question_count', 0) >= 5 else 'false' }}" === "true";
+            const isGuestUser = "{{ 'true' if session.get('is_guest') else 'false' }}" === "true";
+            if (!isGuestUser) {
+                // นิสิตที่ล็อกอินด้วย LINE ปลดล็อกโควตาทดลอง
+                localStorage.removeItem('guest_quota_exhausted');
+            }
+
+            const isSessionGuestLimit = "{{ 'true' if session.get('is_guest') and session.get('guest_question_count', 0) >= 5 else 'false' }}" === "true";
+            const isLocalGuestExhausted = isGuestUser && (localStorage.getItem('guest_quota_exhausted') === 'true');
+            const isGuestLimitReached = isSessionGuestLimit || isLocalGuestExhausted;
+
             if (isGuestLimitReached) {
+                localStorage.setItem('guest_quota_exhausted', 'true');
                 if (!displayMessages || displayMessages.length === 0) {
                     addMessage(
                         'คุณใช้สิทธิ์ทดลองใช้งานครบ 5 คำถามแล้วครับ หากมีข้อสงสัยเพิ่มเติมหรือต้องการพูดคุยต่อ กรุณาเข้าสู่ระบบผ่าน LINE ได้เลยครับ',
@@ -1800,7 +2282,7 @@
                             isQuotaNotice: true,
                             actionButton: {
                                 text: 'เข้าสู่ระบบด้วย LINE เพื่อคุยต่อ',
-                                url: '/login'
+                                url: '/auth/line'
                             }
                         }
                     );
@@ -1808,8 +2290,27 @@
                 lockGuestInput();
             }
         });
+
+        // ── Mobile Sidebar Drawer ───────────────────
+        const sidebarDrawer = document.getElementById('sidebar-drawer');
+        const sidebarToggleBtn = document.getElementById('mobile-sidebar-toggle');
+        const sidebarCloseBtn = document.getElementById('sidebar-close-btn');
+        const sidebarBackdropEl = document.getElementById('sidebar-backdrop');
+
+        function openSidebarDrawer() {
+            if (sidebarDrawer) sidebarDrawer.classList.add('open');
+            if (sidebarBackdropEl) sidebarBackdropEl.classList.add('active');
+        }
+        function closeSidebarDrawer() {
+            if (sidebarDrawer) sidebarDrawer.classList.remove('open');
+            if (sidebarBackdropEl) sidebarBackdropEl.classList.remove('active');
+        }
+
+        if (sidebarToggleBtn) sidebarToggleBtn.addEventListener('click', openSidebarDrawer);
+        if (sidebarCloseBtn) sidebarCloseBtn.addEventListener('click', closeSidebarDrawer);
+        if (sidebarBackdropEl) sidebarBackdropEl.addEventListener('click', closeSidebarDrawer);
     </script>
-     <div style="text-align:center;padding:10px 16px;font-size:0.72rem;color:#9ca3af;background:#f9fafb;border-top:1px solid #f3f4f6;line-height:1.8;">
+     <div class="site-footer" style="text-align:center;padding:10px 16px;font-size:0.72rem;color:#9ca3af;background:#f9fafb;border-top:1px solid #f3f4f6;line-height:1.8;">
         <div style="margin-bottom:4px;color:#6b7280;font-weight:600;">Science Assistant  &nbsp;|&nbsp; Powered by Gemini AI</div>
         <div>พัฒนาโดย <strong style="color:#1a5f3f;">นิสิตหลักสูตรวิทยาการคอมพิวเตอร์ คณะวิทยาศาสตร์ ศรีราชา มหาวิทยาลัยเกษตรศาสตร์ วิทยาเขตศรีราชา</strong></div>
         <div style="margin-top:4px;display:flex;justify-content:center;gap:24px;flex-wrap:wrap;">
