@@ -1790,22 +1790,23 @@
             loadSuggestChips();
             loadChatFromSession();
             setInterval(loadSuggestChips, 5 * 60 * 1000); // reload ทุก 5 นาที
-            {% if session.get('is_guest') and session.get('guest_question_count', 0) >= 5 %}
-            if (!displayMessages || displayMessages.length === 0) {
-                addMessage(
-                    'คุณใช้สิทธิ์ทดลองใช้งานครบ 5 คำถามแล้วครับ หากมีข้อสงสัยเพิ่มเติมหรือต้องการพูดคุยต่อ กรุณาเข้าสู่ระบบผ่าน LINE ได้เลยครับ',
-                    false,
-                    {
-                        isQuotaNotice: true,
-                        actionButton: {
-                            text: 'เข้าสู่ระบบด้วย LINE เพื่อคุยต่อ',
-                            url: '/login'
+            const isGuestLimitReached = "{{ 'true' if session.get('is_guest') and session.get('guest_question_count', 0) >= 5 else 'false' }}" === "true";
+            if (isGuestLimitReached) {
+                if (!displayMessages || displayMessages.length === 0) {
+                    addMessage(
+                        'คุณใช้สิทธิ์ทดลองใช้งานครบ 5 คำถามแล้วครับ หากมีข้อสงสัยเพิ่มเติมหรือต้องการพูดคุยต่อ กรุณาเข้าสู่ระบบผ่าน LINE ได้เลยครับ',
+                        false,
+                        {
+                            isQuotaNotice: true,
+                            actionButton: {
+                                text: 'เข้าสู่ระบบด้วย LINE เพื่อคุยต่อ',
+                                url: '/login'
+                            }
                         }
-                    }
-                );
+                    );
+                }
+                lockGuestInput();
             }
-            lockGuestInput();
-            {% endif %}
         });
     </script>
      <div style="text-align:center;padding:10px 16px;font-size:0.72rem;color:#9ca3af;background:#f9fafb;border-top:1px solid #f3f4f6;line-height:1.8;">

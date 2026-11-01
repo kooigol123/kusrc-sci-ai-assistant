@@ -23,6 +23,7 @@
             min-height: 100vh;
             display: block;
             color: #0f172a;
+            overflow-x: hidden;
         }
 
         /* Navbar ของรุ่นพี่ */
@@ -331,33 +332,99 @@
         /* Responsive */
         @media (max-width: 768px) {
             .navbar {
-                padding: 12px 18px;
+                padding: 10px 16px;
+            }
+
+            .user-welcome {
+                display: none;
+            }
+
+            .download-container {
+                margin: 20px auto;
+                padding: 0 14px 40px;
             }
 
             .download-header h1 {
-                font-size: 1.7rem;
+                font-size: 1.55rem;
+                gap: 8px;
             }
-            
+
+            .download-header p {
+                font-size: 0.9rem;
+            }
+
+            .search-box-large input {
+                font-size: 16px;
+                padding: 14px 18px 14px 48px;
+            }
+
+            .category-card {
+                padding: 16px 14px 18px;
+                border-radius: 14px;
+            }
+
+            .category-header {
+                margin-bottom: 14px;
+                padding-bottom: 10px;
+            }
+
+            .category-header h2 {
+                font-size: 1.15rem;
+            }
+
             .document-item {
-                flex-direction: column;
+                display: flex;
+                flex-direction: row;
+                flex-wrap: wrap;
                 align-items: flex-start;
                 gap: 12px;
+                padding: 12px 14px;
+            }
+
+            .doc-icon {
+                width: 40px;
+                height: 40px;
+                font-size: 1.15rem;
+            }
+
+            .doc-info {
+                flex: 1 1 calc(100% - 54px);
+                min-width: 0;
+            }
+
+            .doc-info h3 {
+                font-size: 0.9rem;
             }
 
             .doc-actions {
                 width: 100%;
+                display: flex;
+                gap: 8px;
+                margin-top: 4px;
             }
             
             .btn-preview,
             .btn-download {
                 flex: 1;
                 justify-content: center;
+                font-size: 0.8rem;
+                padding: 8px 10px;
             }
-            
-            .category-header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 8px;
+        }
+
+        @media (max-width: 480px) {
+            .nav-brand span {
+                font-size: 0.95rem;
+            }
+
+            .nav-btn {
+                padding: 6px 10px;
+                font-size: 0.8rem;
+                gap: 5px;
+            }
+
+            .download-header h1 {
+                font-size: 1.35rem;
             }
         }
     </style>
