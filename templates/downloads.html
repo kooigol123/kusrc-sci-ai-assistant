@@ -4,8 +4,363 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ดาวน์โหลดเอกสาร - Science Sriracha</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: #f1f5f9;
+            margin: 0;
+            padding: 0;
+            font-family: 'Prompt', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            display: block;
+            color: #0f172a;
+        }
+
+        /* Navbar ของรุ่นพี่ */
+        .navbar {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 14px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            width: 100%;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: white;
+            font-size: 1.15rem;
+            font-weight: 600;
+        }
+
+        .nav-logo {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: white;
+            padding: 2px;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .nav-btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: white;
+            transition: all 0.25s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.88rem;
+            font-weight: 500;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .login-btn {
+            background: #3b82f6;
+        }
+
+        .login-btn:hover {
+            background: #2563eb;
+        }
+
+        .logout-btn {
+            background: #ef4444;
+        }
+
+        .logout-btn:hover {
+            background: #dc2626;
+        }
+
+        .user-welcome {
+            color: #e2e8f0;
+            font-size: 0.9rem;
+            font-family: 'Sarabun', sans-serif;
+        }
+
+        /* Download Container */
+        .download-container {
+            max-width: 1140px;
+            margin: 36px auto;
+            padding: 0 20px 48px;
+        }
+
+        .download-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .download-header h1 {
+            color: #0f172a;
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .download-header p {
+            color: #64748b;
+            font-size: 1rem;
+            font-family: 'Sarabun', sans-serif;
+        }
+
+        /* Search Section */
+        .search-section {
+            margin-bottom: 32px;
+        }
+
+        .search-box-large {
+            position: relative;
+            max-width: 640px;
+            margin: 0 auto;
+        }
+
+        .search-box-large i {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 1.15rem;
+        }
+
+        .search-box-large input {
+            width: 100%;
+            padding: 16px 20px 16px 54px;
+            border: 2px solid #e2e8f0;
+            border-radius: 50px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            transition: all 0.25s ease;
+            background: white;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+            outline: none;
+        }
+
+        .search-box-large input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 4px 20px rgba(59, 130, 246, 0.18);
+        }
+
+        /* Documents Grid */
+        .documents-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .category-card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px 28px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e2e8f0;
+        }
+
+        .category-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+            padding-bottom: 14px;
+            border-bottom: 2px solid #f1f5f9;
+        }
+
+        .category-header h2 {
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+
+        .category-header i {
+            color: #3b82f6;
+        }
+
+        .doc-count {
+            background: #e0e7ff;
+            color: #3730a3;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        /* Document List */
+        .document-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .document-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 14px 18px;
+            background: #f8fafc;
+            border-radius: 12px;
+            border: 1px solid #f1f5f9;
+            transition: all 0.2s ease;
+        }
+
+        .document-item:hover {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+            transform: translateX(4px);
+        }
+
+        .doc-icon {
+            width: 46px;
+            height: 46px;
+            background: #fee2e2;
+            color: #ef4444;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.35rem;
+            flex-shrink: 0;
+            border: 1px solid #fecaca;
+        }
+
+        .doc-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .doc-info h3 {
+            color: #0f172a;
+            margin-bottom: 4px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            line-height: 1.4;
+            word-break: break-word;
+        }
+
+        .doc-info p {
+            color: #64748b;
+            font-size: 0.82rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            font-family: 'Sarabun', sans-serif;
+        }
+
+        .doc-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .btn-preview {
+            padding: 9px 15px;
+            background: white;
+            color: #334155;
+            border: 1.5px solid #cbd5e1;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        .btn-preview:hover {
+            background: #f8fafc;
+            border-color: #94a3b8;
+            color: #0f172a;
+        }
+
+        .btn-download {
+            padding: 9px 16px;
+            background: #3b82f6;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            border: 1px solid transparent;
+        }
+
+        .btn-download:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .navbar {
+                padding: 12px 18px;
+            }
+
+            .download-header h1 {
+                font-size: 1.7rem;
+            }
+            
+            .document-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+
+            .doc-actions {
+                width: 100%;
+            }
+            
+            .btn-preview,
+            .btn-download {
+                flex: 1;
+                justify-content: center;
+            }
+            
+            .category-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+        }
+    </style>
 </head>
 
 <body>
@@ -16,19 +371,16 @@
         <span>Science Sriracha</span>
     </div>
     <div class="nav-links">
-        <a href="{{ url_for('home') }}" class="nav-btn">
-            <i class="fas fa-home"></i> หน้าแรก
-        </a>
         <a href="{{ url_for('chat') }}" class="nav-btn">
-            <i class="fas fa-comments"></i> แชท
+            <i class="fas fa-comments"></i> กลับหน้าแชท
         </a>
-        {% if current_user.is_authenticated %}
-            <span class="user-welcome">{{ current_user.username }}</span>
-            <a href="{{ url_for('logout') }}" class="nav-btn logout-btn">
-                <i class="fas fa-sign-out-alt"></i>
+        {% if session.get('line_user_id') %}
+            <span class="user-welcome">{{ session.get('line_display_name', 'นิสิต') }}</span>
+            <a href="/auth/line/logout" class="nav-btn logout-btn" onclick="sessionStorage.clear();" title="ออกจากระบบ">
+                <i class="fas fa-sign-out-alt"></i> ออกจากระบบ
             </a>
         {% else %}
-            <a href="{{ url_for('login') }}" class="nav-btn login-btn">
+            <a href="{{ url_for('login_page') }}" class="nav-btn login-btn">
                 <i class="fas fa-sign-in-alt"></i> เข้าสู่ระบบ
             </a>
         {% endif %}
@@ -38,7 +390,7 @@
 <div class="download-container">
     <div class="download-header">
         <h1><i class="fas fa-download"></i> ดาวน์โหลดเอกสาร</h1>
-        <p>ค้นหาและดาวน์โหลดเอกสารต่างๆ ของคณะ</p>
+        <p>ค้นหาและดาวน์โหลดแบบฟอร์มคำร้องและเอกสารต่างๆ ของคณะวิทยาศาสตร์ ศรีราชา</p>
     </div>
 
     <!-- Search Box -->
@@ -48,7 +400,7 @@
             <input 
                 id="search" 
                 type="text" 
-                placeholder="ค้นหาเอกสาร... (ชื่อไฟล์, หมวดหมู่)" 
+                placeholder="ค้นหาเอกสาร... (พิมพ์ชื่อคำร้อง, รหัส KU, หมวดหมู่)" 
                 onkeyup="searchPDF()"
             >
         </div>
@@ -58,7 +410,7 @@
     <div id="results" class="search-results"></div>
 
     <!-- Documents by Category -->
-    <div class="documents-grid">
+    <div class="documents-grid" id="main-documents-grid">
         {% for category, docs in categories.items() %}
         <div class="category-card">
             <div class="category-header">
@@ -75,19 +427,20 @@
                         <i class="fas fa-file-pdf"></i>
                     </div>
                     <div class="doc-info">
-                        <h3>{{ doc.original_filename or doc.filename }}</h3>
+                        <h3>{{ doc.title or doc.filename }}</h3>
                         <p>
-                            <i class="fas fa-calendar"></i> 
-                            {{ doc.upload_date.strftime('%d/%m/%Y') if doc.upload_date else 'N/A' }}
-                            <span class="download-badge">
-                                <i class="fas fa-download"></i> 
-                                {{ doc.download_count or 0 }}
-                            </span>
+                            <span style="color:#64748b;"><i class="fas fa-file-alt"></i> {{ doc.filename }}</span>
+                            <span style="color:#10b981;font-weight:600;"><i class="fas fa-hard-drive"></i> {{ doc.size_str }}</span>
                         </p>
                     </div>
-                    <a href="{{ url_for('download_file', doc_id=doc.id) }}" class="btn-download">
-                        <i class="fas fa-download"></i> ดาวน์โหลด
-                    </a>
+                    <div class="doc-actions">
+                        <a href="/download/{{ doc.id }}?view=1" target="_blank" rel="noopener noreferrer" class="btn-preview" title="เปิดอ่านตัวอย่างในเบราว์เซอร์">
+                            <i class="fas fa-eye"></i> ดูตัวอย่าง
+                        </a>
+                        <a href="{{ url_for('download_file', doc_id=doc.id) }}" class="btn-download" title="ดาวน์โหลดไฟล์ PDF">
+                            <i class="fas fa-download"></i> ดาวน์โหลด
+                        </a>
+                    </div>
                 </div>
                 {% endfor %}
             </div>
@@ -96,285 +449,15 @@
     </div>
 </div>
 
-<style>
-/* Navbar */
-.navbar {
-    background: rgba(15, 23, 42, 0.95);
-    backdrop-filter: blur(10px);
-    padding: 15px 30px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-}
-
-.nav-brand {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    color: white;
-    font-size: 1.2rem;
-    font-weight: 600;
-}
-
-.nav-logo {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-}
-
-.nav-links {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-}
-
-.nav-btn {
-    padding: 8px 16px;
-    border-radius: 8px;
-    text-decoration: none;
-    color: white;
-    transition: all 0.3s;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.nav-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.login-btn {
-    background: #3b82f6;
-}
-
-.logout-btn {
-    background: #ef4444;
-}
-
-.user-welcome {
-    color: white;
-}
-
-/* Download Container */
-body {
-    background: #f1f5f9;
-    margin: 0;
-    font-family: 'Inter', sans-serif;
-}
-
-.download-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 40px 20px;
-}
-
-.download-header {
-    text-align: center;
-    margin-bottom: 40px;
-}
-
-.download-header h1 {
-    font-size: 2.5rem;
-    color: #0f172a;
-    margin-bottom: 10px;
-}
-
-.download-header p {
-    color: #64748b;
-    font-size: 1.1rem;
-}
-
-/* Search Section */
-.search-section {
-    margin-bottom: 40px;
-}
-
-.search-box-large {
-    max-width: 600px;
-    margin: 0 auto;
-    background: white;
-    padding: 15px 25px;
-    border-radius: 50px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-    display: flex;
-    align-items: center;
-    gap: 15px;
-}
-
-.search-box-large i {
-    color: #64748b;
-    font-size: 1.2rem;
-}
-
-.search-box-large input {
-    flex: 1;
-    border: none;
-    outline: none;
-    font-size: 1rem;
-    color: #0f172a;
-}
-
-/* Search Results */
-.search-results {
-    margin-bottom: 30px;
-}
-
-/* Documents Grid */
-.documents-grid {
-    display: grid;
-    gap: 30px;
-}
-
-.category-card {
-    background: white;
-    border-radius: 15px;
-    padding: 25px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-}
-
-.category-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    padding-bottom: 15px;
-    border-bottom: 2px solid #f1f5f9;
-}
-
-.category-header h2 {
-    color: #0f172a;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 1.5rem;
-}
-
-.category-header i {
-    color: #3b82f6;
-}
-
-.doc-count {
-    background: #e0e7ff;
-    color: #3730a3;
-    padding: 5px 15px;
-    border-radius: 20px;
-    font-size: 0.9rem;
-    font-weight: 600;
-}
-
-/* Document List */
-.document-list {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-.document-item {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    padding: 15px;
-    background: #f8fafc;
-    border-radius: 12px;
-    transition: all 0.3s;
-}
-
-.document-item:hover {
-    background: #f1f5f9;
-    transform: translateX(5px);
-}
-
-.doc-icon {
-    width: 50px;
-    height: 50px;
-    background: #fee2e2;
-    color: #ef4444;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5rem;
-    flex-shrink: 0;
-}
-
-.doc-info {
-    flex: 1;
-}
-
-.doc-info h3 {
-    color: #0f172a;
-    margin-bottom: 5px;
-    font-size: 1rem;
-}
-
-.doc-info p {
-    color: #64748b;
-    font-size: 0.9rem;
-    display: flex;
-    align-items: center;
-    gap: 15px;
-}
-
-.download-badge {
-    color: #22c55e;
-    font-weight: 600;
-}
-
-.btn-download {
-    padding: 10px 20px;
-    background: #3b82f6;
-    color: white;
-    text-decoration: none;
-    border-radius: 8px;
-    font-weight: 600;
-    transition: all 0.3s;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    white-space: nowrap;
-}
-
-.btn-download:hover {
-    background: #2563eb;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .download-header h1 {
-        font-size: 1.8rem;
-    }
-    
-    .document-item {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    
-    .btn-download {
-        width: 100%;
-        justify-content: center;
-    }
-    
-    .category-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
-    }
-}
-</style>
-
 <script>
 async function searchPDF() {
-    const keyword = document.getElementById("search").value;
+    const keyword = document.getElementById("search").value.trim();
     const resultsDiv = document.getElementById("results");
+    const mainGrid = document.getElementById("main-documents-grid");
     
     if (keyword.length < 2) {
         resultsDiv.innerHTML = "";
+        if (mainGrid) mainGrid.style.display = "flex";
         return;
     }
     
@@ -389,20 +472,20 @@ async function searchPDF() {
         
         if (data.length === 0) {
             resultsDiv.innerHTML = `
-                <div style="text-align: center; padding: 30px; background: white; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.08);">
-                    <i class="fas fa-search" style="font-size: 3rem; color: #cbd5e1; margin-bottom: 15px;"></i>
-                    <p style="color: #64748b; font-size: 1.1rem;">ไม่พบเอกสารที่ค้นหา</p>
+                <div style="text-align: center; padding: 36px; background: white; border-radius: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; margin-bottom: 24px;">
+                    <i class="fas fa-search" style="font-size: 2.5rem; color: #cbd5e1; margin-bottom: 12px; display:block;"></i>
+                    <p style="color: #64748b; font-size: 1rem;">ไม่พบเอกสารที่ค้นหาคำว่า "${keyword}"</p>
                 </div>
             `;
             return;
         }
         
         let html = `
-            <div style="background: white; border-radius: 15px; padding: 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); margin-bottom: 30px;">
-                <h3 style="margin-bottom: 20px; color: #0f172a;">
-                    <i class="fas fa-search"></i> ผลการค้นหา (${data.length} ไฟล์)
+            <div style="background: white; border-radius: 16px; padding: 24px 28px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; margin-bottom: 28px;">
+                <h3 style="margin-bottom: 18px; color: #0f172a; font-size: 1.2rem; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-search" style="color:#3b82f6;"></i> ผลการค้นหา (${data.length} ไฟล์)
                 </h3>
-                <div style="display: flex; flex-direction: column; gap: 10px;">
+                <div style="display: flex; flex-direction: column; gap: 12px;">
         `;
         
         data.forEach(item => {
@@ -413,11 +496,16 @@ async function searchPDF() {
                     </div>
                     <div class="doc-info">
                         <h3>${item.filename}</h3>
-                        <p><i class="fas fa-folder"></i> ${item.category}</p>
+                        <p><span style="color:#64748b;"><i class="fas fa-folder"></i> ${item.category}</span></p>
                     </div>
-                    <a href="/download/${item.id}" class="btn-download">
-                        <i class="fas fa-download"></i> ดาวน์โหลด
-                    </a>
+                    <div class="doc-actions">
+                        <a href="/download/${item.id}?view=1" target="_blank" rel="noopener noreferrer" class="btn-preview">
+                            <i class="fas fa-eye"></i> ดูตัวอย่าง
+                        </a>
+                        <a href="/download/${item.id}" class="btn-download">
+                            <i class="fas fa-download"></i> ดาวน์โหลด
+                        </a>
+                    </div>
                 </div>
             `;
         });
@@ -428,7 +516,7 @@ async function searchPDF() {
     } catch (error) {
         console.error('Search error:', error);
         resultsDiv.innerHTML = `
-            <div style="text-align: center; padding: 20px; background: #fee2e2; color: #991b1b; border-radius: 10px;">
+            <div style="text-align: center; padding: 20px; background: #fee2e2; color: #991b1b; border-radius: 10px; margin-bottom: 20px;">
                 เกิดข้อผิดพลาดในการค้นหา
             </div>
         `;

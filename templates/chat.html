@@ -442,6 +442,25 @@
             }
         }
 
+        .stream-cursor {
+            display: inline-block;
+            color: #1a5f3f;
+            font-weight: 700;
+            margin-left: 2px;
+            animation: blinkCursor 0.6s infinite;
+        }
+        @keyframes blinkCursor {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+        .stream-extra-container.fade-in-up, .feedback-row.fade-in-up {
+            animation: fadeInUp 0.35s ease-out forwards;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
         .chat-input {
             padding: 0;
             border-top: 1px solid #e5e7eb;
@@ -508,6 +527,70 @@
 
         .send-btn:active {
             transform: scale(0.98);
+        }
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .input-wrapper.waiting {
+            opacity: 0.75;
+            background: #f9fafb;
+        }
+        .inline-resources {
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+        .inline-res-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .message-content a.inline-res-btn,
+        .inline-res-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            background: #ffffff !important;
+            color: #15803d !important;
+            border: 1px solid #86efac !important;
+            border-bottom: 1px solid #86efac !important;
+            border-radius: 999px;
+            text-decoration: none !important;
+            font-weight: 500;
+            font-size: 0.82rem;
+            line-height: 1.4;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+        }
+        .message-content a.inline-res-btn:hover,
+        .inline-res-btn:hover {
+            background: #f0fdf4 !important;
+            color: #166534 !important;
+            border-color: #22c55e !important;
+            border-bottom-color: #22c55e !important;
+            box-shadow: 0 2px 6px rgba(22, 101, 52, 0.12);
+            transform: translateY(-1px);
+        }
+        .message-content a.inline-res-btn:active,
+        .inline-res-btn:active {
+            transform: translateY(0);
+            background: #dcfce7 !important;
+        }
+        @keyframes cardPulse {
+            0% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.45); }
+            70% { box-shadow: 0 0 0 8px rgba(22, 163, 74, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
+        }
+        .card-highlight-pulse {
+            animation: cardPulse 1s ease-out 2;
+            border: 1px solid #16a34a;
         }
 
         /* Sidebar */
@@ -797,6 +880,7 @@
             border-radius: 50%;
             border: 2px solid rgba(255,255,255,0.5);
             object-fit: cover;
+            background: #ffffff;
         }
         .line-avatar-placeholder {
             width: 30px;
@@ -864,7 +948,7 @@
                     <div class="line-avatar-placeholder">{{ session.get('line_display_name', 'U')[0] }}</div>
                 {% endif %}
                 <span class="line-display-name">{{ session.get('line_display_name', 'นิสิต') }}</span>
-                <a href="/auth/line/logout" class="logout-btn">ออกจากระบบ</a>
+                <a href="/auth/line/logout" class="logout-btn" onclick="sessionStorage.clear();">ออกจากระบบ</a>
             </div>
         </div>
     </header>
@@ -879,6 +963,8 @@
                     ผู้ช่วยอัจฉริยะ Science Assistant
                 </div>
             </div>
+
+
 
             <div class="chat-messages" id="chat-messages">
                 <div class="welcome-screen">
@@ -968,6 +1054,18 @@
                             <i class="fas fa-chevron-right" style="color: #9ca3af;"></i>
                         </div>
                     </a>
+                    <a href="{{ url_for('downloads') }}" target="_blank" style="text-decoration: none;">
+                        <div class="quick-link">
+                            <div class="quick-link-icon">
+                                <i class="fas fa-file-download"></i>
+                            </div>
+                            <div class="quick-link-text">
+                                <div class="quick-link-title">ดาวน์โหลดแบบฟอร์ม</div>
+                                <div class="quick-link-desc">รวมแบบฟอร์มคำร้องและเอกสาร</div>
+                            </div>
+                            <i class="fas fa-chevron-right" style="color: #9ca3af;"></i>
+                        </div>
+                    </a>
                 </div>
             </div>
 
@@ -991,7 +1089,7 @@
             </div>
 
             <!-- Downloads -->
-            <div class="card">
+            <div class="card" id="downloads-card">
                 <div class="card-header">
                     <div class="card-title">
                         <i class="fas fa-file-download"></i>
@@ -1059,20 +1157,27 @@
                 `;
                 content.appendChild(item);
             });
+            const dlCard = document.getElementById('downloads-card');
+            if (dlCard) {
+                dlCard.classList.remove('card-highlight-pulse');
+                void dlCard.offsetWidth;
+                dlCard.classList.add('card-highlight-pulse');
+                setTimeout(() => dlCard.classList.remove('card-highlight-pulse'), 2200);
+            }
         }
 
         // Show bot-suggested links in quick-links sidebar
         let shownLinkUrls = new Set();
 
         const LINK_STYLES = {
-            mytcas:       { bg:'#fce7f3', color:'#db2777', border:'#db2777', icon:'fa-graduation-cap' },
-            'admissions': { bg:'#fce7f3', color:'#db2777', border:'#db2777', icon:'fa-graduation-cap' },
-            regis:        { bg:'#ffedd5', color:'#ea580c', border:'#ea580c', icon:'fa-clipboard-list' },
-            'my.ku':      { bg:'#dbeafe', color:'#2563eb', border:'#2563eb', icon:'fa-user-circle' },
-            'myku':       { bg:'#dbeafe', color:'#2563eb', border:'#2563eb', icon:'fa-user-circle' },
-            'sci.src.ku': { bg:'#dcfce7', color:'#16a34a', border:'#16a34a', icon:'fa-flask' },
-            'ku.ac':      { bg:'#dcfce7', color:'#16a34a', border:'#16a34a', icon:'fa-university' },
-            default:      { bg:'#f3e8ff', color:'#7c3aed', border:'#7c3aed', icon:'fa-external-link-alt' },
+            mytcas:       { bg:'#f0fdf4', color:'#15803d', border:'#16a34a', icon:'fa-graduation-cap' },
+            'admissions': { bg:'#f0fdf4', color:'#15803d', border:'#16a34a', icon:'fa-graduation-cap' },
+            regis:        { bg:'#f0fdf4', color:'#15803d', border:'#16a34a', icon:'fa-clipboard-list' },
+            'my.ku':      { bg:'#f0fdf4', color:'#15803d', border:'#16a34a', icon:'fa-user-circle' },
+            'myku':       { bg:'#f0fdf4', color:'#15803d', border:'#16a34a', icon:'fa-user-circle' },
+            'sci.src.ku': { bg:'#f0fdf4', color:'#15803d', border:'#16a34a', icon:'fa-flask' },
+            'ku.ac':      { bg:'#f0fdf4', color:'#15803d', border:'#16a34a', icon:'fa-university' },
+            default:      { bg:'#f0fdf4', color:'#15803d', border:'#16a34a', icon:'fa-arrow-up-right-from-square' },
         };
         function getLinkStyle(url) {
             const u = url.toLowerCase();
@@ -1093,7 +1198,8 @@
             const section = document.getElementById('suggested-links-section');
             const list    = document.getElementById('suggested-links-list');
 
-            // กรอง duplicate ด้วย normalized URL
+            list.innerHTML = '';
+            shownLinkUrls.clear();
             const newLinks = links.filter(l => {
                 const norm = normalizeUrl(l.url || '');
                 if (!norm || shownLinkUrls.has(norm)) return false;
@@ -1127,6 +1233,10 @@
             section.style.display = 'block';
             card.style.display = 'block';
             document.getElementById('suggested-links-placeholder').style.display = 'none';
+            card.classList.remove('card-highlight-pulse');
+            void card.offsetWidth;
+            card.classList.add('card-highlight-pulse');
+            setTimeout(() => card.classList.remove('card-highlight-pulse'), 2200);
         }
 
         // Download PDF
@@ -1161,69 +1271,300 @@
         }
 
         function formatMessage(text) {
-            // ถ้าข้อความมี HTML tags ให้ใช้โดยตรง (สำหรับการตัวอักษรสะดวกสบาย)
-            if (/<[^>]*>/.test(text)) {
-                return text; // เก็บ HTML ตามเดิม
+            if (!text) return '';
+            let safe = escapeHtml(text.trim());
+            // แปลง Markdown **ตัวหนา**
+            safe = safe.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+            const lines = safe.split('\n');
+            let formatted = [];
+            let inList = false;
+
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i].trim();
+
+                if (!line) {
+                    if (inList) {
+                        formatted.push('</ul>');
+                        inList = false;
+                    }
+                    formatted.push('<div style="height: 8px;"></div>');
+                    continue;
+                }
+
+                // ตรวจจับ Bullet (- หรือ • หรือ *)
+                const bulletMatch = line.match(/^[-•*]\s+(.*)$/);
+                if (bulletMatch) {
+                    if (!inList) {
+                        formatted.push('<ul style="margin: 4px 0 6px 18px; padding: 0; list-style-type: disc;">');
+                        inList = true;
+                    }
+                    formatted.push(`<li style="margin-bottom: 4px; line-height: 1.6;">${bulletMatch[1]}</li>`);
+                    continue;
+                }
+
+                if (inList) {
+                    formatted.push('</ul>');
+                    inList = false;
+                }
+
+                // ตรวจจับหัวข้อตัวเลข เช่น 1. หรือ 2.
+                const numMatch = line.match(/^(\d+\.)\s+(.*)$/);
+                if (numMatch) {
+                    formatted.push(`<div style="margin-top: 10px; margin-bottom: 4px; font-weight: 500; line-height: 1.6;"><strong style="color: #1a5f3f;">${numMatch[1]}</strong> ${numMatch[2]}</div>`);
+                    continue;
+                }
+
+                formatted.push(`<div style="line-height: 1.6; margin-bottom: 4px;">${line}</div>`);
             }
-            // ถ้าเป็นข้อความธรรมดา ให้ escape และแปลง line breaks
-            text = escapeHtml(text);
-            text = text.replace(/\n/g, '<br>');
-            return text;
+
+            if (inList) {
+                formatted.push('</ul>');
+            }
+
+            return formatted.join('');
         }
 
-        function addMessage(message, isUser = false) {
+        function buildInlineResourcesHtml(extra) {
+            if (!extra) return '';
+            const links = extra.links || [];
+            const files = extra.files || [];
+            if (!links.length && !files.length) return '';
+            let html = '<div class="inline-resources">';
+            if (links.length) {
+                links.forEach(l => {
+                    if (l && l.url) {
+                        html += `<a class="inline-res-btn" href="${escapeHtml(l.url)}" target="_blank" rel="noopener noreferrer">`
+                             + `<i class="fa-solid fa-link" style="font-size:0.75rem;opacity:0.85;"></i> `
+                             + `<span>${escapeHtml(l.title || l.url)}</span> `
+                             + `<i class="fa-solid fa-arrow-up-right-from-square" style="font-size:0.7rem;margin-left:3px;opacity:0.85;"></i>`
+                             + `</a>`;
+                    }
+                });
+            }
+            if (files.length) {
+                files.forEach(name => {
+                    const pdf = allPdfData.find(p => p.name === name) || allPdfData.find(p => p.name.toLowerCase().includes(name.toLowerCase()));
+                    if (pdf && pdf.id) {
+                        html += `<a class="inline-res-btn" href="/download/${pdf.id}">`
+                             + `<i class="fa-solid fa-file-pdf" style="font-size:0.75rem;color:#dc2626;"></i> `
+                             + `<span>${escapeHtml(pdf.name)}</span> `
+                             + `<i class="fa-solid fa-download" style="font-size:0.7rem;margin-left:3px;opacity:0.85;"></i>`
+                             + `</a>`;
+                    } else {
+                        html += `<span class="inline-res-btn">`
+                             + `<i class="fa-solid fa-file-pdf" style="font-size:0.75rem;color:#dc2626;"></i> `
+                             + `<span>${escapeHtml(name)}</span>`
+                             + `</span>`;
+                    }
+                });
+            }
+            html += '</div>';
+            return html;
+        }
+
+        let displayMessages = [];
+
+        function saveChatToSession() {
+            try {
+                sessionStorage.setItem('chat_display_messages', JSON.stringify(displayMessages));
+                sessionStorage.setItem('chat_conversation_history', JSON.stringify(conversationHistory));
+            } catch (e) {
+                console.warn('[SessionStorage] Save failed:', e);
+            }
+        }
+
+        let activeStreamCancel = null;
+
+        function renderMessageToDom(message, isUser = false, extra = null, timeStr = null, stream = false, onFinish = null) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
+            const time = timeStr || getCurrentTime();
             
             if (isUser) {
                 const avatarHtml = LINE_PICTURE
-                    ? `<img src="${LINE_PICTURE}" alt="avatar" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">`
+                    ? `<img src="${LINE_PICTURE}" alt="avatar" style="width:40px;height:40px;border-radius:50%;object-fit:cover;background:#ffffff;">`
                     : `<i class="fas fa-user"></i>`;
                 messageDiv.innerHTML = `
                     <div class="message-wrapper">
                         <div class="message-content">${formatMessage(message)}</div>
-                        <div class="message-time">${getCurrentTime()}</div>
+                        <div class="message-time">${time}</div>
                     </div>
                     <div class="message-avatar" style="background:transparent;">
                         ${avatarHtml}
                     </div>
                 `;
+                chatMessages.appendChild(messageDiv);
+                scrollToBottom();
+                if (onFinish) onFinish();
+                return messageDiv;
             } else {
-                const msgId = 'msg_' + Date.now();
-                messageDiv.innerHTML = `
-                    <div class="message-avatar">
-                        <i class="fas fa-robot"></i>
-                    </div>
-                    <div class="message-wrapper">
-                        <div class="message-content">${formatMessage(message)}</div>
-                        <div class="message-time">${getCurrentTime()}</div>
-                        <div class="feedback-row" id="fb_${msgId}">
-                            <button class="feedback-btn" onclick="sendFeedback('${msgId}', 1, this)">
-                                <i class="fas fa-thumbs-up"></i> ถูกต้อง
-                            </button>
-                            <button class="feedback-btn" onclick="sendFeedback('${msgId}', -1, this)">
-                                <i class="fas fa-thumbs-down"></i> ไม่ถูกต้อง
-                            </button>
-                            <span class="feedback-thanks" id="thanks_${msgId}">ขอบคุณครับ</span>
+                const msgId = 'msg_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+                let extraHtml = buildInlineResourcesHtml(extra);
+                if (extra && extra.actionButton) {
+                    extraHtml += `
+                        <div style="margin-top: 12px;">
+                            <a href="${escapeHtml(extra.actionButton.url)}" style="background:#06C755; color:white; border-radius:8px; padding:9px 18px; text-decoration:none; font-weight:700; font-size:0.85rem; display:inline-flex; align-items:center; gap:8px; box-shadow:0 2px 6px rgba(6,199,85,0.25); transition:transform 0.15s ease;">
+                                <i class="fab fa-line" style="font-size:1.1rem;"></i> ${escapeHtml(extra.actionButton.text)}
+                            </a>
                         </div>
+                    `;
+                }
+                const feedbackHtml = (extra && extra.isQuotaNotice) ? '' : `
+                    <div class="feedback-row" id="fb_${msgId}">
+                        <button class="feedback-btn" onclick="sendFeedback('${msgId}', 1, this)">
+                            <i class="fas fa-thumbs-up"></i> ถูกต้อง
+                        </button>
+                        <button class="feedback-btn" onclick="sendFeedback('${msgId}', -1, this)">
+                            <i class="fas fa-thumbs-down"></i> ไม่ถูกต้อง
+                        </button>
+                        <span class="feedback-thanks" id="thanks_${msgId}">ขอบคุณครับ</span>
                     </div>
                 `;
-                messageDiv.dataset.msgId = msgId;
+
+                if (stream) {
+                    if (activeStreamCancel) {
+                        try { activeStreamCancel(); } catch(e){}
+                        activeStreamCancel = null;
+                    }
+
+                    messageDiv.innerHTML = `
+                        <div class="message-avatar">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <div class="message-wrapper">
+                            <div class="message-content"><span class="stream-text"></span><span class="stream-cursor">▌</span></div>
+                            <div class="message-time">${time}</div>
+                            <div class="stream-extra-container" style="display:none;">${extraHtml}</div>
+                            ${feedbackHtml}
+                        </div>
+                    `;
+                    messageDiv.dataset.msgId = msgId;
+                    chatMessages.appendChild(messageDiv);
+                    scrollToBottom();
+
+                    const contentEl = messageDiv.querySelector('.stream-text');
+                    const cursorEl = messageDiv.querySelector('.stream-cursor');
+                    const extraEl = messageDiv.querySelector('.stream-extra-container');
+                    const fbEl = messageDiv.querySelector('.feedback-row');
+                    if (fbEl) fbEl.style.display = 'none';
+
+                    let charIdx = 0;
+                    const stepSize = 4;
+                    const intervalMs = 14;
+
+                    let isFinished = false;
+                    const finishNow = () => {
+                        if (isFinished) return;
+                        isFinished = true;
+                        if (timer) clearInterval(timer);
+                        if (cursorEl) cursorEl.remove();
+                        if (contentEl) contentEl.innerHTML = formatMessage(message);
+                        if (extraEl && extraHtml) {
+                            extraEl.style.display = 'block';
+                            extraEl.classList.add('fade-in-up');
+                        }
+                        if (fbEl && !(extra && extra.isQuotaNotice)) {
+                            fbEl.style.display = 'flex';
+                            fbEl.classList.add('fade-in-up');
+                        }
+                        scrollToBottom();
+                        activeStreamCancel = null;
+                        if (onFinish) onFinish();
+                    };
+
+                    activeStreamCancel = finishNow;
+
+                    const timer = setInterval(() => {
+                        charIdx += stepSize;
+                        if (charIdx >= message.length) {
+                            finishNow();
+                        } else {
+                            contentEl.innerHTML = formatMessage(message.slice(0, charIdx));
+                            scrollToBottom();
+                        }
+                    }, intervalMs);
+
+                    return messageDiv;
+                } else {
+                    messageDiv.innerHTML = `
+                        <div class="message-avatar">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <div class="message-wrapper">
+                            <div class="message-content">${formatMessage(message)}${extraHtml}</div>
+                            <div class="message-time">${time}</div>
+                            ${feedbackHtml}
+                        </div>
+                    `;
+                    messageDiv.dataset.msgId = msgId;
+                    chatMessages.appendChild(messageDiv);
+                    scrollToBottom();
+                    if (onFinish) onFinish();
+                    return messageDiv;
+                }
             }
-            chatMessages.appendChild(messageDiv);
-            scrollToBottom();
+        }
+
+        function addMessage(message, isUser = false, extra = null, stream = false, onFinish = null) {
+            const timeStr = getCurrentTime();
+            displayMessages.push({ text: message, isUser, extra, time: timeStr });
+            if (displayMessages.length > 50) displayMessages.shift(); // เก็บสูงสุด 50 ข้อความต่อ session
+            saveChatToSession();
+            return renderMessageToDom(message, isUser, extra, timeStr, stream, onFinish);
+        }
+
+        function loadChatFromSession() {
+            try {
+                const savedHist = sessionStorage.getItem('chat_conversation_history');
+                if (savedHist) {
+                    conversationHistory = JSON.parse(savedHist) || [];
+                }
+                const savedMsgs = sessionStorage.getItem('chat_display_messages');
+                if (savedMsgs) {
+                    const msgs = JSON.parse(savedMsgs) || [];
+                    if (Array.isArray(msgs) && msgs.length > 0) {
+                        displayMessages = msgs;
+                        msgs.forEach(m => {
+                            renderMessageToDom(m.text, m.isUser, m.extra, m.time);
+                        });
+                        scrollToBottom();
+                    }
+                }
+            } catch (e) {
+                console.warn('[SessionStorage] Load failed:', e);
+            }
         }
 
         // map msgId → chat_log id จาก server
         const msgLogMap = {};
+        let isWaitingForBot = false;
+        const sendBtn = chatForm.querySelector('.send-btn');
+        const inputWrapper = chatForm.querySelector('.input-wrapper');
+        const defaultPlaceholder = userInput.getAttribute('placeholder') || 'พิมพ์คำถามหรือข้อความของคุณ...';
+
+        function setChatWaiting(waiting) {
+            isWaitingForBot = waiting;
+            userInput.disabled = waiting;
+            if (sendBtn) sendBtn.disabled = waiting;
+            if (inputWrapper) inputWrapper.classList.toggle('waiting', waiting);
+            userInput.setAttribute('placeholder', waiting ? 'กำลังรอคำตอบจาก Science Assistant...' : defaultPlaceholder);
+            if (!waiting) userInput.focus();
+        }
 
         // Handle chat form submission
         chatForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            if (activeStreamCancel) {
+                try { activeStreamCancel(); } catch(e){}
+                activeStreamCancel = null;
+            }
+            if (isWaitingForBot) return;
             const message = userInput.value.trim();
             
             if (!message) return;
             
+            setChatWaiting(true);
             // Add user message to chat
             addMessage(message, true);
             userInput.value = '';
@@ -1246,7 +1587,39 @@
                 typingIndicator.style.display = 'none';
                 
                 if (response.ok) {
-                    addMessage(data.response, false);
+                    const onBotFinish = () => {
+                        // จัดการโควตาโหมดทดลองใช้งาน (Guest Mode: เมื่อตอบครบ 5 คำถาม ให้บอทพิมพ์บอกเหมือนคำตอบ)
+                        if (data.is_guest && data.quota_exceeded) {
+                            const typingIndicator = document.getElementById('typing-indicator');
+                            if (chatMessages && typingIndicator) {
+                                chatMessages.appendChild(typingIndicator);
+                                typingIndicator.style.display = 'flex';
+                                scrollToBottom();
+                            }
+                            setTimeout(() => {
+                                if (typingIndicator) typingIndicator.style.display = 'none';
+                                addMessage(
+                                    'คุณใช้สิทธิ์ทดลองใช้งานครบ 5 คำถามแล้วครับ หากมีข้อสงสัยเพิ่มเติมหรือต้องการพูดคุยต่อ กรุณาเข้าสู่ระบบผ่าน LINE ได้เลยครับ',
+                                    false,
+                                    {
+                                        isQuotaNotice: true,
+                                        actionButton: {
+                                            text: 'เข้าสู่ระบบด้วย LINE เพื่อคุยต่อ',
+                                            url: data.login_url || '/login'
+                                        }
+                                    },
+                                    true
+                                );
+                                lockGuestInput();
+                            }, 500);
+                        }
+                    };
+
+                    addMessage(data.response, false, {
+                        links: data.suggested_links || [],
+                        files: data.suggested_files || []
+                    }, true, onBotFinish);
+
                     // เก็บ log_id สำหรับ feedback
                     const lastBot = chatMessages.querySelector('.message.bot:last-of-type');
                     if (lastBot && data.log_id) {
@@ -1264,12 +1637,33 @@
                         showSuggestedLinks(data.suggested_links);
                     }
                 } else {
-                    addMessage('ขออภัยครับ เกิดข้อผิดพลาด', false);
+                    if (response.status === 401 && data && data.redirect) {
+                        window.location.href = data.redirect;
+                        return;
+                    }
+                    if (response.status === 403 && data && data.quota_exceeded) {
+                        addMessage(
+                            data.response || 'คุณใช้สิทธิ์ทดลองใช้งานครบ 5 คำถามแล้วครับ หากต้องการพูดคุยต่อ กรุณาเข้าสู่ระบบผ่าน LINE ได้เลยครับ',
+                            false,
+                            {
+                                isQuotaNotice: true,
+                                actionButton: {
+                                    text: 'เข้าสู่ระบบด้วย LINE เพื่อคุยต่อ',
+                                    url: data.login_url || '/login'
+                                }
+                            }
+                        );
+                        lockGuestInput();
+                        return;
+                    }
+                    addMessage((data && data.response) || 'ขออภัยครับ เกิดข้อผิดพลาด', false);
                 }
             } catch (error) {
                 typingIndicator.style.display = 'none';
                 console.error('Error:', error);
                 addMessage('ขออภัยครับ ไม่สามารถเชื่อมต่อได้', false);
+            } finally {
+                setChatWaiting(false);
             }
         });
 
@@ -1296,6 +1690,7 @@
             if (conversationHistory.length > MAX_HISTORY) {
                 conversationHistory.splice(0, 2); // ตัดคู่เก่าที่สุดออก
             }
+            saveChatToSession();
         }
 
         // ── Load Top 3 Popular Questions ──────────────
@@ -1337,6 +1732,7 @@
         }
 
         function sendSuggestion(btn, text) {
+            if (isWaitingForBot) return;
             // ใส่ข้อความในช่อง input แล้ว submit ทันที
             const input = document.getElementById('user-input');
             input.value = text;
@@ -1371,11 +1767,45 @@
             } catch(e) { console.error('Feedback error:', e); }
         }
 
+        // ── Guest Mode Quota Management ────────────
+        function lockGuestInput() {
+            const userInput = document.getElementById('user-input');
+            const sendBtn = document.querySelector('.send-btn');
+            if (userInput) {
+                userInput.disabled = true;
+                userInput.placeholder = 'ครบโควตาทดลองใช้งาน 5 คำถามแล้ว — กรุณาเข้าสู่ระบบผ่าน LINE';
+                userInput.style.background = '#f3f4f6';
+                userInput.style.cursor = 'not-allowed';
+            }
+            if (sendBtn) {
+                sendBtn.disabled = true;
+                sendBtn.style.opacity = '0.4';
+                sendBtn.style.cursor = 'not-allowed';
+            }
+        }
+
         // Initialize on page load
         window.addEventListener('DOMContentLoaded', function() {
             loadDocuments();
-            loadSuggestChips()
+            loadSuggestChips();
+            loadChatFromSession();
             setInterval(loadSuggestChips, 5 * 60 * 1000); // reload ทุก 5 นาที
+            {% if session.get('is_guest') and session.get('guest_question_count', 0) >= 5 %}
+            if (!displayMessages || displayMessages.length === 0) {
+                addMessage(
+                    'คุณใช้สิทธิ์ทดลองใช้งานครบ 5 คำถามแล้วครับ หากมีข้อสงสัยเพิ่มเติมหรือต้องการพูดคุยต่อ กรุณาเข้าสู่ระบบผ่าน LINE ได้เลยครับ',
+                    false,
+                    {
+                        isQuotaNotice: true,
+                        actionButton: {
+                            text: 'เข้าสู่ระบบด้วย LINE เพื่อคุยต่อ',
+                            url: '/login'
+                        }
+                    }
+                );
+            }
+            lockGuestInput();
+            {% endif %}
         });
     </script>
      <div style="text-align:center;padding:10px 16px;font-size:0.72rem;color:#9ca3af;background:#f9fafb;border-top:1px solid #f3f4f6;line-height:1.8;">

@@ -142,6 +142,54 @@
         @media (max-width: 480px) {
             .card { padding: 32px 24px; }
         }
+        .guest-divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            margin: 18px 0 14px;
+            color: #9ca3af;
+            font-size: 0.8rem;
+        }
+        .guest-divider::before, .guest-divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .guest-divider span {
+            padding: 0 10px;
+        }
+
+        .guest-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 12px 18px;
+            background: #fff7ed;
+            color: #c2410c;
+            border: 1.5px solid #f97316;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+        .guest-btn:hover {
+            background: #ffedd5;
+            border-color: #ea580c;
+            color: #9a3412;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(234, 88, 12, 0.16);
+        }
+        .guest-btn:active {
+            transform: translateY(0);
+        }
+        .guest-btn i {
+            color: #ea580c;
+        }
     </style>
 </head>
 <body>
@@ -165,6 +213,18 @@
             </svg>
             เข้าสู่ระบบด้วย LINE
         </a>
+
+        {% if guest_mode_enabled %}
+        <div class="guest-divider">
+            <span>หรือทดลองใช้งานโดยไม่เข้าสู่ระบบ</span>
+        </div>
+
+        <a href="/auth/guest" class="guest-btn">
+            <i class="fas fa-flask"></i>
+            ทดลองใช้งาน
+        </a>
+
+        {% endif %}
 
         <p class="footer-note">
             ข้อมูลของคุณจะถูกใช้เพียงชื่อโปรไฟล์ยืนยันตัวตนเท่านั้น<br>

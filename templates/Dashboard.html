@@ -52,6 +52,8 @@ tr:hover td{background:#f9fafb}
 .badge.done{background:#dcfce7;color:#16a34a}
 .badge.running{background:#dbeafe;color:#2563eb}
 .badge.error{background:#fee2e2;color:#dc2626}
+.badge.mapped{background:#dcfce7;color:#16a34a;border:1px solid #bbf7d0}
+.badge.unmapped{background:#ffedd5;color:#c2410c;border:1px solid #fed7aa}
 /* Buttons */
 .btn{display:inline-flex;align-items:center;gap:8px;padding:9px 18px;border-radius:7px;font-size:.875rem;font-weight:600;cursor:pointer;border:none;transition:.2s}
 .btn-primary{background:linear-gradient(135deg,#1a5f3f,#2d8659);color:white}
@@ -75,6 +77,279 @@ tr:hover td{background:#f9fafb}
 .top-q-text{flex:1;font-size:.875rem;color:#374151}
 .top-q-count{font-size:.8rem;font-weight:600;color:#6b7280}
 @media(max-width:900px){.stat-grid{grid-template-columns:1fr 1fr}.grid-2{grid-template-columns:1fr}}
+/* Toggle Switch */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 26px;
+}
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #cbd5e1;
+  transition: .3s;
+  border-radius: 26px;
+}
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: .3s;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+input:checked + .toggle-slider {
+  background-color: #10b981;
+}
+input:checked + .toggle-slider:before {
+  transform: translateX(22px);
+}
+
+/* ── External Links Management Enhancements ── */
+.stat-card.clickable {
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 2px solid transparent;
+  user-select: none;
+}
+.stat-card.clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+}
+.stat-card.clickable.active-blue {
+  border-color: #2563eb;
+  background: #f0f7ff;
+}
+.stat-card.clickable.active-green {
+  border-color: #16a34a;
+  background: #f0fdf4;
+}
+.stat-card.clickable.active-orange {
+  border-color: #ea580c;
+  background: #fff7ed;
+}
+.badge.ignored {
+  background: #f3f4f6;
+  color: #6b7280;
+  border: 1px solid #d1d5db;
+}
+.discovered-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  min-width: 1100px;
+}
+.discovered-table th,
+.discovered-table td {
+  padding: 10px 12px;
+  vertical-align: middle;
+}
+.discovered-table th {
+  background: #f8fafc;
+  color: #475569;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border-bottom: 2px solid #e2e8f0;
+}
+.discovered-table td {
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.85rem;
+}
+.discovered-table tr:hover td {
+  background: #f8fafc;
+}
+.truncate-title {
+  max-width: calc(100% - 24px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+  vertical-align: middle;
+  font-weight: 600;
+  color: #111827;
+}
+.truncate-url {
+  max-width: 520px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+  vertical-align: middle;
+}
+.truncate-source {
+  max-width: calc(100% - 18px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+  vertical-align: middle;
+}
+.btn-xs {
+  padding: 5px 9px;
+  font-size: 0.76rem;
+  border-radius: 6px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  text-decoration: none;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+.btn-map-edit {
+  background: #f0fdf4;
+  color: #15803d;
+  border-color: #bbf7d0;
+}
+.btn-map-edit:hover {
+  background: #dcfce7;
+  border-color: #86efac;
+}
+.btn-edit-mapped {
+  background: #f8fafc;
+  color: #475569;
+  border-color: #cbd5e1;
+}
+.btn-edit-mapped:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+  border-color: #94a3b8;
+}
+.btn-ignore {
+  background: #f3f4f6;
+  color: #6b7280;
+  border-color: #e5e7eb;
+}
+.btn-ignore:hover {
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #fecaca;
+}
+.btn-restore {
+  background: #eff6ff;
+  color: #2563eb;
+  border-color: #bfdbfe;
+}
+.btn-restore:hover {
+  background: #dbeafe;
+}
+.bulk-toolbar {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: #f8fafc;
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 8px;
+  margin-bottom: 14px;
+  font-size: 0.85rem;
+}
+.bulk-toolbar.visible {
+  display: flex;
+}
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(17, 24, 39, 0.45);
+  backdrop-filter: blur(2px);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.modal-overlay.open {
+  display: flex;
+}
+.modal-box {
+  background: white;
+  border-radius: 14px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  width: 100%;
+  max-width: 520px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  animation: modalPop 0.15s ease-out;
+}
+@keyframes modalPop {
+  from { transform: scale(0.96); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+.modal-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.modal-header h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #111827;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.3rem;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  line-height: 1;
+}
+.modal-close:hover { color: #111827; background: #f3f4f6; }
+.modal-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.modal-footer {
+  padding: 14px 20px;
+  background: #f9fafb;
+  border-top: 1px solid #f3f4f6;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.form-group label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #374151;
+}
+.form-group input, .form-group select {
+  padding: 9px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color .15s;
+}
+.form-group input:focus, .form-group select:focus {
+  border-color: #1a5f3f;
+}
 </style>
 </head>
 <body>
@@ -100,6 +375,10 @@ tr:hover td{background:#f9fafb}
   <a class="nav-item" onclick="showPage('scraper')" href="#">
     <i class="fas fa-sync-alt"></i> จัดการ Scraper
   </a>
+  <a class="nav-item" onclick="showPage('links')" href="#" id="nav-links">
+    <i class="fas fa-link"></i> จัดการลิงก์
+    <span id="nav-unmapped-badge" style="display:none;margin-left:auto;background:#ea580c;color:white;font-size:0.7rem;font-weight:700;padding:2px 7px;border-radius:99px;">0</span>
+  </a>
   <div class="sidebar-footer">
     <a href="/admin/logout" class="logout-btn">
       <i class="fas fa-sign-out-alt"></i> ออกจากระบบ
@@ -116,12 +395,37 @@ tr:hover td{background:#f9fafb}
 
   <!-- Overview Page -->
   <div class="page active" id="page-overview">
+    <!-- Banner ควบคุมโหมดทดลองใช้งาน (Guest Trial Mode) -->
+    <div class="card" style="margin-bottom:20px;padding:16px 20px;border:1px solid #e5e7eb;background:white;display:flex;align-items:center;justify-content:space-between;gap:16px;border-radius:12px;">
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div style="width:42px;height:42px;border-radius:10px;background:#ecfdf5;color:#059669;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;">
+          <i class="fas fa-user-clock"></i>
+        </div>
+        <div>
+          <div style="font-size:0.95rem;font-weight:700;color:#111827;display:flex;align-items:center;gap:8px;">
+            โหมดทดลองใช้งานสำหรับทดสอบ 
+            <span id="guest-mode-badge" class="badge" style="background:#f3f4f6;color:#6b7280;">กำลังโหลด...</span>
+          </div>
+          <div style="font-size:0.8rem;color:#6b7280;margin-top:2px;">
+            เมื่อเปิดใช้งานจะมีปุ่ม "ทดลองใช้งาน" แสดงบนหน้า Login ให้นิสิตหรือผู้ใช้ทั่วไปแชทได้ทันทีโดยไม่ต้องล็อกอิน LINE ในของช่วงการทดสอบเว็บไซต์
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;flex-shrink:0;">
+        <label class="toggle-switch">
+          <input type="checkbox" id="guest-mode-toggle" onchange="handleGuestModeToggle(this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+
     <div class="stat-grid">
       <div class="stat-card">
         <div class="stat-icon green"><i class="fas fa-comments"></i></div>
         <div>
           <div class="stat-value" id="stat-total">—</div>
           <div class="stat-label">แชทสะสมทั้งหมด</div>
+          <div style="font-size:0.75rem;color:#6b7280;margin-top:2px;" id="stat-total-sub"></div>
         </div>
       </div>
       <div class="stat-card">
@@ -129,6 +433,7 @@ tr:hover td{background:#f9fafb}
         <div>
           <div class="stat-value" id="stat-today">—</div>
           <div class="stat-label">แชทวันนี้</div>
+          <div style="font-size:0.75rem;color:#6b7280;margin-top:2px;" id="stat-today-sub"></div>
         </div>
       </div>
       <div class="stat-card">
@@ -176,7 +481,7 @@ tr:hover td{background:#f9fafb}
         <canvas id="dailyChart" height="180"></canvas>
       </div>
       <div class="card">
-        <div class="card-title"><i class="fas fa-fire"></i> คำถามยอดนิยม Top 10</div>
+        <div class="card-title"><i class="fas fa-fire"></i> คำถามยอดนิยม Top 15 (เฉพาะนิสิตจริง)</div>
         <div id="top-questions"></div>
       </div>
     </div>
@@ -297,6 +602,82 @@ tr:hover td{background:#f9fafb}
       </table>
     </div>
   </div>
+
+  <!-- Discovered Links Page -->
+  <div class="page" id="page-links">
+    <!-- Interactive KPI Cards (คลิกเพื่อกรองสถานะได้ทันที) -->
+    <div class="stat-grid" style="grid-template-columns:repeat(3, 1fr); margin-bottom: 20px;">
+      <div class="stat-card clickable active-blue" id="card-links-all" onclick="selectLinksFilterCard('all')" title="คลิกเพื่อดูกระดานทั้งหมด">
+        <div class="stat-icon blue"><i class="fas fa-link"></i></div>
+        <div>
+          <div class="stat-value" id="stat-links-total">—</div>
+          <div class="stat-label">ลิงก์เครือข่าย มก. ที่ตรวจพบ</div>
+        </div>
+      </div>
+      <div class="stat-card clickable" id="card-links-mapped" onclick="selectLinksFilterCard('mapped')" title="คลิกเพื่อกรองเฉพาะที่เปิดใช้งานแล้ว">
+        <div class="stat-icon green"><i class="fas fa-check-circle"></i></div>
+        <div>
+          <div class="stat-value" id="stat-links-mapped">—</div>
+          <div class="stat-label">เปิดใช้งานในระบบแล้ว (Active)</div>
+        </div>
+      </div>
+      <div class="stat-card clickable" id="card-links-unmapped" onclick="selectLinksFilterCard('unmapped')" title="คลิกเพื่อกรองเฉพาะที่ยังไม่เปิดใช้งาน">
+        <div class="stat-icon orange"><i class="fas fa-exclamation-triangle"></i></div>
+        <div>
+          <div class="stat-value" id="stat-links-unmapped">—</div>
+          <div class="stat-label">ยังไม่เปิดใช้งาน (Inactive)</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+        <div class="card-title" style="margin:0">
+          <i class="fas fa-network-wired"></i> รายการลิงก์ภายนอกที่ค้นพบจากการ Scraper และ FAQ
+        </div>
+        <div>
+          <button class="btn btn-primary" onclick="resyncDiscoveredLinks()" id="resync-links-btn">
+            <i class="fas fa-sync-alt"></i> สแกนหาลิงก์ใหม่จากฐานข้อมูล
+          </button>
+        </div>
+      </div>
+
+      <!-- Search & Filters -->
+      <div style="display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
+        <div class="search-bar" style="flex:1;margin-bottom:0;">
+          <input type="text" id="links-search" placeholder="ค้นหา URL, ชื่อบริการ หรือหน้าที่พบ..." oninput="filterDiscoveredLinks()">
+        </div>
+        <select id="links-status-filter" onchange="onLinksFilterDropdownChange(this.value)" style="padding:9px 14px;border:1px solid #e5e7eb;border-radius:7px;font-size:.875rem;background:white;color:#374151;outline:none;cursor:pointer;">
+          <option value="all">สถานะทั้งหมด (ใช้งานอยู่)</option>
+          <option value="unmapped">เฉพาะที่ยังไม่เปิดใช้งาน</option>
+          <option value="mapped">เฉพาะที่เปิดใช้งานในระบบแล้ว</option>
+          <option value="ignored">เฉพาะที่ซ่อนไว้ (Ignored)</option>
+        </select>
+      </div>
+
+      <!-- Table with Actions & Type Indicators -->
+      <div style="overflow-x:auto;">
+        <table class="discovered-table">
+          <thead>
+            <tr>
+              <th style="width:42px;text-align:center;">#</th>
+              <th style="width:20%;">ชื่อบริการ / ป้ายกำกับ</th>
+              <th style="width:29%;">URL เป้าหมาย</th>
+              <th style="width:16%;">พบจากแหล่งข้อมูล</th>
+              <th style="width:110px;text-align:center;">สแกนล่าสุด</th>
+              <th style="width:125px;text-align:center;">เวลาเปิดใช้งาน</th>
+              <th style="width:125px;text-align:center;">สถานะ</th>
+              <th style="width:135px;text-align:center;">จัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="links-table"></tbody>
+        </table>
+      </div>
+      <div id="links-empty" style="display:none;text-align:center;padding:30px;color:#9ca3af;font-size:0.9rem;">
+        ไม่พบข้อมูลลิงก์ที่ตรงกับเงื่อนไขการค้นหา
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -311,18 +692,20 @@ const pageTitles = {
   users:    '<i class="fas fa-users"></i> ผู้ใช้งาน LINE',
   faq:      '<i class="fas fa-question-circle"></i> จัดการ FAQ',
   scraper:  '<i class="fas fa-sync-alt"></i> จัดการ Scraper',
+  links:    '<i class="fas fa-link"></i> ลิงก์ภายนอกที่ค้นพบ (Discovered Links)',
 };
 function showPage(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
-  const navOrder = ['overview','chatlogs','users','faq','scraper'];
+  const navOrder = ['overview','chatlogs','users','faq','scraper','links'];
   document.querySelectorAll('.nav-item')[navOrder.indexOf(name)].classList.add('active');
   document.getElementById('page-title').innerHTML = pageTitles[name];
   if (name === 'chatlogs' && allLogs.length === 0) loadLogs(1);
   if (name === 'scraper') loadScraperStatus();
   if (name === 'users') loadUsers(1);
   if (name === 'faq') loadFAQ(1);
+  if (name === 'links') loadDiscoveredLinks();
 }
 
 // ── Load Overview Stats ─────────────────
@@ -331,8 +714,15 @@ async function loadStats() {
     const r = await fetch('/api/admin/stats');
     const d = await r.json();
     totalLogsCount = d.total_chats || 0;
+    updateGuestModeUI(d.guest_mode);
     document.getElementById('stat-total').textContent    = d.total_chats.toLocaleString();
+    if (document.getElementById('stat-total-sub') && d.student_chats !== undefined) {
+      document.getElementById('stat-total-sub').textContent = 'นิสิต: ' + (d.student_chats || 0).toLocaleString() + ' | Guest: ' + (d.guest_chats || 0).toLocaleString();
+    }
     document.getElementById('stat-today').textContent    = d.today_chats.toLocaleString();
+    if (document.getElementById('stat-today-sub') && d.today_student_chats !== undefined) {
+      document.getElementById('stat-today-sub').textContent = 'นิสิต: ' + (d.today_student_chats || 0).toLocaleString() + ' | Guest: ' + (d.today_guest_chats || 0).toLocaleString();
+    }
     document.getElementById('stat-sessions').textContent = d.total_sessions.toLocaleString();
     document.getElementById('stat-pages').textContent    = d.scraped_pages.toLocaleString();
     const sat = d.satisfaction;
@@ -381,11 +771,12 @@ function renderTopQuestions(questions) {
   el.innerHTML = questions.map((q, i) => `
     <div class="top-q-item">
       <div class="top-q-rank">${i+1}</div>
-      <div class="top-q-text">${q.question.length > 60 ? q.question.slice(0,60)+'...' : q.question}</div>
+      <div class="top-q-text" title="${escHtml(q.question)}">${escHtml(q.question.length > 120 ? q.question.slice(0,120)+'...' : q.question)}</div>
       <div class="top-q-count">${q.count} ครั้ง</div>
     </div>
   `).join('');
 }
+
 
 // ── Chat Logs ───────────────────────────
 async function loadLogs(page = 1) {
@@ -404,15 +795,25 @@ function renderLogs(logs) {
   // เลขแถวแรกของหน้านี้ = total - (page-1)*PAGE_SIZE
   // เช่น หน้า 1: 151-(0*20)=151, หน้า 8: 151-(7*20)=11
   const startNum = totalLogsCount - (currentPage - 1) * PAGE_SIZE;
-  tbody.innerHTML = logs.map((l, i) => `
-    <tr>
+  tbody.innerHTML = logs.map((l, i) => {
+    let sIdDisplay = '';
+    if (l.is_guest || l.session_id === 'guest' || l.session_id === 'anonymous' || (l.session_id && l.session_id.startsWith('guest_'))) {
+      sIdDisplay = 'guest';
+    } else {
+      const sId = l.session_id || '-';
+      sIdDisplay = sId.length > 14 ? escHtml(sId.slice(0, 14)) + '...' : escHtml(sId);
+    }
+
+    return `<tr>
       <td style="color:#9ca3af">${startNum - i}</td>
       <td style="white-space:nowrap;font-size:.8rem">${l.timestamp}</td>
-      <td style="font-size:.75rem;color:#6b7280;font-family:monospace">${l.session_id.slice(0,12)}...</td>
-      <td>${l.user_message.length > 60 ? l.user_message.slice(0,60)+'...' : l.user_message}</td>
-      <td style="color:#6b7280">${l.bot_answer}</td>
-    </tr>
-  `).join('');
+      <td style="font-size:.75rem;color:#6b7280;font-family:monospace;white-space:nowrap;" title="${escHtml(l.session_id || '')}">
+        ${sIdDisplay}
+      </td>
+      <td>${escHtml(l.user_message.length > 60 ? l.user_message.slice(0,60)+'...' : l.user_message)}</td>
+      <td style="color:#6b7280">${escHtml(l.bot_answer)}</td>
+    </tr>`;
+  }).join('');
 }
 
 function filterLogs() {
@@ -497,9 +898,9 @@ function renderUsers(users) {
         <div style="display:flex;align-items:center;gap:10px;">
           ${u.picture_url
             ? `<img src="${u.picture_url}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid #bbf7d0;">`
-            : `<div style="width:32px;height:32px;border-radius:50%;background:#06C755;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;color:white;">${(u.display_name||'?')[0]}</div>`
+            : `<div style="width:32px;height:32px;border-radius:50%;background:#06C755;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;color:white;">${escHtml((u.display_name||'?')[0])}</div>`
           }
-          <span style="font-weight:500">${u.display_name || '-'}</span>
+          <span style="font-weight:500">${escHtml(u.display_name || '-')}</span>
         </div>
       </td>
       <td style="font-size:.75rem;color:#6b7280;font-family:monospace">${u.line_user_id.slice(0,12)}...</td>
@@ -566,8 +967,9 @@ function searchFAQ() {
 }
 
 function escHtml(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return (s == null ? '' : String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+function escapeHtml(s) { return escHtml(s); }
 
 function editFAQ(id, q, a) {
   document.getElementById('faq-edit-id').value = id;
@@ -615,9 +1017,449 @@ async function deleteFAQ(id) {
   else alert('ลบไม่สำเร็จ');
 }
 
+// ── Discovered Links Management ───────────
+let allDiscoveredLinks = [];
+let currentLinksCardFilter = 'all';
+
+function safeDecodeURI(u) {
+  if (!u) return '';
+  try {
+    return decodeURIComponent(u);
+  } catch(e) {
+    try { return unescape(u); } catch(e2) { return u; }
+  }
+}
+
+function getLinkTypeIcon(l) {
+  const urlLower = (l.url || '').toLowerCase();
+  const isPdf = urlLower.endsWith('.pdf') || urlLower.includes('.pdf?');
+  const isDoc = urlLower.endsWith('.doc') || urlLower.endsWith('.docx') || urlLower.includes('.doc?') || urlLower.includes('.docx?');
+  const isXls = urlLower.endsWith('.xls') || urlLower.endsWith('.xlsx') || urlLower.includes('.xls?') || urlLower.includes('.xlsx?');
+  const isGeneralDoc = l.link_type === 'document' || isPdf || isDoc || isXls;
+
+  if (isPdf) {
+    return '<i class="fas fa-file-pdf" style="color:#ef4444;font-size:0.95rem;margin-right:6px;flex-shrink:0;" title="ไฟล์เอกสาร PDF (ส่งไปช่องเอกสารดาวน์โหลด)"></i>';
+  } else if (isDoc) {
+    return '<i class="fas fa-file-word" style="color:#2563eb;font-size:0.95rem;margin-right:6px;flex-shrink:0;" title="ไฟล์เอกสาร Word (ส่งไปช่องเอกสารดาวน์โหลด)"></i>';
+  } else if (isXls) {
+    return '<i class="fas fa-file-excel" style="color:#10b981;font-size:0.95rem;margin-right:6px;flex-shrink:0;" title="ไฟล์ตาราง Excel (ส่งไปช่องเอกสารดาวน์โหลด)"></i>';
+  } else if (isGeneralDoc) {
+    return '<i class="fas fa-file-alt" style="color:#f59e0b;font-size:0.95rem;margin-right:6px;flex-shrink:0;" title="ไฟล์เอกสารดาวน์โหลด"></i>';
+  }
+  return '<i class="fas fa-globe" style="color:#3b82f6;font-size:0.95rem;margin-right:6px;flex-shrink:0;" title="เว็บไซต์บริการทั่วไป (เปิดหน้าเว็บ)"></i>';
+}
+
+async function loadDiscoveredLinks() {
+  const tbody = document.getElementById('links-table');
+  tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:#6b7280;"><i class="fas fa-spinner fa-spin"></i> กำลังโหลดข้อมูล...</td></tr>';
+  try {
+    const res = await fetch('/api/admin/discovered-links?status=all');
+    if (!res.ok) throw new Error('Failed to fetch');
+    const data = await res.json();
+    allDiscoveredLinks = data.links || [];
+
+    document.getElementById('stat-links-total').textContent = (data.total || 0).toLocaleString();
+    document.getElementById('stat-links-mapped').textContent = (data.mapped_count || 0).toLocaleString();
+    document.getElementById('stat-links-unmapped').textContent = (data.unmapped_count || 0).toLocaleString();
+
+    updateUnmappedBadge(data.unmapped_count || 0);
+    filterDiscoveredLinks();
+  } catch (err) {
+    console.error('loadDiscoveredLinks error:', err);
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:#dc2626;"><i class="fas fa-exclamation-triangle"></i> โหลดข้อมูลล้มเหลว กรุณาลองใหม่อีกครั้ง</td></tr>';
+  }
+}
+
+function updateUnmappedBadge(count) {
+  const badge = document.getElementById('nav-unmapped-badge');
+  if (!badge) return;
+  if (count > 0) {
+    badge.textContent = count;
+    badge.style.display = 'inline-block';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+async function fetchUnmappedCount() {
+  try {
+    const res = await fetch('/api/admin/discovered-links');
+    if (!res.ok) return;
+    const data = await res.json();
+    updateUnmappedBadge(data.unmapped_count || 0);
+  } catch (e) {}
+}
+
+function selectLinksFilterCard(status) {
+  currentLinksCardFilter = status;
+  document.getElementById('links-status-filter').value = status;
+  updateCardActiveStates(status);
+  filterDiscoveredLinks();
+}
+
+function onLinksFilterDropdownChange(status) {
+  currentLinksCardFilter = status;
+  updateCardActiveStates(status);
+  filterDiscoveredLinks();
+}
+
+function updateCardActiveStates(status) {
+  const cardAll = document.getElementById('card-links-all');
+  const cardMapped = document.getElementById('card-links-mapped');
+  const cardUnmapped = document.getElementById('card-links-unmapped');
+
+  if (cardAll) cardAll.classList.remove('active-blue');
+  if (cardMapped) cardMapped.classList.remove('active-green');
+  if (cardUnmapped) cardUnmapped.classList.remove('active-orange');
+
+  if (status === 'all' && cardAll) cardAll.classList.add('active-blue');
+  else if (status === 'mapped' && cardMapped) cardMapped.classList.add('active-green');
+  else if (status === 'unmapped' && cardUnmapped) cardUnmapped.classList.add('active-orange');
+}
+
+function filterDiscoveredLinks() {
+  const search = (document.getElementById('links-search').value || '').toLowerCase().trim();
+  const status = document.getElementById('links-status-filter').value;
+
+  const filtered = allDiscoveredLinks.filter(l => {
+    const decodedUrl = (l.url_decoded || safeDecodeURI(l.url || '')).toLowerCase();
+    const rawUrl = (l.url || '').toLowerCase();
+    const decodedSource = (l.source_page_decoded || safeDecodeURI(l.source_page || '')).toLowerCase();
+    const rawSource = (l.source_page || '').toLowerCase();
+    const title = (l.title || '').toLowerCase();
+
+    const matchesSearch = !search ||
+      title.includes(search) ||
+      decodedUrl.includes(search) ||
+      rawUrl.includes(search) ||
+      decodedSource.includes(search) ||
+      rawSource.includes(search);
+
+    let matchesStatus = true;
+    if (status === 'all') {
+      matchesStatus = !l.is_ignored;
+    } else if (status === 'mapped') {
+      matchesStatus = l.is_system_mapped && !l.is_ignored;
+    } else if (status === 'unmapped') {
+      matchesStatus = !l.is_system_mapped && !l.is_ignored;
+    } else if (status === 'ignored') {
+      matchesStatus = !!l.is_ignored;
+    }
+
+    return matchesSearch && matchesStatus;
+  });
+
+  renderDiscoveredLinks(filtered);
+}
+
+function renderDiscoveredLinks(links) {
+  const tbody = document.getElementById('links-table');
+  const empty = document.getElementById('links-empty');
+
+  if (!links || links.length === 0) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  let html = '';
+  links.forEach((l, idx) => {
+    let statusBadge = '';
+    if (l.is_ignored) {
+      statusBadge = '<span class="badge ignored"><i class="fas fa-eye-slash"></i> ซ่อนไว้ (Ignored)</span>';
+    } else if (l.is_system_mapped) {
+      statusBadge = '<span class="badge mapped"><i class="fas fa-check-circle"></i> เปิดใช้งานแล้ว</span>';
+    } else {
+      statusBadge = '<span class="badge unmapped"><i class="fas fa-clock"></i> ยังไม่เปิดใช้งาน</span>';
+    }
+
+    const decodedUrl = l.url_decoded || safeDecodeURI(l.url || '');
+    const decodedSource = l.source_page_decoded || safeDecodeURI(l.source_page || '');
+
+    const sourceDisplay = l.source_page
+      ? (l.source_page.startsWith('http')
+          ? `<a href="${escapeHtml(l.source_page)}" target="_blank" rel="noopener noreferrer" style="color:#1a5f3f;text-decoration:none;font-size:0.8rem;display:inline-flex;align-items:center;gap:4px;max-width:100%;" title="${escapeHtml(decodedSource)}"><span class="truncate-source">${escapeHtml(decodedSource)}</span> <i class="fas fa-external-link-alt" style="font-size:0.7rem;flex-shrink:0;opacity:0.7;"></i></a>`
+          : `<span class="truncate-source" style="font-size:0.8rem;color:#6b7280;" title="${escapeHtml(decodedSource)}">${escapeHtml(decodedSource)}</span>`)
+      : '<span style="color:#9ca3af;">-</span>';
+
+    let editBtn = '';
+    if (l.is_system_mapped) {
+      editBtn = `<button class="btn-xs btn-edit-mapped" onclick="openEditLinkModal(${l.id})" title="แก้ไขข้อมูลบริการนี้">
+        <i class="fas fa-pen"></i> แก้ไข
+      </button>`;
+    } else {
+      editBtn = `<button class="btn-xs btn-map-edit" onclick="openEditLinkModal(${l.id})" title="เปิดใช้งานบริการนี้ในระบบ">
+        <i class="fas fa-toggle-on"></i> เปิดใช้งาน
+      </button>`;
+    }
+
+    let actionBtns = `<div style="display:flex;gap:6px;justify-content:center;align-items:center;">
+      ${editBtn}`;
+
+    if (l.is_ignored) {
+      actionBtns += `<button class="btn-xs btn-restore" onclick="toggleIgnoreLink(${l.id}, false)" title="ยกเลิกการซ่อน">
+        <i class="fas fa-eye"></i> เลิกซ่อน
+      </button>`;
+    } else {
+      actionBtns += `<button class="btn-xs btn-ignore" onclick="toggleIgnoreLink(${l.id}, true)" title="ซ่อนลิงก์นี้จาก AI และรายการรอตรวจสอบ">
+        <i class="fas fa-eye-slash"></i> ซ่อน
+      </button>`;
+    }
+    actionBtns += `</div>`;
+
+    const mappedDisplay = (l.is_system_mapped && l.mapped_at && l.mapped_at !== '-')
+      ? `<span style="color:#059669;font-weight:600;font-size:0.8rem;" title="เปิดใช้งานเมื่อ ${escapeHtml(l.mapped_at)}">${escapeHtml(l.mapped_at)}</span>`
+      : `<span style="color:#94a3b8;font-size:0.8rem;">-</span>`;
+
+    html += `<tr>
+      <td style="color:#94a3b8;font-size:0.8rem;text-align:center;">${idx + 1}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:6px;max-width:100%;">
+          ${getLinkTypeIcon(l)}
+          <span class="truncate-title" title="${escapeHtml(l.title || '-')}">${escapeHtml(l.title || '-')}</span>
+        </div>
+      </td>
+      <td>
+        <a href="${escapeHtml(l.url)}" target="_blank" rel="noopener noreferrer" style="color:#2563eb;text-decoration:none;display:inline-flex;align-items:center;gap:4px;max-width:100%;" title="${escapeHtml(decodedUrl)}">
+          <span class="truncate-url">${escapeHtml(decodedUrl)}</span>
+          <i class="fas fa-external-link-alt" style="font-size:0.75rem;flex-shrink:0;opacity:0.75;"></i>
+        </a>
+      </td>
+      <td>${sourceDisplay}</td>
+      <td style="font-size:0.8rem;color:#64748b;white-space:nowrap;text-align:center;">${escapeHtml(l.last_seen)}</td>
+      <td style="white-space:nowrap;text-align:center;">${mappedDisplay}</td>
+      <td style="text-align:center;">${statusBadge}</td>
+      <td style="text-align:center;">${actionBtns}</td>
+    </tr>`;
+  });
+  tbody.innerHTML = html;
+}
+
+// ── Single Link Edit Modal ───────────────
+function openEditLinkModal(id) {
+  const link = allDiscoveredLinks.find(l => l.id === id);
+  if (!link) return;
+
+  document.getElementById('edit-link-id').value = link.id;
+  document.getElementById('edit-link-title').value = link.title || '';
+  document.getElementById('edit-link-url').value = link.url || '';
+
+  let detectedType = link.link_type;
+  if (!detectedType) {
+    const u = (link.url || '').toLowerCase();
+    const isDoc = /\.(pdf|doc|docx|xls|xlsx)(\?.*)?$/i.test(u);
+    detectedType = isDoc ? 'document' : 'website';
+  }
+  document.getElementById('edit-link-type').value = detectedType;
+  document.getElementById('edit-link-source').textContent = link.source_page_decoded || safeDecodeURI(link.source_page || '-');
+
+  const isMappedChk = document.getElementById('edit-link-is-mapped');
+  if (isMappedChk) isMappedChk.checked = Boolean(link.is_system_mapped);
+
+  const mappedInfo = document.getElementById('edit-link-mapped-info');
+  if (mappedInfo) {
+    if (link.is_system_mapped && link.mapped_at && link.mapped_at !== '-') {
+      mappedInfo.innerHTML = `<i class="fas fa-check-circle" style="color:#059669;"></i> เปิดใช้งานในระบบแล้ว เมื่อ <strong>${escapeHtml(link.mapped_at)}</strong> (เอาติ๊กออกเพื่อปิดใช้งาน)`;
+    } else {
+      mappedInfo.innerHTML = `<i class="fas fa-info-circle" style="color:#d97706;"></i> บริการใหม่ (ติ๊กถูกเพื่อเปิดใช้งานให้บอทแนะนำอัตโนมัติ)`;
+    }
+  }
+
+  const modalHeader = document.getElementById('edit-link-modal-title');
+  const saveBtn = document.getElementById('btn-save-link');
+  if (link.is_system_mapped) {
+    if (modalHeader) modalHeader.innerHTML = '<i class="fas fa-edit" style="color:#475569;"></i> แก้ไขข้อมูลบริการ (เปิดใช้งานแล้ว)';
+    if (saveBtn) saveBtn.innerHTML = '<i class="fas fa-save"></i> บันทึกการแก้ไข';
+  } else {
+    if (modalHeader) modalHeader.innerHTML = '<i class="fas fa-toggle-on" style="color:#1a5f3f;"></i> เปิดใช้งานบริการใหม่เข้าสู่ระบบ';
+    if (saveBtn) saveBtn.innerHTML = '<i class="fas fa-check"></i> บันทึกและเปิดใช้งาน';
+  }
+
+  const modal = document.getElementById('link-edit-modal');
+  if (modal) modal.classList.add('open');
+}
+
+function closeEditLinkModal() {
+  const modal = document.getElementById('link-edit-modal');
+  if (modal) modal.classList.remove('open');
+}
+
+async function submitEditLinkModal() {
+  const id = parseInt(document.getElementById('edit-link-id').value, 10);
+  const title = document.getElementById('edit-link-title').value.trim();
+  const url = document.getElementById('edit-link-url').value.trim();
+  const link_type = document.getElementById('edit-link-type').value;
+  const is_system_mapped = document.getElementById('edit-link-is-mapped') ? document.getElementById('edit-link-is-mapped').checked : true;
+
+  if (!title || !url) {
+    alert('กรุณากรอกชื่อบริการและ URL เป้าหมาย');
+    return;
+  }
+
+  const btn = document.getElementById('btn-save-link');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังบันทึก...';
+
+  try {
+    const res = await fetch(`/api/admin/discovered-links/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title,
+        url,
+        link_type,
+        is_system_mapped,
+        is_ignored: false
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      closeEditLinkModal();
+      await loadDiscoveredLinks();
+    } else {
+      alert(data.error || 'เกิดข้อผิดพลาดในการบันทึก');
+    }
+  } catch (err) {
+    console.error('submitEditLinkModal error:', err);
+    alert('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function toggleIgnoreLink(id, ignored) {
+  try {
+    const res = await fetch(`/api/admin/discovered-links/${id}/ignore`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ignored })
+    });
+    const data = await res.json();
+    if (data.success) {
+      await loadDiscoveredLinks();
+    } else {
+      alert(data.error || 'เกิดข้อผิดพลาด');
+    }
+  } catch (err) {
+    console.error('toggleIgnoreLink error:', err);
+    alert('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้');
+  }
+}
+
+async function resyncDiscoveredLinks() {
+  const btn = document.getElementById('resync-links-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังสแกน...';
+  try {
+    const res = await fetch('/api/admin/discovered-links/resync', { method: 'POST' });
+    const data = await res.json();
+    alert(data.message || 'สแกนสำเร็จ');
+    await loadDiscoveredLinks();
+  } catch (err) {
+    alert('เกิดข้อผิดพลาดในการสแกน');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-sync-alt"></i> สแกนหาลิงก์ใหม่จากฐานข้อมูล';
+  }
+}
+
+// ── Guest Trial Mode ────────────────────
+function updateGuestModeUI(enabled) {
+  const toggle = document.getElementById('guest-mode-toggle');
+  const badge  = document.getElementById('guest-mode-badge');
+  if (!toggle || !badge) return;
+  toggle.checked = !!enabled;
+  if (enabled) {
+    badge.textContent = 'เปิดใช้งานอยู่ (Active)';
+    badge.style.background = '#dcfce7';
+    badge.style.color = '#15803d';
+    badge.style.border = '1px solid #bbf7d0';
+  } else {
+    badge.textContent = 'ปิดใช้งาน (Disabled)';
+    badge.style.background = '#f3f4f6';
+    badge.style.color = '#6b7280';
+    badge.style.border = '1px solid #e5e7eb';
+  }
+}
+
+async function handleGuestModeToggle(enabled) {
+  const toggle = document.getElementById('guest-mode-toggle');
+  toggle.disabled = true;
+  try {
+    const res = await fetch('/api/admin/settings/guest_mode', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled })
+    });
+    const data = await res.json();
+    if (data.success) {
+      updateGuestModeUI(data.enabled);
+    } else {
+      alert('เกิดข้อผิดพลาดในการเปลี่ยนการตั้งค่า');
+      toggle.checked = !enabled;
+    }
+  } catch (err) {
+    console.error('Toggle error:', err);
+    alert('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้');
+    toggle.checked = !enabled;
+  } finally {
+    toggle.disabled = false;
+  }
+}
+
 // ── Init ────────────────────────────────
 loadStats();
+fetchUnmappedCount();
 setInterval(loadStats, 60000); // refresh ทุก 1 นาที
 </script>
+<!-- Modal: จัดการและเปิดใช้งานลิงก์บริการ -->
+<div id="link-edit-modal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 id="edit-link-modal-title"><i class="fas fa-toggle-on" style="color:#1a5f3f;"></i> จัดการและเปิดใช้งานลิงก์บริการ</h3>
+      <button class="modal-close" onclick="closeEditLinkModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-link-id">
+      <div class="form-group" style="background:#f8fafc;padding:12px 14px;border-radius:8px;border:1px solid #e2e8f0;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <label style="margin:0;font-weight:600;font-size:0.85rem;color:#1e293b;">สถานะการเปิดใช้งานในระบบ</label>
+            <div style="font-size:0.75rem;color:#64748b;margin-top:2px;" id="edit-link-mapped-info">-</div>
+          </div>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:0;user-select:none;">
+            <input type="checkbox" id="edit-link-is-mapped" style="width:18px;height:18px;accent-color:#1a5f3f;cursor:pointer;">
+            <span style="font-size:0.85rem;font-weight:600;color:#334155;">เปิดใช้งานในระบบ</span>
+          </label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="edit-link-title">ชื่อบริการ / ป้ายกำกับปุ่ม (แสดงบนหน้าแชทบอท) <span style="color:#dc2626;">*</span></label>
+        <input type="text" id="edit-link-title" placeholder="เช่น ระบบจองหอพักนิสิต มก.ศรีราชา">
+      </div>
+      <div class="form-group">
+        <label for="edit-link-url">URL เป้าหมาย <span style="color:#dc2626;">*</span></label>
+        <input type="url" id="edit-link-url" placeholder="https://...">
+      </div>
+      <div class="form-group">
+        <label for="edit-link-type">ประเภทลิงก์</label>
+        <select id="edit-link-type">
+          <option value="website">🌐 เว็บไซต์ทั่วไป (ระบบบริการออนไลน์ / หน้าเว็บ)</option>
+          <option value="document">📄 ไฟล์เอกสารดาวน์โหลด (PDF, แบบฟอร์ม, Word, Excel)</option>
+        </select>
+      </div>
+      <div style="font-size:0.8rem;color:#6b7280;background:#f9fafb;padding:10px 14px;border-radius:8px;border:1px solid #f3f4f6;word-break:break-all;">
+        <i class="fas fa-info-circle" style="color:#2563eb;"></i> <strong>พบจากแหล่งข้อมูล:</strong> <span id="edit-link-source">-</span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" style="background:#f3f4f6;color:#374151;" onclick="closeEditLinkModal()">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="submitEditLinkModal()" id="btn-save-link">
+        <i class="fas fa-save"></i> บันทึกการแก้ไข
+      </button>
+    </div>
+  </div>
+</div>
 </body>
 </html>

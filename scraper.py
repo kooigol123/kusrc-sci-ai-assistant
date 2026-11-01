@@ -1,4 +1,5 @@
 import requests
+import re
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 import time
@@ -39,6 +40,15 @@ PRIORITY_PAGES = {
     "research":         "https://sci.src.ku.ac.th/%e0%b8%a7%e0%b8%b4%e0%b8%88%e0%b8%b1%e0%b8%a2/",
     "news":             "https://sci.src.ku.ac.th/category/news/",
     "admission":        "https://admissions.src.ku.ac.th/",
+    "admission_criteria": "https://admissions.src.ku.ac.th/Criteria.php",
+    "regis":            "https://regis.src.ku.ac.th/",
+    "service":          "https://sci.src.ku.ac.th/%e0%b8%9a%e0%b8%a3%e0%b8%b4%e0%b8%81%e0%b8%b2%e0%b8%a3%e0%b8%81%e0%b8%b2%e0%b8%a3%e0%b8%a8%e0%b8%b6%e0%b8%81%e0%b8%a9%e0%b8%b2/",
+    "coop":             "https://sci.src.ku.ac.th/%e0%b8%aa%e0%b8%ab%e0%b8%81%e0%b8%b4%e0%b8%88/",
+    "scholarship":      "https://sci.src.ku.ac.th/%e0%b8%97%e0%b8%b8%e0%b8%99%e0%b8%81%e0%b8%b2%e0%b8%a3%e0%b8%a8%e0%b8%b6%e0%b8%81%e0%b8%a9%e0%b8%b2/",
+    "tuition_fees":     "https://sci.src.ku.ac.th/en/tuition-fees/",
+    "student_affairs":  "https://sa.src.ku.ac.th/",
+    "regis_requests":   "https://regis.src.ku.ac.th/res/request.php",
+    "library":          "https://lib.src.ku.ac.th/",
 }
 
 # หมวดหมู่ URL patterns
@@ -67,6 +77,17 @@ def scrape_page(url):
         response.raise_for_status()
         soup = BeautifulSoup(response.text, "html.parser")
 
+        # เก็บรายการลิงก์สำคัญในหน้าเว็บและ footer ก่อนตัด tag
+        page_resources = []
+        seen_res = set()
+        for a in soup.find_all("a", href=True):
+            label = a.get_text(" ", strip=True)
+            full_url = urljoin(url, a["href"]).split("#")[0].strip()
+            if label and len(label) > 2 and full_url.startswith(("http://", "https://")):
+                if any(d in full_url for d in ("ku.ac.th", "ku.th")) and full_url not in seen_res:
+                    seen_res.add(full_url)
+                    page_resources.append(f"- {label}: {full_url}")
+
         for tag in soup(["script", "style", "noscript", "header", "footer", "nav", "aside"]):
             tag.extract()
 
@@ -82,7 +103,11 @@ def scrape_page(url):
 
         text = main.get_text(separator="\n", strip=True)
         lines = [l.strip() for l in text.splitlines() if l.strip() and len(l.strip()) > 3]
+        # ตัดข้อความ footer ติดต่อสำนักงาน/ฝ่ายการศึกษาซ้ำซ้อนออกตั้งแต่ต้นทาง
+        lines = [l for l in lines if not re.search(r'ติดต่อ:\s*(?:ฝ่ายการศึกษา|สำนักงานคณะวิทยาศาสตร์).*?(?:โทร|038|อาคาร)', l)]
         text = "\n".join(lines)
+        if page_resources:
+            text += "\n\nลิงก์ที่เกี่ยวข้องในหน้านี้:\n" + "\n".join(page_resources[:40])
 
         # เก็บ links ทั้งหมดในหน้านี้
         links = []
