@@ -6,7 +6,7 @@ AI-powered chatbot for the **Faculty of Science, Kasetsart University Sriracha C
 
 ## ✨ Features
 
-- **AI Q&A Chatbot** — answers student questions using Gemini (gemini-3.5-flash-lite) with automated multi-key failover and quota-saving intent filters
+- **AI Q&A Chatbot** — answers student questions using Gemini (gemini-3.1-flash-lite) with automated multi-key failover and quota-saving intent filters
 - **Document Center** — searchable downloads for 20+ official forms and curriculum PDFs for 6 degree programs, featuring live search, instant in-browser PDF preview, and a mobile-responsive layout
 - **Authentication & Guest Mode** — secure LINE Login (OAuth 2.0 with CSRF state verification) alongside a guest mode allowing up to 5 trial questions without logging in
 - **Admin Dashboard** — real-time visitor statistics, filterable and exportable chat logs, download tracking, and XSS-protected administration
@@ -19,7 +19,7 @@ AI-powered chatbot for the **Faculty of Science, Kasetsart University Sriracha C
 | Layer      | Technology                                              |
 | ---------- | ------------------------------------------------------- |
 | Backend    | Python, Flask, Flask-Login, Flask-SQLAlchemy            |
-| AI         | Google Gemini API (gemini-3.5-flash-lite, multi-key)    |
+| AI         | Google Gemini API (gemini-3.1-flash-lite, multi-key)    |
 | Auth       | LINE Login (OAuth 2.0), Flask-Login, Secure Session     |
 | Database   | SQLite (dev with WAL mode) / PostgreSQL (production)    |
 | Frontend   | HTML, CSS, JavaScript (Jinja2 templates, Responsive)   |
@@ -44,7 +44,7 @@ pip install -r requirements.txt
 #   GEMINI_API_KEY=your_primary_gemini_api_key
 #   GEMINI_API_KEY2=your_secondary_gemini_api_key
 #   GEMINI_API_KEY3=your_tertiary_gemini_api_key
-#   GEMINI_MODEL=gemini-3.5-flash-lite
+#   GEMINI_MODEL=gemini-3.1-flash-lite
 #   LINE_CLIENT_ID=your_line_channel_id
 #   LINE_CLIENT_SECRET=your_line_channel_secret
 #   LINE_REDIRECT_URI=http://localhost:3000/auth/line/callback
@@ -72,6 +72,8 @@ Runs automated tests against the FAQ benchmark set, scoring answer accuracy and 
 
 **Development Team (Computer Science, Faculty of Science, Kasetsart University Sriracha Campus):**
 - **Songwut Sudtalai** — [@Gunqeq](https://github.com/Gunqeq)
+- **Pattarawut Sukbot**
+- **Ukriss Joraeka**
 
 **Enhanced & Maintained by:**
 - **Anupat Sombatsri** — [@kooigol123](https://github.com/kooigol123) (Faculty Student Assistant)
