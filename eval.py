@@ -3,10 +3,15 @@ eval.py — ทดสอบความแม่นยำของ Science Assis
 ใช้สำหรับรายงานโปรเจคจบ
 
 วิธีรัน:
-  python eval.py
+  python eval.py                      # รันทั้งหมด (เว้นระยะ 4.2 วินาที กันชนเพดาน 15 RPM)
+  python eval.py --limit 5            # ทดสอบด่วน 5 ข้อแรก ประหยัดโควตา
+  python eval.py --category หลักสูตร   # ทดสอบเฉพาะหมวดหมู่
+  python eval.py --ids 1,2,5          # ทดสอบเฉพาะข้อที่ระบุ
+  python eval.py --delay 5.0          # ปรับระยะเวลาเว้นช่วงระหว่างข้อ (วินาที)
+  python eval.py --model gemini-3.1-flash-lite
 
 ผลลัพธ์:
-  - แสดง score %-accuracy
+  - แสดง score %-accuracy และความเร็วเฉลี่ย (latency)
   - บันทึก eval_results.json สำหรับใส่รายงาน
 """
 
@@ -439,33 +444,98 @@ def score_response(response_text: str, keywords: list) -> tuple[bool, list, list
     passed = len(found) / len(keywords) >= 0.5
     return passed, found, missing
 
-def run_evaluation():
-    print("=" * 60)
-    print("  Science Assistant — AI Accuracy Evaluation")
-    print("=" * 60)
+
+def ask_with_retry(ask_fn, question: str, max_retries: int = 3):
+    """เรียกถามพร้อมระบบดักจับ Rate Limit 429 และรอระบบคลายตัวอัตโนมัติ"""
+    backoffs = [15, 30, 45]
+    for attempt in range(max_retries + 1):
+        try:
+            t0 = time.time()
+            resp, files, links = ask_fn(question)
+            lat = round(time.time() - t0, 2)
+            return resp, files, links, lat, None
+        except Exception as e:
+            err_str = str(e).lower()
+            is_rate_limit = "429" in err_str or "resource_exhausted" in err_str or "quota" in err_str
+            if is_rate_limit and attempt < max_retries:
+                wait_sec = backoffs[min(attempt, len(backoffs) - 1)]
+                print(f"     ⚠️  [Rate Limit] ติดโควตา 15 RPM พักรอ {wait_sec} วินาทีก่อนลองใหม่ (ครั้งที่ {attempt + 1}/{max_retries})...")
+                time.sleep(wait_sec)
+                continue
+            return "", [], [], 0.0, str(e)
+
+
+def run_evaluation(args=None):
+    import argparse
+    parser = argparse.ArgumentParser(description="Science Assistant — AI Accuracy Evaluation")
+    parser.add_argument("--limit", type=int, default=0, help="จำกัดจำนวนข้อที่จะทดสอบ (0 = ทั้งหมด)")
+    parser.add_argument("--category", type=str, default="", help="กรองเฉพาะหมวดหมู่ที่ต้องการ (เช่น หลักสูตร, เอกสาร)")
+    parser.add_argument("--ids", type=str, default="", help="ระบุรหัสข้อที่ต้องการทดสอบ คั่นด้วยจุลภาค (เช่น 1,2,5)")
+    parser.add_argument("--delay", type=float, default=4.2, help="ระยะเวลาพักระหว่างข้อ (วินาที) เพื่อป้องกัน 15 RPM (ค่าเริ่มต้น: 4.2)")
+    parser.add_argument("--model", type=str, default="", help="เลือกโมเดล Gemini ที่จะทดสอบ (เช่น gemini-3.1-flash-lite)")
+
+    parsed_args = parser.parse_args(args)
+
+    if parsed_args.model:
+        os.environ["GEMINI_MODEL"] = parsed_args.model
 
     # Import app context
     from app import app, ask_gemini, CHAT_CONTEXT
-    print(f"  Knowledge base: {len(CHAT_CONTEXT)} documents loaded")
+
+    # กรองชุดทดสอบตามเงื่อนไข CLI
+    cases = list(TEST_CASES)
+    if parsed_args.category:
+        cases = [c for c in cases if parsed_args.category.lower() in c.get("category", "").lower()]
+    if parsed_args.ids:
+        target_ids = set(int(x.strip()) for x in parsed_args.ids.split(",") if x.strip().isdigit())
+        cases = [c for c in cases if c.get("id") in target_ids]
+    if parsed_args.limit > 0:
+        cases = cases[:parsed_args.limit]
+
+    active_model = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite")
+
     print("=" * 60)
+    print("  Science Assistant — AI Accuracy Evaluation")
+    print(f"  Target Model:   {active_model}")
+    print(f"  Knowledge base: {len(CHAT_CONTEXT)} documents loaded")
+    print(f"  Total Cases:    {len(cases)} questions")
+    print(f"  Delay per case: {parsed_args.delay}s (กัน Rate Limit 15 RPM)")
+    print("=" * 60)
+
+    if not cases:
+        print("  ไม่พบชุดคำถามตามเงื่อนไขที่ระบุ")
+        return {}
 
     results = []
     passed_count = 0
+    total_latency = 0.0
 
-    for tc in TEST_CASES:
-        print(f"\n[{tc['id']:02d}/{len(TEST_CASES)}] {tc['question']}")
+    for idx, tc in enumerate(cases, 1):
+        print(f"\n[{idx:02d}/{len(cases)}] (ID: {tc['id']:02d}) {tc['question']}")
         print(f"     Category: {tc['category']}")
 
-        try:
-            response, files, links = ask_gemini(tc["question"])
-            passed, found, missing = score_response(response, tc["keywords"])
+        response, files, links, latency, error = ask_with_retry(ask_gemini, tc["question"])
 
+        if error:
+            print(f"     ⚠️  Error: {error}")
+            results.append({
+                "id": tc["id"],
+                "role": tc.get("role", "ชุดคำถามทั่วไป (General)"),
+                "question": tc["question"],
+                "category": tc["category"],
+                "passed": False,
+                "error": error,
+                "latency_sec": latency
+            })
+        else:
+            passed, found, missing = score_response(response, tc["keywords"])
             status = "✅ PASS" if passed else "❌ FAIL"
-            print(f"     {status} | Found: {found} | Missing: {missing}")
+            print(f"     {status} ({latency}s) | Found: {found} | Missing: {missing}")
             print(f"     Response: {response[:120]}...")
 
             if passed:
                 passed_count += 1
+            total_latency += latency
 
             results.append({
                 "id":        tc["id"],
@@ -479,21 +549,23 @@ def run_evaluation():
                 "found_keywords":   found,
                 "missing_keywords": missing,
                 "suggested_files":  files,
-            })
-        except Exception as e:
-            print(f"     ⚠️  Error: {e}")
-            results.append({
-                "id": tc["id"], "question": tc["question"],
-                "category": tc["category"], "passed": False,
-                "error": str(e)
+                "suggested_links":  links,
+                "latency_sec":      latency,
             })
 
-        time.sleep(1.5)  # กัน rate limit
+        # หน่วงเวลาป้องกันชนเพดาน 15 RPM (ยกเว้นข้อสุดท้าย)
+        if idx < len(cases):
+            time.sleep(parsed_args.delay)
 
     # Summary
-    accuracy = passed_count / len(TEST_CASES) * 100
+    total_tested = len(cases)
+    accuracy = (passed_count / total_tested * 100) if total_tested else 0
+    valid_latencies = [r.get("latency_sec", 0) for r in results if r.get("latency_sec")]
+    avg_latency = round(sum(valid_latencies) / len(valid_latencies), 2) if valid_latencies else 0.0
+
     print("\n" + "=" * 60)
-    print(f"  RESULT: {passed_count}/{len(TEST_CASES)} passed  ({accuracy:.1f}% accuracy)")
+    print(f"  RESULT: {passed_count}/{total_tested} passed  ({accuracy:.1f}% accuracy)")
+    print(f"  Model Speed: Average {avg_latency}s per response (Total: {round(total_latency, 1)}s)")
 
     # Breakdown by Category & Role
     from collections import defaultdict
@@ -526,9 +598,11 @@ def run_evaluation():
     # บันทึก JSON สำหรับใส่รายงาน
     output = {
         "eval_date":    __import__('datetime').datetime.now().isoformat(),
-        "total":        len(TEST_CASES),
+        "model":        active_model,
+        "total":        total_tested,
         "passed":       passed_count,
         "accuracy_pct": round(accuracy, 2),
+        "avg_latency":  avg_latency,
         "by_role":      dict(by_role),
         "by_category":  dict(by_cat),
         "results":      results,
@@ -537,6 +611,7 @@ def run_evaluation():
         json.dump(output, f, ensure_ascii=False, indent=2)
     print(f"\n  บันทึกผลลัพธ์ที่: eval_results.json")
     return output
+
 
 if __name__ == "__main__":
     run_evaluation()

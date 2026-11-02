@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ระบบสารสนเทศนิสิต - มหาวิทยาลัยเกษตรศาสตร์</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo.png') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -223,6 +223,8 @@
         .message-wrapper {
             display: flex;
             flex-direction: column;
+            max-width: 78%;
+            min-width: 0;
         }
 
         .user .message-wrapper {
@@ -257,15 +259,20 @@
         }
 
         .message-content {
-            max-width: 75%;
-            background: #f8f9fa;
-            padding: 12px 16px;
-            border-radius: 14px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
-            line-height: 1.5;
+            max-width: 100%;
+            background: #ffffff;
+            padding: 14px 18px;
+            border-radius: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            line-height: 1.72;
             word-wrap: break-word;
             font-size: 0.95rem;
-            color: #1f2937;
+            color: #1e293b;
+            border: 1px solid #e2e8f0;
+        }
+
+        .message-content > div:last-child {
+            margin-bottom: 0 !important;
         }
 
         /* สำหรับ HTML content ใน message */
@@ -303,8 +310,12 @@
         .user .message-content {
             background: #1a5f3f;
             color: white;
+            border: 1px solid #166534;
+            border-radius: 16px;
             border-bottom-right-radius: 4px;
             font-weight: 500;
+            line-height: 1.6;
+            width: fit-content;
             max-width: 100%;
         }
 
@@ -462,19 +473,45 @@
 
         .typing-bubble {
             background: white;
-            padding: 14px 18px;
+            padding: 12px 18px;
             border-radius: 18px;
             border-bottom-left-radius: 4px;
-            display: flex;
+            display: inline-flex;
             align-items: center;
-            gap: 5px;
+            gap: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.08);
             border: 1px solid #f0f0f0;
+            width: fit-content;
+            max-width: 100%;
+            transition: all 0.25s ease;
+        }
+
+        .typing-status {
+            font-size: 0.86rem;
+            color: #4a5568;
+            font-weight: 500;
+            line-height: 1.4;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .typing-status.visible {
+            display: inline-block;
+            opacity: 1;
+        }
+
+        .typing-dots {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            height: 12px;
+            flex-shrink: 0;
         }
 
         .dot {
-            width: 8px;
-            height: 8px;
+            width: 7.5px;
+            height: 7.5px;
             background: #a0aec0;
             border-radius: 50%;
             animation: typingWave 1.3s ease-in-out infinite;
@@ -490,7 +527,7 @@
                 background: #a0aec0;
             }
             30% {
-                transform: translateY(-6px);
+                transform: translateY(-5px);
                 background: #1a5f3f;
             }
         }
@@ -1008,78 +1045,91 @@
                 background: #dcfce7;
             }
 
-            /* Slide-out Drawer for Sidebar (Hidden off-screen until toggled) */
+            /* Slide-out Drawer for Sidebar (Spacious & Vertically Scrollable) */
             .sidebar {
                 position: fixed;
                 top: 0;
                 right: -100%;
-                width: 78%;
-                max-width: 310px;
+                width: 85%;
+                max-width: 340px;
                 height: 100%;
-                height: 100dvh;
+                height: var(--app-height, 100%);
                 background: #f8fafc;
                 z-index: 1050;
                 transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                 box-shadow: -4px 0 24px rgba(0,0,0,0.18);
                 overflow-y: auto;
                 -webkit-overflow-scrolling: touch;
-                padding: max(14px, env(safe-area-inset-top, 0px)) 12px 20px;
+                padding: max(16px, env(safe-area-inset-top, 0px)) 14px 100px;
                 display: flex;
                 flex-direction: column;
-                gap: 10px;
+                gap: 14px;
             }
 
-            /* Compact Drawer Cards & Quick Links */
+            /* Spacious Drawer Cards & Quick Links (Scrollable without cramped compression) */
+            .sidebar-drawer-header,
+            .sidebar .card,
+            .sidebar-drawer-footer {
+                flex-shrink: 0 !important;
+            }
             .sidebar .card {
-                box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+                box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+                border-radius: 10px;
+                overflow: hidden;
             }
             .sidebar .card-header {
-                padding: 8px 12px;
+                padding: 12px 14px;
+                flex-shrink: 0;
             }
             .sidebar .card-title {
-                font-size: 0.82rem;
+                font-size: 0.92rem;
+                font-weight: 600;
             }
             .sidebar .card-content {
-                padding: 8px 10px;
+                padding: 12px;
+                max-height: none !important;
+                overflow: visible !important;
             }
             .sidebar .quick-links {
-                gap: 6px;
+                gap: 8px;
             }
             .sidebar .quick-link {
-                padding: 8px 10px;
-                gap: 10px;
-                border-radius: 6px;
+                padding: 11px 13px;
+                gap: 12px;
+                border-radius: 8px;
             }
             .sidebar .quick-link-icon {
-                width: 30px;
-                height: 30px;
-                font-size: 0.85rem;
+                width: 36px;
+                height: 36px;
+                font-size: 0.95rem;
                 flex-shrink: 0;
             }
             .sidebar .quick-link-title {
-                font-size: 0.82rem;
+                font-size: 0.88rem;
+                font-weight: 600;
             }
             .sidebar .quick-link-desc {
-                font-size: 0.7rem;
+                font-size: 0.75rem;
+                margin-top: 2px;
             }
             .sidebar .quick-link i.fa-chevron-right {
-                font-size: 0.75rem;
+                font-size: 0.8rem;
             }
 
-            /* Compact Placeholders in Drawer */
+            /* Natural Placeholders in Drawer */
             .sidebar #suggested-links-placeholder,
             .sidebar #downloads-placeholder {
-                padding: 10px 8px !important;
+                padding: 22px 12px !important;
             }
             .sidebar #suggested-links-placeholder i,
             .sidebar #downloads-placeholder i {
-                font-size: 1.1rem !important;
-                margin-bottom: 3px !important;
+                font-size: 1.4rem !important;
+                margin-bottom: 6px !important;
             }
             .sidebar #suggested-links-placeholder p,
             .sidebar #downloads-placeholder p {
-                font-size: 0.74rem !important;
-                line-height: 1.35 !important;
+                font-size: 0.82rem !important;
+                line-height: 1.45 !important;
                 margin: 0 !important;
             }
 
@@ -1213,12 +1263,14 @@
         @media (max-width: 768px) {
             html, body {
                 height: 100%;
+                width: 100%;
                 overflow: hidden;
             }
 
             body {
                 height: 100%;
-                height: 100dvh;
+                height: var(--app-height, 100%);
+                max-height: var(--app-height, 100%);
                 display: flex;
                 flex-direction: column;
                 overflow: hidden;
@@ -1231,7 +1283,6 @@
             .header {
                 flex-shrink: 0;
                 box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-                padding-top: env(safe-area-inset-top, 0px);
             }
 
             .main-header {
@@ -1268,7 +1319,7 @@
                 min-height: 0;
                 min-width: 0;
                 width: 100%;
-                height: auto;
+                height: 100%;
                 max-height: 100%;
                 padding: 0;
                 margin: 0;
@@ -1308,13 +1359,19 @@
                 padding: 12px 14px;
             }
 
+            .message-wrapper {
+                max-width: 85%;
+                min-width: 0;
+            }
+
             .message-content {
-                max-width: 88%;
-                font-size: 0.9rem;
+                max-width: 100%;
+                font-size: 0.92rem;
             }
 
             .user .message-content {
-                max-width: 88%;
+                width: fit-content;
+                max-width: 100%;
             }
 
             /* Pinned Input at Bottom */
@@ -1324,7 +1381,7 @@
                 border-top: 1px solid #e5e7eb;
                 min-width: 0;
                 width: 100%;
-                padding-bottom: max(0px, env(safe-area-inset-bottom));
+                padding-bottom: var(--bottom-safe, 100px);
             }
 
             .chat-input .input-wrapper {
@@ -1417,9 +1474,12 @@
                         <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Bot" class="bot-avatar-img">
                     </div>
                     <div class="typing-bubble">
-                        <div class="dot"></div>
-                        <div class="dot"></div>
-                        <div class="dot"></div>
+                        <span class="typing-status" id="typing-status"></span>
+                        <span class="typing-dots">
+                            <span class="dot"></span>
+                            <span class="dot"></span>
+                            <span class="dot"></span>
+                        </span>
                     </div>
                 </div>
             </div>
@@ -1714,6 +1774,74 @@
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
+        let typingTimers = [];
+
+        function showTypingIndicator() {
+            const indicator = document.getElementById('typing-indicator');
+            const statusEl = document.getElementById('typing-status');
+            if (!indicator) return;
+
+            hideTypingIndicator();
+
+            if (statusEl) {
+                statusEl.textContent = '';
+                statusEl.classList.remove('visible');
+                statusEl.style.opacity = '0';
+            }
+
+            if (chatMessages && indicator) {
+                chatMessages.appendChild(indicator);
+                indicator.style.display = 'flex';
+                scrollToBottom();
+            }
+
+            const setStatus = (text) => {
+                if (!statusEl || indicator.style.display === 'none') return;
+                statusEl.style.opacity = '0';
+                setTimeout(() => {
+                    if (indicator.style.display === 'none') return;
+                    statusEl.textContent = text;
+                    statusEl.classList.add('visible');
+                    statusEl.style.opacity = '1';
+                    scrollToBottom();
+                }, 120);
+            };
+
+            // วินาทีที่ 0 - 2.0: กล่องเล็กกะทัดรัด มีเฉพาะจุด 3 จุดเด้งคลื่น
+            // วินาทีที่ 2.0: นำข้อความขึ้นมาอยู่ข้างหน้าจุด (จุด 3 จุดเด้งคลื่นต่อท้ายประโยคแทน ...)
+            typingTimers.push(setTimeout(() => {
+                setStatus('กำลังค้นหาข้อมูลในระบบ');
+            }, 2000));
+
+            // วินาทีที่ 4.0: สลับข้อความเป็นกำลังวิเคราะห์
+            typingTimers.push(setTimeout(() => {
+                setStatus('กำลังวิเคราะห์ข้อมูล');
+            }, 4000));
+
+            // วินาทีที่ 6.0+: สลับข้อความรอน้องวาฬเรียบเรียง
+            typingTimers.push(setTimeout(() => {
+                setStatus('ข้อมูลเยอะนิดนึง รอน้องวาฬเรียบเรียงแป๊บนะครับ');
+            }, 6000));
+        }
+
+        function hideTypingIndicator() {
+            typingTimers.forEach(t => clearTimeout(t));
+            typingTimers = [];
+
+            const indicator = document.getElementById('typing-indicator');
+            const statusEl = document.getElementById('typing-status');
+
+            if (statusEl) {
+                statusEl.textContent = '';
+                statusEl.classList.remove('visible');
+                statusEl.style.opacity = '0';
+            }
+
+            if (indicator) {
+                indicator.style.display = 'none';
+            }
+        }
+
         function getCurrentTime() {
             const now = new Date();
             return now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
@@ -1735,6 +1863,12 @@
             let safe = escapeHtml(text.trim());
             // แปลง Markdown **ตัวหนา**
             safe = safe.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+            // แยกรายการลำดับตัวเลขหรือ Bullet ที่เขียนติดกันในบรรทัดเดียวให้ขึ้นบรรทัดใหม่
+            safe = safe.replace(/([:：])\s*(\d+[\.\)])\s+/g, '$1\n$2 ');
+            safe = safe.replace(/([^\n])\s+(\d+[\.\)])\s+/g, '$1\n$2 ');
+            safe = safe.replace(/([:：])\s*([•\-\*])\s+/g, '$1\n$2 ');
+            safe = safe.replace(/([^\n])\s+([•])\s+/g, '$1\n$2 ');
 
             const lines = safe.split('\n');
             let formatted = [];
@@ -1768,14 +1902,20 @@
                     inList = false;
                 }
 
-                // ตรวจจับหัวข้อตัวเลข เช่น 1. หรือ 2.
-                const numMatch = line.match(/^(\d+\.)\s+(.*)$/);
+                // ตรวจจับหัวข้อตัวเลข เช่น 1. หรือ 2. หรือ 1)
+                const numMatch = line.match(/^(\d+[\.\)])\s+(.*)$/);
                 if (numMatch) {
-                    formatted.push(`<div style="margin-top: 10px; margin-bottom: 4px; font-weight: 500; line-height: 1.6;"><strong style="color: #1a5f3f;">${numMatch[1]}</strong> ${numMatch[2]}</div>`);
+                    formatted.push(`<div style="margin-top: 10px; margin-bottom: 6px; font-weight: 600; line-height: 1.72;"><strong style="color: #1a5f3f; margin-right: 4px;">${numMatch[1]}</strong>${numMatch[2]}</div>`);
                     continue;
                 }
 
-                formatted.push(`<div style="line-height: 1.6; margin-bottom: 4px;">${line}</div>`);
+                // ตรวจจับหัวข้อหมวดหมู่ที่ลงท้ายด้วย : หรือ ： (เช่น คณะผู้บริหารคณะวิทยาศาสตร์:)
+                if (line.endsWith(':') || line.endsWith('：')) {
+                    formatted.push(`<div style="margin-top: 12px; margin-bottom: 6px; font-weight: 600; color: #166534; line-height: 1.65;">${line}</div>`);
+                    continue;
+                }
+
+                formatted.push(`<div style="line-height: 1.72; margin-bottom: 6px;">${line}</div>`);
             }
 
             if (inList) {
@@ -1941,7 +2081,9 @@
                             finishNow();
                         } else {
                             contentEl.innerHTML = formatMessage(message.slice(0, charIdx));
-                            scrollToBottom();
+                            if (isUserNearBottom()) {
+                                scrollToBottom();
+                            }
                         }
                     }, intervalMs);
 
@@ -2035,10 +2177,8 @@
             addMessage(message, true);
             userInput.value = '';
             
-            // Show typing indicator - always move to bottom of chat
-            chatMessages.appendChild(typingIndicator);
-            typingIndicator.style.display = 'flex';
-            scrollToBottom();
+            // Show typing indicator with graceful status progression
+            showTypingIndicator();
             
             try {
                 const response = await fetch('/chat', {
@@ -2050,21 +2190,16 @@
                 });
                 
                 const data = await response.json();
-                typingIndicator.style.display = 'none';
+                hideTypingIndicator();
                 
                 if (response.ok) {
                     const onBotFinish = () => {
                         // จัดการโควตาโหมดทดลองใช้งาน (Guest Mode: เมื่อตอบครบ 5 คำถาม ให้บอทพิมพ์บอกเหมือนคำตอบ)
                         if (data.is_guest && data.quota_exceeded) {
                             localStorage.setItem('guest_quota_exhausted', 'true');
-                            const typingIndicator = document.getElementById('typing-indicator');
-                            if (chatMessages && typingIndicator) {
-                                chatMessages.appendChild(typingIndicator);
-                                typingIndicator.style.display = 'flex';
-                                scrollToBottom();
-                            }
+                            showTypingIndicator();
                             setTimeout(() => {
-                                if (typingIndicator) typingIndicator.style.display = 'none';
+                                hideTypingIndicator();
                                 addMessage(
                                     'คุณใช้สิทธิ์ทดลองใช้งานครบ 5 คำถามแล้วครับ หากมีข้อสงสัยเพิ่มเติมหรือต้องการพูดคุยต่อ กรุณาเข้าสู่ระบบผ่าน LINE ได้เลยครับ',
                                     false,
@@ -2075,7 +2210,7 @@
                                             url: data.login_url || '/auth/line'
                                         }
                                     },
-                                    true
+                                    false
                                 );
                                 lockGuestInput();
                             }, 500);
@@ -2085,7 +2220,7 @@
                     addMessage(data.response, false, {
                         links: data.suggested_links || [],
                         files: data.suggested_files || []
-                    }, true, onBotFinish);
+                    }, false, onBotFinish);
 
                     // เก็บ log_id สำหรับ feedback
                     const lastBot = chatMessages.querySelector('.message.bot:last-of-type');
@@ -2127,7 +2262,7 @@
                     addMessage((data && data.response) || 'ขออภัยครับ เกิดข้อผิดพลาด', false);
                 }
             } catch (error) {
-                typingIndicator.style.display = 'none';
+                hideTypingIndicator();
                 console.error('Error:', error);
                 addMessage('ขออภัยครับ ไม่สามารถเชื่อมต่อได้', false);
             } finally {
@@ -2318,7 +2453,55 @@
         if (sidebarToggleBtn) sidebarToggleBtn.addEventListener('click', openSidebarDrawer);
         if (sidebarCloseBtn) sidebarCloseBtn.addEventListener('click', closeSidebarDrawer);
         if (sidebarBackdropEl) sidebarBackdropEl.addEventListener('click', closeSidebarDrawer);
-    </script>
+
+        // ── Mobile Viewport & Keyboard Adjustment ────
+        function updateAppViewport() {
+            const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            const isIOSChrome = /CriOS/i.test(navigator.userAgent);
+
+            const vv = window.visualViewport;
+            const h = vv ? vv.height : window.innerHeight;
+            document.documentElement.style.setProperty('--app-height', `${h}px`);
+
+            // ตรวจจับสถานะการเปิดคีย์บอร์ดเสมือน
+            const isKeyboardOpen = vv && (vv.height < window.innerHeight * 0.78);
+
+            if (isKeyboardOpen) {
+                document.documentElement.style.setProperty('--bottom-safe', '6px');
+            } else if (isIOSChrome) {
+                // แถบเครื่องมือล่างของ Chrome บน iOS (Ask Gemini, Tabs) + Home Indicator รวมสูง ~76px
+                document.documentElement.style.setProperty('--bottom-safe', '100px');
+            } else if (isIOS) {
+                // Safari บน iOS หรือ In-App Browser มี Home Indicator 34px
+                document.documentElement.style.setProperty('--bottom-safe', 'max(28px, env(safe-area-inset-bottom, 28px))');
+            } else {
+                document.documentElement.style.setProperty('--bottom-safe', 'max(8px, env(safe-area-inset-bottom, 8px))');
+            }
+        }
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', updateAppViewport);
+            window.visualViewport.addEventListener('scroll', updateAppViewport);
+        }
+        window.addEventListener('resize', updateAppViewport);
+        window.addEventListener('orientationchange', updateAppViewport);
+        window.addEventListener('DOMContentLoaded', updateAppViewport);
+        updateAppViewport();
+
+        const chatInputEl = document.getElementById('user-input');
+        if (chatInputEl) {
+            chatInputEl.addEventListener('focus', () => {
+                setTimeout(() => {
+                    updateAppViewport();
+                    scrollToBottom();
+                }, 280);
+            });
+            chatInputEl.addEventListener('blur', () => {
+                setTimeout(() => {
+                    updateAppViewport();
+                }, 200);
+            });
+        }
+        </script>
      <div class="site-footer" style="text-align:center;padding:10px 16px;font-size:0.72rem;color:#9ca3af;background:#f9fafb;border-top:1px solid #f3f4f6;line-height:1.8;">
         <div style="margin-bottom:4px;color:#6b7280;font-weight:600;">Science Assistant  &nbsp;|&nbsp; Powered by Gemini AI</div>
         <div>พัฒนาโดย <strong style="color:#1a5f3f;">นิสิตหลักสูตรวิทยาการคอมพิวเตอร์ คณะวิทยาศาสตร์ ศรีราชา มหาวิทยาลัยเกษตรศาสตร์ วิทยาเขตศรีราชา</strong></div>

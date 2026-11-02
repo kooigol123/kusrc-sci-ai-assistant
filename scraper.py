@@ -3,6 +3,8 @@ import re
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 import time
+from io import BytesIO
+import PyPDF2
 
 BASE_URL = "https://sci.src.ku.ac.th/"
 MAX_PAGES = 60  # crawl สูงสุด 60 หน้า
@@ -41,6 +43,8 @@ PRIORITY_PAGES = {
     "news":             "https://sci.src.ku.ac.th/category/news/",
     "admission":        "https://admissions.src.ku.ac.th/",
     "admission_criteria": "https://admissions.src.ku.ac.th/Criteria.php",
+    "admission_announce": "https://admissions.src.ku.ac.th/announce.php",
+    "admission_tcas_announcement": "https://admissions.src.ku.ac.th/pdf/TCAS1_1_69.pdf",
     "regis":            "https://regis.src.ku.ac.th/",
     "service":          "https://sci.src.ku.ac.th/%e0%b8%9a%e0%b8%a3%e0%b8%b4%e0%b8%81%e0%b8%b2%e0%b8%a3%e0%b8%81%e0%b8%b2%e0%b8%a3%e0%b8%a8%e0%b8%b6%e0%b8%81%e0%b8%a9%e0%b8%b2/",
     "coop":             "https://sci.src.ku.ac.th/%e0%b8%aa%e0%b8%ab%e0%b8%81%e0%b8%b4%e0%b8%88/",
@@ -51,39 +55,110 @@ PRIORITY_PAGES = {
     "library":          "https://lib.src.ku.ac.th/",
 }
 
-# หมวดหมู่ URL patterns
+# หมวดหมู่ URL patterns ที่ต้องข้ามเสมอ
 SKIP_PATTERNS = [
     "wp-admin", "wp-login", "wp-json", "xmlrpc",
     "feed", "comment", "attachment", "?replytocom",
     "wp-content/uploads", "sdc_download",
-    ".pdf", ".jpg", ".jpeg", ".png", ".gif", ".zip", ".rar",
+    ".jpg", ".jpeg", ".png", ".gif", ".zip", ".rar",
     ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
     "mailto:", "tel:", "javascript:",
     "facebook.com", "youtube.com", "twitter.com", "instagram.com",
     "page/", "?page_id", "#",
 ]
 
+def is_spider_trap(url):
+    """
+    ตรวจจับ URL ที่เป็น Spider Trap, ลูปเส้นทางซ้ำซาก, หรือระบบหลังบ้าน/แบบสอบถาม
+    เพื่อป้องกันไม่ให้ Crawler วนลูปและกินโควตาหน้าเพจ
+    """
+    if not url:
+        return True
+    parsed = urlparse(url)
+    path = parsed.path.lower()
+
+    # 1. PHP script ซ้อนพาธ (เช่น announce.php/index.php/)
+    if re.search(r'\.php/.+', path):
+        return True
+
+    # 2. Segment ใน Path ซ้ำซ้อน (เช่น /a/b/a/)
+    segments = [s for s in path.strip("/").split("/") if s]
+    if len(segments) != len(set(segments)):
+        return True
+
+    # 3. Path ลึกเกิน 4 ชั้นในโดเมนรับสมัคร/ทะเบียน มักเป็น relative link ผิดพลาด
+    if len(segments) > 4:
+        return True
+
+    # 4. หน้าล็อกอิน แอดมิน แบบสำรวจเก่า หรือโครงการที่ปิดไปแล้ว
+    trap_keywords = (
+        "login", "admin", "survey_vaccine", "sign-in", "signin",
+        "myrefund", "mydoc", "graduated", "auth", "password", "openhouse"
+    )
+    url_lower = url.lower()
+    if any(k in url_lower for k in trap_keywords):
+        return True
+
+    return False
+
 def should_skip(url):
-    return any(p in url.lower() for p in SKIP_PATTERNS)
+    if is_spider_trap(url):
+        return True
+    url_lower = url.lower()
+    # อนุญาตเฉพาะ PDF ประกาศรับสมัคร เกณฑ์การศึกษา และระเบียบการสำคัญ
+    if url_lower.endswith(".pdf"):
+        if any(k in url_lower for k in ("tcas", "criteria", "announce", "fee", "rule", "help_pay", "ข้อบังคับ")):
+            return False
+        return True
+    return any(p in url_lower for p in SKIP_PATTERNS)
 
 def is_same_domain(url):
     parsed = urlparse(url)
     return parsed.scheme in ("http", "https") and parsed.netloc in ("sci.src.ku.ac.th", "admissions.src.ku.ac.th")
 
+def scrape_pdf(url):
+    """ดึงข้อความจากไฟล์ PDF ทางการของมหาวิทยาลัย (เช่น ประกาศรับสมัคร TCAS และระเบียบการ)"""
+    try:
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+        response = requests.get(url, headers=headers, timeout=20)
+        response.raise_for_status()
+
+        reader = PyPDF2.PdfReader(BytesIO(response.content))
+        pages_text = []
+        for i, page in enumerate(reader.pages):
+            txt = page.extract_text()
+            if txt and len(txt.strip()) > 20:
+                pages_text.append(f"--- หน้า {i+1} ---\n" + txt.strip())
+
+        full_text = "\n\n".join(pages_text)
+        return full_text, []
+    except Exception as e:
+        print(f"  PDF Error ({url}): {e}")
+        return "", []
+
 def scrape_page(url):
+    if is_spider_trap(url):
+        return "", []
+
+    # ถ้าเป็นไฟล์ PDF ให้ดึงผ่านฟังก์ชันอ่าน PDF โดยเฉพาะ
+    if url.lower().endswith(".pdf"):
+        return scrape_pdf(url)
+
     try:
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
         response = requests.get(url, headers=headers, timeout=15)
         response.raise_for_status()
         soup = BeautifulSoup(response.text, "html.parser")
 
-        # เก็บรายการลิงก์สำคัญในหน้าเว็บและ footer ก่อนตัด tag
+        # เก็บรายการลิงก์สำคัญในหน้าเว็บและ footer ก่อนตัด tag (กรองขยะออกตั้งแต่ต้นทาง)
         page_resources = []
         seen_res = set()
         for a in soup.find_all("a", href=True):
             label = a.get_text(" ", strip=True)
             full_url = urljoin(url, a["href"]).split("#")[0].strip()
             if label and len(label) > 2 and full_url.startswith(("http://", "https://")):
+                if is_spider_trap(full_url):
+                    continue
                 if any(d in full_url for d in ("ku.ac.th", "ku.th")) and full_url not in seen_res:
                     seen_res.add(full_url)
                     page_resources.append(f"- {label}: {full_url}")
@@ -112,9 +187,11 @@ def scrape_page(url):
         # เก็บ links ทั้งหมดในหน้านี้
         links = []
         for a in soup.find_all("a", href=True):
-            href = urljoin(url, a["href"])
+            href = urljoin(url, a["href"]).split("#")[0].strip()
             if is_same_domain(href) and not should_skip(href):
-                links.append(href.split("#")[0].rstrip("/") + "/")
+                # ไฟล์ PDF ไม่ต้องเติม trailing slash
+                norm_link = href if href.lower().endswith(".pdf") else (href.rstrip("/") + "/")
+                links.append(norm_link)
 
         return text, list(set(links))
 
@@ -131,7 +208,7 @@ def get_kusrc_data():
     # เริ่มจาก priority pages ก่อนเสมอ
     print(f"[Scraper] Starting with {len(PRIORITY_PAGES)} priority pages...")
     for category, url in PRIORITY_PAGES.items():
-        norm = url.rstrip("/") + "/"
+        norm = url if url.lower().endswith(".pdf") else (url.rstrip("/") + "/")
         if norm not in visited:
             to_visit.append((norm, category))
             visited.add(norm)
@@ -145,15 +222,17 @@ def get_kusrc_data():
         text, found_links = scrape_page(url)
 
         if text and len(text) > 100:
+            doc_category = "ระเบียบการและค่าธรรมเนียม" if url.lower().endswith(".pdf") and category == "auto" else category
+            content_limit = 40000 if url.lower().endswith(".pdf") else 12000
             documents.append({
-                "content":  text[:10000],
-                "category": category,
+                "content":  text[:content_limit],
+                "category": doc_category,
                 "source":   url
             })
             print(f"  OK ({len(text)} chars, found {len(found_links)} links)")
             scraped_count += 1
 
-            # เพิ่ม links ที่ค้นพบเข้า queue (ถ้ายังไม่เคย visit)
+            # เพิ่ม links ที่ค้นพบเข้า queue (ถ้ายังไม่เคย visit และไม่เข้าข่าย spider trap)
             for link in found_links:
                 if link not in visited and scraped_count + len(to_visit) < MAX_PAGES:
                     visited.add(link)

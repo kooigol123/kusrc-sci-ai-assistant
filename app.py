@@ -21,11 +21,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 try:
-    from scraper import get_kusrc_data, scrape_calendar
+    from scraper import get_kusrc_data, scrape_calendar, is_spider_trap
 except Exception as e:
     print("SCRAPER ERROR:", traceback.format_exc())
     get_kusrc_data = None
     scrape_calendar = None
+    is_spider_trap = None
 
 try:
     from prompt import prompt
@@ -60,7 +61,7 @@ app.config["PERMANENT_SESSION_LIFETIME"] = _td(minutes=30)  # Session หมด�
 # Session Cookie Security (ป้องกัน XSS ขโมยคุกกี้, บังคับ HTTPS บน Render, ป้องกัน CSRF)
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
-app.config["SESSION_COOKIE_SECURE"]   = bool(os.getenv("RENDER") or os.getenv("DYNO") or not app.debug)
+app.config["SESSION_COOKIE_SECURE"]   = bool(os.getenv("RENDER") or os.getenv("DYNO"))
 db = SQLAlchemy(app)
 
 if os.getenv("RENDER") or os.getenv("DYNO"):
@@ -618,6 +619,8 @@ def sync_discovered_links_from_db():
                 continue
             for label, link in labeled_pattern.findall(p.content):
                 clean_url = link.rstrip('.,;:)()[]\'"')
+                if is_spider_trap and is_spider_trap(clean_url):
+                    continue
                 lbl = label.strip()
                 if clean_url not in discovered:
                     discovered[clean_url] = {"source": p.url, "label": lbl}
@@ -626,6 +629,8 @@ def sync_discovered_links_from_db():
 
             for link in general_pattern.findall(p.content):
                 clean_url = link.rstrip('.,;:)()[]\'"')
+                if is_spider_trap and is_spider_trap(clean_url):
+                    continue
                 if clean_url not in discovered:
                     discovered[clean_url] = {"source": p.url, "label": ""}
 
@@ -636,6 +641,8 @@ def sync_discovered_links_from_db():
                 continue
             for link in general_pattern.findall(f.answer):
                 clean_url = link.rstrip('.,;:)()[]\'"')
+                if is_spider_trap and is_spider_trap(clean_url):
+                    continue
                 if clean_url not in discovered:
                     discovered[clean_url] = {"source": f"FAQ: {f.question[:50]}", "label": ""}
 
@@ -831,6 +838,13 @@ PDF_LIST_STR = "\n".join(f"- {f}" for f in ALL_PDFS)
 # ──────────────────────────────────────────
 def clean_response(text):
     if not text: return text
+    if isinstance(text, str) and text.strip().startswith(("{", "[")):
+        resp_m = re.search(r'"(?:response|message)"\s*:\s*"((?:[^"\\]|\\.)*)"', text)
+        if resp_m:
+            try:
+                text = json.loads(f'"{resp_m.group(1)}"')
+            except Exception:
+                text = resp_m.group(1)
     if "<" in text and ">" in text: return text.strip()
     text = re.sub(r"\*\*(.*?)\*\*", r"\1", text)
     text = re.sub(r"\*(.*?)\*",     r"\1", text)
@@ -1061,14 +1075,12 @@ def ask_gemini(user_message, history=None):
         scored_docs.sort(key=lambda x: (-x[0], x[1]))
         filtered = [d for _, _, d in scored_docs]
 
-        # ค่าเทอม / หลักสูตรปกติ-พิเศษ: ดันข้อมูลหลักสูตรขึ้นหน้าสุด
+        # ค่าเทอม / หลักสูตรปกติ-พิเศษ / ระเบียบการค่าธรรมเนียม: ดันข้อมูลระเบียบการค่าธรรมเนียมและหลักสูตรขึ้นหน้าสุด
         if any(k in msg_lower for k in ("ค่าเทอม", "ค่าธรรมเนียม", "ค่าเล่าเรียน", "หลักสูตรพิเศษ", "ภาคพิเศษ")):
+            fee_docs = [d for d in CHAT_CONTEXT if any(k in d.get("category", "").lower() or k in d.get("source", "").lower() for k in ("ค่าธรรมเนียม", "ระเบียบการ", "tuition", "fee", "tcas"))]
             prog_docs = [d for d in filtered if "program" in d.get("category", "")]
-            if len(prog_docs) < 5:
-                for d in CHAT_CONTEXT:
-                    if "program" in d.get("category", "") and d not in prog_docs:
-                        prog_docs.append(d)
-            filtered = prog_docs + [d for d in filtered if d not in prog_docs]
+            top_tuition_docs = fee_docs + [d for d in prog_docs if d not in fee_docs]
+            filtered = top_tuition_docs + [d for d in filtered if d not in top_tuition_docs]
 
         # ปฏิทินการศึกษา: ถ้าคำถามเกี่ยวกับวัน/สอบ/ลงทะเบียน ให้ดันปฏิทินขึ้นหน้าสุดเสมอ
         _cal_kw = ("สอบ", "ปฏิทิน", "เปิดเทอม", "ปิดเทอม", "เปิดภาค", "ปิดภาค",
@@ -1085,7 +1097,7 @@ def ask_gemini(user_message, history=None):
         docs_to_use = [] if is_overview else (filtered[:8] if filtered else CHAT_CONTEXT[:2])
         context_str = "\n\nRelevant Information:\n"
         for doc in docs_to_use:
-            limit = 8000 if ("ปฏิทิน" in doc.get("category", "") or "หลักสูตร" in doc.get("category", "")) else 2000
+            limit = 40000 if ("ปฏิทิน" in doc.get("category", "") or "หลักสูตร" in doc.get("category", "") or "ระเบียบการ" in doc.get("category", "") or ".pdf" in doc.get("source", "").lower()) else 6000
             context_str += f"Source: {doc['source']} ({doc['category']})\nContent: {doc['content'][:limit]}\n\n"
 
     # เพิ่ม FAQ จาก Excel ที่เกี่ยวข้อง
@@ -1131,7 +1143,7 @@ def ask_gemini(user_message, history=None):
     def _call_gemini(api_key):
         genai.configure(api_key=api_key)
         m = genai.GenerativeModel(
-            model_name=os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite"),
+            model_name=os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite"),
             system_instruction=system,
             generation_config={"response_mime_type": "application/json"}
         )
@@ -1170,6 +1182,10 @@ def ask_gemini(user_message, history=None):
                 parsed = json.loads(m.group())
             except json.JSONDecodeError:
                 pass
+
+    # หาก Gemini ตอบกลับมาเป็น JSON Array ครอบ Object เช่น [{"response": ...}]
+    if isinstance(parsed, list) and len(parsed) > 0 and isinstance(parsed[0], dict):
+        parsed = parsed[0]
     def _stem_pdf(s):
         s = re.sub(r'\.pdf$', '', s.strip(), flags=re.I)
         s = re.sub(r'[-_]?(?:revised|revision)', '', s, flags=re.I)
@@ -1210,7 +1226,24 @@ def ask_gemini(user_message, history=None):
         return None
 
     if parsed is None or not isinstance(parsed, dict):
-        bot_text   = clean_response(raw_text)
+        m = re.search(r'\{[\s\S]*\}', raw_text)
+        if m:
+            try:
+                temp_parsed = json.loads(m.group())
+                if isinstance(temp_parsed, dict):
+                    parsed = temp_parsed
+            except Exception:
+                pass
+
+    if parsed is None or not isinstance(parsed, dict):
+        resp_match = re.search(r'"response"\s*:\s*"((?:[^"\\]|\\.)*)"', raw_text)
+        if resp_match:
+            try:
+                bot_text = clean_response(json.loads(f'"{resp_match.group(1)}"'))
+            except Exception:
+                bot_text = clean_response(resp_match.group(1))
+        else:
+            bot_text = clean_response(raw_text)
         good_files = []
         raw_links  = []
     else:
