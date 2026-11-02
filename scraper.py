@@ -116,12 +116,41 @@ def is_same_domain(url):
     parsed = urlparse(url)
     return parsed.scheme in ("http", "https") and parsed.netloc in ("sci.src.ku.ac.th", "admissions.src.ku.ac.th")
 
+# ── Circuit Breaker สำหรับป้องกันค้าง Timeout เมื่อโฮสต์ปลายทางไม่ตอบสนอง ──
+OFFLINE_HOSTS = set()
+CONSECUTIVE_TIMEOUTS = {}
+MAX_CONSECUTIVE_TIMEOUTS = 3
+
+def reset_circuit_breaker():
+    """รีเซ็ตสถานะโฮสต์ออฟไลน์เมื่อเริ่มรอบการ Scrape ใหม่"""
+    OFFLINE_HOSTS.clear()
+    CONSECUTIVE_TIMEOUTS.clear()
+
+def record_host_success(host):
+    """รีเซ็ตตัวนับเมื่อเชื่อมต่อสำเร็จ เพื่อป้องกัน False Positive จากเน็ตสะดุดชั่วคราว"""
+    if host in CONSECUTIVE_TIMEOUTS:
+        CONSECUTIVE_TIMEOUTS[host] = 0
+
+def record_host_timeout(host):
+    """บันทึกเมื่อเกิด ConnectTimeout และตัดวงจรเมื่อเกินเกณฑ์ที่กำหนด"""
+    if not host:
+        return
+    CONSECUTIVE_TIMEOUTS[host] = CONSECUTIVE_TIMEOUTS.get(host, 0) + 1
+    if CONSECUTIVE_TIMEOUTS[host] >= MAX_CONSECUTIVE_TIMEOUTS and host not in OFFLINE_HOSTS:
+        OFFLINE_HOSTS.add(host)
+        print(f"  [Circuit Breaker] โฮสต์ '{host}' ไม่ตอบสนอง (ConnectTimeout {MAX_CONSECUTIVE_TIMEOUTS} ครั้งติด) -> ข้ามหน้าที่เหลือของโฮสต์นี้ในรอบนี้")
+
 def scrape_pdf(url):
     """ดึงข้อความจากไฟล์ PDF ทางการของมหาวิทยาลัย (เช่น ประกาศรับสมัคร TCAS และระเบียบการ)"""
+    host = urlparse(url).netloc
+    if host in OFFLINE_HOSTS:
+        return "", []
+
     try:
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
         response = requests.get(url, headers=headers, timeout=20)
         response.raise_for_status()
+        record_host_success(host)
 
         reader = PyPDF2.PdfReader(BytesIO(response.content))
         pages_text = []
@@ -132,11 +161,19 @@ def scrape_pdf(url):
 
         full_text = "\n\n".join(pages_text)
         return full_text, []
+    except requests.exceptions.ConnectTimeout as e:
+        record_host_timeout(host)
+        print(f"  PDF Connection Timeout ({host}): {e}")
+        return "", []
     except Exception as e:
         print(f"  PDF Error ({url}): {e}")
         return "", []
 
 def scrape_page(url):
+    host = urlparse(url).netloc
+    if host in OFFLINE_HOSTS:
+        return "", []
+
     if is_spider_trap(url):
         return "", []
 
@@ -148,6 +185,7 @@ def scrape_page(url):
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
         response = requests.get(url, headers=headers, timeout=15)
         response.raise_for_status()
+        record_host_success(host)
         soup = BeautifulSoup(response.text, "html.parser")
 
         # เก็บรายการลิงก์สำคัญในหน้าเว็บและ footer ก่อนตัด tag (กรองขยะออกตั้งแต่ต้นทาง)
@@ -195,12 +233,17 @@ def scrape_page(url):
 
         return text, list(set(links))
 
+    except requests.exceptions.ConnectTimeout as e:
+        record_host_timeout(host)
+        print(f"  Connection Timeout ({host}): {e}")
+        return "", []
     except Exception as e:
         print(f"  Error: {e}")
         return "", []
 
 
 def get_kusrc_data():
+    reset_circuit_breaker()
     documents = []
     visited = set()
     to_visit = []
@@ -217,6 +260,10 @@ def get_kusrc_data():
 
     while to_visit and scraped_count < MAX_PAGES:
         url, category = to_visit.pop(0)
+        host = urlparse(url).netloc
+        if host in OFFLINE_HOSTS:
+            continue
+
         print(f"[{scraped_count+1}/{MAX_PAGES}] Scraping [{category}]: {url[:70]}")
 
         text, found_links = scrape_page(url)

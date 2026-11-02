@@ -2104,6 +2104,51 @@ def api_admin_discovered_links_resync():
     })
 
 # ──────────────────────────────────────────
+# Seed Data Initialization
+# ──────────────────────────────────────────
+def seed_initial_scraped_pages():
+    """โหลดข้อมูลหน้าเว็บเริ่มต้นจาก static/seed_scraped_pages.json เข้า DB หากฐานข้อมูลยังไม่มีหรือว่างเปล่า"""
+    seed_path = os.path.join(os.path.dirname(__file__), "static", "seed_scraped_pages.json")
+    if not os.path.exists(seed_path):
+        return 0
+    try:
+        with open(seed_path, "r", encoding="utf-8") as f:
+            pages = json.load(f)
+        added = 0
+        for item in pages:
+            url = item.get("source") or item.get("url")
+            if not url:
+                continue
+            existing = ScrapedPage.query.filter_by(url=url).first()
+            if not existing:
+                db.session.add(ScrapedPage(
+                    url=url,
+                    category=item.get("category", "auto"),
+                    content=item.get("content", ""),
+                    last_scraped=datetime.utcnow()
+                ))
+                added += 1
+        if added > 0:
+            db.session.commit()
+            print(f"[Seed] โหลดหน้าเว็บเริ่มต้น {added} หน้าเข้า DB เรียบร้อย")
+            if ScrapeLog.query.count() == 0:
+                log = ScrapeLog(
+                    trigger="seed",
+                    pages=added,
+                    status="done",
+                    started_at=datetime.utcnow(),
+                    finished_at=datetime.utcnow()
+                )
+                db.session.add(log)
+                db.session.commit()
+        return added
+    except Exception as e:
+        print(f"[Seed Error] ไม่สามารถโหลด seed scraped pages ได้: {e}")
+        db.session.rollback()
+        return 0
+
+
+# ──────────────────────────────────────────
 # Startup
 # ──────────────────────────────────────────
 def initialize_app():
@@ -2192,9 +2237,10 @@ def initialize_app():
         print(f"[PDF] Found {len(ALL_PDFS)} files")
         count = ScrapedPage.query.count()
         if count == 0:
-            print("[Startup] DB ว่าง → scrape ทันที")
-            # โหลด PDF หลักสูตรมารอไว้ก่อนระหว่างรอดึงหน้าเว็บในพื้นหลัง
-            load_curriculum_pdfs()
+            print("[Startup] DB ว่าง → โหลด Seed Data หน้าเว็บเริ่มต้น...")
+            seed_count = seed_initial_scraped_pages()
+            load_context_from_db()
+            print(f"[Startup] โหลด Seed Data สำเร็จ ({seed_count} หน้า) → พร้อมตอบคำถามทันที")
             is_production = os.environ.get("FLASK_ENV") == "production"
             if is_production:
                 def delayed_scrape():
@@ -2205,6 +2251,8 @@ def initialize_app():
                 scrape_in_background(trigger="startup")
         else:
             print(f"[Startup] DB มี {count} หน้า → โหลดจาก DB ข้าม scrape")
+            # โหลด seed เพิ่มเติมเฉพาะหน้าที่ยังไม่มีใน DB
+            seed_initial_scraped_pages()
             load_context_from_db()
 
         # migrate FAQ จาก Excel → DB (ครั้งแรกเท่านั้น) แล้วโหลดจาก DB
