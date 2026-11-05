@@ -2,7 +2,7 @@
 
 AI-powered chatbot for the **Faculty of Science, Kasetsart University Sriracha Campus** — automating student inquiries about curricula, registration procedures, and official documents, powered by Google Gemini.
 
-🔗 **Live demo:** [kusrc-science-assistant.onrender.com](https://kusrc-science-assistant.onrender.com/)
+🔗 **Live demo:** [https://kusrc-sci-ai-assistant.onrender.com/](https://kusrc-sci-ai-assistant.onrender.com/)
 
 ## ✨ Features
 
@@ -12,7 +12,7 @@ AI-powered chatbot for the **Faculty of Science, Kasetsart University Sriracha C
 - **Admin Dashboard** — real-time visitor statistics, filterable and exportable chat logs, download tracking, and XSS-protected administration
 - **Smart Link Fallbacks** — automated action chips providing verified direct links to MyKU registration, the Registrar Office, and TCAS admission systems
 - **Automated Evaluation** — `eval.py` measures answer accuracy and appropriateness for continuous prompt and knowledge base benchmarking
-- **Data Pipeline** — `scraper.py` collects faculty announcements and calendar dates; curriculum PDFs pre-processed to text for AI retrieval
+- **Data Pipeline & Circuit Breaker** — `scraper.py` collects faculty announcements and calendar dates with daily auto-sync (00:00 UTC+7), connection timeout circuit breakers, and pre-seeded baseline data for instant cloud readiness
 
 ## 🛠 Tech Stack
 
@@ -30,8 +30,8 @@ AI-powered chatbot for the **Faculty of Science, Kasetsart University Sriracha C
 
 ```bash
 # Clone the repository
-git clone https://github.com/Gunqeq/science-assistant.git
-cd science-assistant
+git clone https://github.com/kooigol123/kusrc-sci-ai-assistant.git
+cd kusrc-sci-ai-assistant
 
 # Create a virtual environment and install dependencies
 python -m venv venv
@@ -50,6 +50,7 @@ pip install -r requirements.txt
 #   LINE_REDIRECT_URI=http://localhost:3000/auth/line/callback
 #   ADMIN_USERNAME=admin
 #   ADMIN_PASSWORD=your_admin_password
+#   DATABASE_URL=your_postgres_db_url   # Optional: PostgreSQL in production
 
 # Run the app
 python app.py
