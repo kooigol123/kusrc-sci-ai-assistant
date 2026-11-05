@@ -76,7 +76,142 @@ tr:hover td{background:#f9fafb}
 .top-q-rank{width:26px;height:26px;border-radius:50%;background:#f0fdf4;color:#1a5f3f;font-size:.8rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .top-q-text{flex:1;font-size:.875rem;color:#374151}
 .top-q-count{font-size:.8rem;font-weight:600;color:#6b7280}
-@media(max-width:900px){.stat-grid{grid-template-columns:1fr 1fr}.grid-2{grid-template-columns:1fr}}
+/* Table responsive wrapper */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 12px;
+  border-radius: 8px;
+}
+.table-responsive table {
+  min-width: 580px;
+}
+
+/* Mobile Hamburger Menu Button */
+.admin-menu-btn {
+  display: none;
+  background: white;
+  border: 1.5px solid #e5e7eb;
+  color: #1a5f3f;
+  font-size: 1.15rem;
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.admin-menu-btn:hover {
+  background: #f0fdf4;
+  border-color: #86efac;
+}
+
+/* Sidebar Backdrop */
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(2px);
+  z-index: 99;
+}
+
+/* Responsive Media Queries */
+@media (max-width: 900px) {
+  .stat-grid { grid-template-columns: 1fr 1fr; }
+  .grid-2 { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 768px) {
+  .admin-menu-btn {
+    display: inline-flex;
+  }
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.25);
+  }
+  .sidebar.open {
+    transform: translateX(0);
+  }
+  .sidebar-backdrop.active {
+    display: block;
+  }
+  .main {
+    margin-left: 0 !important;
+    width: 100% !important;
+    min-width: 0;
+  }
+  .topbar {
+    padding: 12px 16px;
+  }
+  .topbar h1 {
+    font-size: 1.05rem;
+  }
+  #last-update {
+    display: none;
+  }
+  .page {
+    padding: 16px 14px;
+  }
+  .stat-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .stat-card {
+    padding: 14px;
+    gap: 10px;
+  }
+  .stat-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 1.1rem;
+    border-radius: 8px;
+  }
+  .stat-value {
+    font-size: 1.35rem;
+  }
+  .stat-label {
+    font-size: 0.75rem;
+  }
+  .grid-2 {
+    grid-template-columns: 1fr !important;
+    gap: 14px;
+  }
+  .card {
+    padding: 16px 14px;
+    border-radius: 12px;
+  }
+  .search-bar {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .search-bar input {
+    font-size: 16px; /* ป้องกัน iOS ซูม */
+  }
+  .modal-box {
+    max-width: 94vw !important;
+    max-height: 88vh;
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .stat-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .topbar h1 {
+    font-size: 0.95rem;
+  }
+  .btn {
+    padding: 8px 14px;
+    font-size: 0.8rem;
+  }
+}
 /* Toggle Switch */
 .toggle-switch {
   position: relative;
@@ -280,7 +415,8 @@ input:checked + .toggle-slider:before {
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   width: 100%;
   max-width: 520px;
-  overflow: hidden;
+  max-height: 90vh;
+  overflow-y: auto;
   border: 1px solid #e5e7eb;
   animation: modalPop 0.15s ease-out;
 }
@@ -386,10 +522,18 @@ input:checked + .toggle-slider:before {
   </div>
 </nav>
 
+<!-- Backdrop for mobile drawer -->
+<div class="sidebar-backdrop" id="sidebar-backdrop" onclick="toggleAdminSidebar(false)"></div>
+
 <!-- Main Content -->
 <div class="main">
   <div class="topbar">
-    <h1 id="page-title"><i class="fas fa-chart-pie"></i> ภาพรวมระบบ</h1>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <button type="button" class="admin-menu-btn" id="admin-menu-toggle" onclick="toggleAdminSidebar(true)" aria-label="เปิดเมนู">
+        <i class="fas fa-bars"></i>
+      </button>
+      <h1 id="page-title"><i class="fas fa-chart-pie"></i> ภาพรวมระบบ</h1>
+    </div>
     <span style="font-size:.85rem;color:#6b7280;" id="last-update"></span>
   </div>
 
@@ -499,18 +643,20 @@ input:checked + .toggle-slider:before {
       <div class="search-bar">
         <input type="text" id="log-search" placeholder="ค้นหาคำถาม..." oninput="filterLogs()">
       </div>
-      <table>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>เวลา</th>
-            <th>Session</th>
-            <th>คำถาม</th>
-            <th>คำตอบ (ย่อ)</th>
-          </tr>
-        </thead>
-        <tbody id="log-table"></tbody>
-      </table>
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>เวลา</th>
+              <th>Session</th>
+              <th>คำถาม</th>
+              <th>คำตอบ (ย่อ)</th>
+            </tr>
+          </thead>
+          <tbody id="log-table"></tbody>
+        </table>
+      </div>
       <div class="pagination" id="log-pagination"></div>
     </div>
   </div>
@@ -694,7 +840,23 @@ const pageTitles = {
   scraper:  '<i class="fas fa-sync-alt"></i> จัดการ Scraper',
   links:    '<i class="fas fa-link"></i> ลิงก์ภายนอกที่ค้นพบ (Discovered Links)',
 };
+function toggleAdminSidebar(open) {
+  const sidebar = document.querySelector('.sidebar');
+  const backdrop = document.getElementById('sidebar-backdrop');
+  if (open === undefined) {
+    sidebar.classList.toggle('open');
+    backdrop.classList.toggle('active');
+  } else if (open) {
+    sidebar.classList.add('open');
+    backdrop.classList.add('active');
+  } else {
+    sidebar.classList.remove('open');
+    backdrop.classList.remove('active');
+  }
+}
+
 function showPage(name) {
+  toggleAdminSidebar(false);
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');

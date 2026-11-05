@@ -16,11 +16,14 @@
             font-family: 'Sarabun', 'Sukhumvit Set', 'Thonburi', sans-serif;
             background: linear-gradient(135deg, #0d3d28 0%, #1a5f3f 50%, #2d8659 100%);
             min-height: 100vh;
+            min-height: 100dvh;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            padding: 20px 16px;
+            overflow-y: auto;
+            box-sizing: border-box;
         }
 
         .card {
@@ -140,7 +143,13 @@
         }
 
         @media (max-width: 480px) {
-            .card { padding: 32px 24px; }
+            body {
+                padding: 16px 12px;
+            }
+            .card {
+                padding: 28px 20px;
+                border-radius: 14px;
+            }
         }
         .guest-divider {
             display: flex;
