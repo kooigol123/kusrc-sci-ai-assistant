@@ -1045,18 +1045,20 @@
                 background: #dcfce7;
             }
 
-            /* Slide-out Drawer for Sidebar (Spacious & Vertically Scrollable) */
+            /* Slide-out Drawer for Sidebar (Spacious, Vertically Scrollable & 60-120 FPS GPU Accelerated) */
             .sidebar {
                 position: fixed;
                 top: 0;
-                right: -100%;
+                right: 0;
                 width: 85%;
                 max-width: 340px;
                 height: 100%;
                 height: var(--app-height, 100%);
                 background: #f8fafc;
                 z-index: 1050;
-                transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                transform: translate3d(100%, 0, 0);
+                will-change: transform;
+                transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
                 box-shadow: -4px 0 24px rgba(0,0,0,0.18);
                 overflow-y: auto;
                 -webkit-overflow-scrolling: touch;
@@ -1134,7 +1136,7 @@
             }
 
             .sidebar.open {
-                right: 0;
+                transform: translate3d(0, 0, 0);
             }
 
             .sidebar-drawer-header {
@@ -1219,17 +1221,22 @@
                 margin-left: 4px;
             }
 
-            /* Backdrop Overlay */
+            /* Backdrop Overlay with Smooth Hardware Fade */
             .sidebar-backdrop {
                 position: fixed;
                 inset: 0;
                 background: rgba(15, 23, 42, 0.45);
-                backdrop-filter: blur(2px);
                 z-index: 1040;
-                display: none;
+                opacity: 0;
+                visibility: hidden;
+                pointer-events: none;
+                transition: opacity 0.25s ease, visibility 0.25s ease;
             }
 
             .sidebar-backdrop.active {
+                opacity: 1;
+                visibility: visible;
+                pointer-events: auto;
                 display: block;
             }
 
@@ -1382,6 +1389,7 @@
                 min-width: 0;
                 width: 100%;
                 padding-bottom: var(--bottom-safe, 100px);
+                transition: padding-bottom 0.15s ease-out;
             }
 
             .chat-input .input-wrapper {
@@ -1407,6 +1415,31 @@
             /* Hide Main Footer on Mobile */
             .site-footer {
                 display: none !important;
+            }
+        }
+
+        /* 3. Compact Mobile (<= 480px): Thumb-Friendly Targets & Typography */
+        @media (max-width: 480px) {
+            .navbar {
+                padding: 8px 12px;
+            }
+            .chat-input .input-wrapper {
+                margin: 4px 8px 8px;
+                padding: 6px 10px;
+            }
+            .send-btn {
+                min-width: 42px;
+                min-height: 42px;
+            }
+            .suggest-chip {
+                min-height: 36px;
+                font-size: 0.8rem;
+                padding: 6px 14px;
+            }
+            .inline-res-btn {
+                width: 100%;
+                justify-content: flex-start;
+                min-height: 40px;
             }
         }
     </style>
@@ -2460,14 +2493,20 @@
             const isIOSChrome = /CriOS/i.test(navigator.userAgent);
 
             const vv = window.visualViewport;
-            const h = vv ? vv.height : window.innerHeight;
+            const h = vv ? Math.round(vv.height) : window.innerHeight;
             document.documentElement.style.setProperty('--app-height', `${h}px`);
 
-            // ตรวจจับสถานะการเปิดคีย์บอร์ดเสมือน
-            const isKeyboardOpen = vv && (vv.height < window.innerHeight * 0.78);
+            // ตรวจจับสถานะการเปิดคีย์บอร์ดเสมือน: เมื่อกล่องข้อความ active หรือความสูงลดลง
+            const chatInputEl = document.getElementById('user-input');
+            const isInputFocused = chatInputEl && document.activeElement === chatInputEl;
+            const isKeyboardOpen = isInputFocused || (vv && (vv.height < window.innerHeight * 0.85));
 
             if (isKeyboardOpen) {
+                // เมื่อคีย์บอร์ดเปิด ลอยชิดขอบบนของคีย์บอร์ดทันที ป้องกันมุดใต้จอ
                 document.documentElement.style.setProperty('--bottom-safe', '6px');
+                if (window.scrollY > 0) {
+                    window.scrollTo(0, 0);
+                }
             } else if (isIOSChrome) {
                 // แถบเครื่องมือล่างของ Chrome บน iOS (Ask Gemini, Tabs) + Home Indicator รวมสูง ~76px
                 document.documentElement.style.setProperty('--bottom-safe', '100px');
@@ -2478,27 +2517,47 @@
                 document.documentElement.style.setProperty('--bottom-safe', 'max(8px, env(safe-area-inset-bottom, 8px))');
             }
         }
+
         if (window.visualViewport) {
-            window.visualViewport.addEventListener('resize', updateAppViewport);
-            window.visualViewport.addEventListener('scroll', updateAppViewport);
+            window.visualViewport.addEventListener('resize', () => {
+                updateAppViewport();
+                if (document.activeElement && document.activeElement.id === 'user-input') {
+                    window.scrollTo(0, 0);
+                    scrollToBottom();
+                }
+            });
+            window.visualViewport.addEventListener('scroll', () => {
+                // ดักไม่ให้ WebKit แอบเลื่อน window body ตอนคีย์บอร์ดเด้ง
+                if (window.scrollY > 0) window.scrollTo(0, 0);
+            });
         }
         window.addEventListener('resize', updateAppViewport);
-        window.addEventListener('orientationchange', updateAppViewport);
+        window.addEventListener('orientationchange', () => {
+            setTimeout(updateAppViewport, 150);
+        });
         window.addEventListener('DOMContentLoaded', updateAppViewport);
         updateAppViewport();
 
         const chatInputEl = document.getElementById('user-input');
         if (chatInputEl) {
             chatInputEl.addEventListener('focus', () => {
+                updateAppViewport();
                 setTimeout(() => {
                     updateAppViewport();
+                    window.scrollTo(0, 0);
                     scrollToBottom();
-                }, 280);
+                }, 120);
+                setTimeout(() => {
+                    updateAppViewport();
+                    window.scrollTo(0, 0);
+                    scrollToBottom();
+                }, 350);
             });
             chatInputEl.addEventListener('blur', () => {
                 setTimeout(() => {
                     updateAppViewport();
-                }, 200);
+                    scrollToBottom();
+                }, 150);
             });
         }
         </script>

@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, send_from_directory, redirect, url_for, session as flask_session
+from flask import Flask, render_template, request, jsonify, send_from_directory, redirect, url_for, session as flask_session, Response
 from flask_sqlalchemy import SQLAlchemy
 from functools import wraps
 from datetime import datetime, timedelta as _td
@@ -1297,7 +1297,23 @@ def login_page():
     if flask_session.get("line_user_id") and not flask_session.get("is_guest"):
         return redirect(url_for("index"))
     guest_mode = (get_setting("guest_mode", "false") == "true")
-    return render_template("login.html", guest_mode_enabled=guest_mode)
+
+    # สร้าง Direct Universal Link สำหรับเปิดแอป LINE ในเครื่องอัตโนมัติบนมือถือ
+    line_auth_url = None
+    if LINE_CLIENT_ID:
+        state = secrets.token_hex(16)
+        flask_session["oauth_state"] = state
+        params = {
+            "response_type": "code",
+            "client_id":     LINE_CLIENT_ID,
+            "redirect_uri":  LINE_REDIRECT_URI,
+            "scope":         "profile openid",
+            "state":         state,
+            "bot_prompt":    "normal"
+        }
+        line_auth_url = "https://access.line.me/oauth2/v2.1/authorize?" + urlencode(params)
+
+    return render_template("login.html", guest_mode_enabled=guest_mode, line_auth_url=line_auth_url)
 
 @app.route("/auth/guest")
 def guest_login():
@@ -1584,7 +1600,7 @@ def api_documents_search():
         keyword = (request.get_json(silent=True) or {}).get("keyword", "").strip().lower()
     else:
         keyword = request.args.get("q", "").strip().lower()
-    
+
     docs = []
     if os.path.exists(PDF_DIR):
         for i, fn in enumerate(sorted(os.listdir(PDF_DIR)), 1):
@@ -1936,6 +1952,118 @@ def scrape_status():
         "finished_at": to_thai_time(l.finished_at),
     } for l in logs])
 
+@app.route("/api/admin/knowledge/export", methods=["GET"])
+@admin_required
+def export_knowledge():
+    pages = ScrapedPage.query.order_by(ScrapedPage.id.asc()).all()
+    payload = {
+        "exported_at": datetime.utcnow().isoformat(),
+        "count": len(pages),
+        "pages": [{
+            "url": p.url,
+            "category": p.category or "auto",
+            "content": p.content or "",
+            "last_scraped": p.last_scraped.isoformat() if p.last_scraped else None
+        } for p in pages]
+    }
+    json_bytes = json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8")
+    filename = f"kusrc_knowledge_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    return Response(
+        json_bytes,
+        mimetype="application/json",
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}",
+            "Content-Type": "application/json; charset=utf-8"
+        }
+    )
+
+@app.route("/api/admin/knowledge/import", methods=["POST"])
+@admin_required
+def import_knowledge():
+    pages_data = []
+    if "file" in request.files:
+        uploaded_file = request.files["file"]
+        if not uploaded_file or uploaded_file.filename == "":
+            return jsonify({"success": False, "error": "กรุณาเลือกไฟล์ JSON สำหรับนำเข้า"}), 400
+        try:
+            raw_data = json.load(uploaded_file)
+            if isinstance(raw_data, dict) and "pages" in raw_data:
+                pages_data = raw_data["pages"]
+            elif isinstance(raw_data, list):
+                pages_data = raw_data
+            else:
+                return jsonify({"success": False, "error": "รูปแบบไฟล์ JSON ไม่ถูกต้อง"}), 400
+        except Exception as e:
+            return jsonify({"success": False, "error": f"อ่านไฟล์ JSON ไม่สำเร็จ: {str(e)}"}), 400
+    else:
+        req_json = request.get_json(silent=True) or {}
+        if req_json.get("use_default_seed"):
+            seed_path = os.path.join(os.path.dirname(__file__), "static", "seed_scraped_pages.json")
+            if not os.path.exists(seed_path):
+                return jsonify({"success": False, "error": "ไม่พบไฟล์ seed_scraped_pages.json ในระบบ"}), 404
+            with open(seed_path, "r", encoding="utf-8") as f:
+                pages_data = json.load(f)
+        elif "pages" in req_json:
+            pages_data = req_json["pages"]
+        elif isinstance(req_json, list):
+            pages_data = req_json
+        else:
+            return jsonify({"success": False, "error": "ไม่พบข้อมูลสำหรับนำเข้า"}), 400
+
+    if not isinstance(pages_data, list) or len(pages_data) == 0:
+        return jsonify({"success": False, "error": "ไม่พบรายการหน้าเว็บในข้อมูลที่ส่งมา"}), 400
+
+    imported = 0
+    updated = 0
+    for item in pages_data:
+        url = item.get("url") or item.get("source")
+        if not url:
+            continue
+        content = item.get("content", "")
+        category = item.get("category", "auto")
+        existing = ScrapedPage.query.filter_by(url=url).first()
+        if existing:
+            existing.content = content
+            existing.category = category
+            existing.last_scraped = datetime.utcnow()
+            updated += 1
+        else:
+            db.session.add(ScrapedPage(
+                url=url,
+                category=category,
+                content=content,
+                last_scraped=datetime.utcnow()
+            ))
+            imported += 1
+
+    try:
+        db.session.commit()
+        total_affected = imported + updated
+        log = ScrapeLog(
+            trigger="import_backup",
+            pages=total_affected,
+            status="done",
+            started_at=datetime.utcnow(),
+            finished_at=datetime.utcnow()
+        )
+        db.session.add(log)
+        db.session.commit()
+
+        # ซิงก์เข้า memory context และลิงก์ทันที
+        load_context_from_db()
+        sync_discovered_links_from_db()
+
+        return jsonify({
+            "success": True,
+            "message": f"นำเข้าข้อมูลสำเร็จ: เพิ่มใหม่ {imported} หน้า, อัปเดต {updated} หน้า (รวม {total_affected} หน้า)",
+            "imported": imported,
+            "updated": updated,
+            "total": total_affected
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "error": f"เกิดข้อผิดพลาดในการบันทึก: {str(e)}"}), 500
+
 @app.route("/api/admin/discovered-links")
 @admin_required
 def api_admin_discovered_links():
@@ -2077,6 +2205,8 @@ def api_admin_bulk_discovered_links():
         for l in links:
             l.is_system_mapped = True
             l.is_ignored = False
+            if not getattr(l, 'mapped_at', None):
+                l.mapped_at = datetime.utcnow()
         msg = f"เปิดใช้งาน {count} รายการสำเร็จ"
     elif action == "ignore":
         for l in links:
