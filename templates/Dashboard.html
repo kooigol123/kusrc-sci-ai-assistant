@@ -95,8 +95,10 @@ tr:hover td{background:#f9fafb}
   border: 1.5px solid #e5e7eb;
   color: #1a5f3f;
   font-size: 1.15rem;
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
   border-radius: 8px;
   cursor: pointer;
   align-items: center;
@@ -130,12 +132,13 @@ tr:hover td{background:#f9fafb}
     display: inline-flex;
   }
   .sidebar {
-    transform: translateX(-100%);
+    transform: translate3d(-100%, 0, 0);
+    will-change: transform;
     transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 4px 0 24px rgba(0, 0, 0, 0.25);
   }
   .sidebar.open {
-    transform: translateX(0);
+    transform: translate3d(0, 0, 0);
   }
   .sidebar-backdrop.active {
     display: block;
@@ -146,7 +149,7 @@ tr:hover td{background:#f9fafb}
     min-width: 0;
   }
   .topbar {
-    padding: 12px 16px;
+    padding: max(14px, env(safe-area-inset-top, 14px)) 16px 12px;
   }
   .topbar h1 {
     font-size: 1.05rem;
@@ -193,23 +196,119 @@ tr:hover td{background:#f9fafb}
   .search-bar input {
     font-size: 16px; /* ป้องกัน iOS ซูม */
   }
+  .table-responsive th,
+  .table-responsive td {
+    padding: 8px 10px !important;
+    font-size: 0.85rem !important;
+  }
   .modal-box {
-    max-width: 94vw !important;
-    max-height: 88vh;
+    max-width: 92vw !important;
+    max-height: 85vh;
+    padding: 20px 16px;
     overflow-y: auto;
+  }
+  .modal-box .btn {
+    min-height: 44px;
+    flex: 1;
+    justify-content: center;
+  }
+}
+
+/* Guest Mode Card & Banner Responsive */
+.guest-mode-banner {
+  margin-bottom: 20px;
+  padding: 16px 20px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  border-radius: 12px;
+}
+.guest-mode-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+.guest-mode-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.guest-mode-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #ecfdf5;
+  color: #059669;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  flex-shrink: 0;
+}
+.guest-mode-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #111827;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.guest-mode-desc {
+  font-size: 0.82rem;
+  color: #6b7280;
+  line-height: 1.5;
+  padding-left: 52px;
+}
+@media (max-width: 640px) {
+  .guest-mode-banner {
+    padding: 14px 16px;
+  }
+  .guest-mode-desc {
+    padding-left: 0 !important;
+    margin-top: 6px;
   }
 }
 
 @media (max-width: 480px) {
   .stat-grid {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+  .stat-card {
+    padding: 10px 8px !important;
+    gap: 8px !important;
+  }
+  .stat-icon {
+    width: 36px !important;
+    height: 36px !important;
+    font-size: 1rem !important;
+    border-radius: 8px !important;
+  }
+  .stat-value {
+    font-size: 1.15rem !important;
+    line-height: 1.2;
+  }
+  .stat-label {
+    font-size: 0.72rem !important;
+    line-height: 1.25;
+    letter-spacing: -0.2px;
+  }
+  .stat-sub {
+    font-size: 0.68rem !important;
+    letter-spacing: -0.2px;
+    line-height: 1.2;
+    white-space: nowrap;
   }
   .topbar h1 {
     font-size: 0.95rem;
   }
   .btn {
-    padding: 8px 14px;
-    font-size: 0.8rem;
+    min-height: 42px;
+    padding: 9px 14px;
+    font-size: 0.82rem;
   }
 }
 /* Toggle Switch */
@@ -540,26 +639,28 @@ input:checked + .toggle-slider:before {
   <!-- Overview Page -->
   <div class="page active" id="page-overview">
     <!-- Banner ควบคุมโหมดทดลองใช้งาน (Guest Trial Mode) -->
-    <div class="card" style="margin-bottom:20px;padding:16px 20px;border:1px solid #e5e7eb;background:white;display:flex;align-items:center;justify-content:space-between;gap:16px;border-radius:12px;">
-      <div style="display:flex;align-items:center;gap:14px;">
-        <div style="width:42px;height:42px;border-radius:10px;background:#ecfdf5;color:#059669;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;">
-          <i class="fas fa-user-clock"></i>
+    <div class="card guest-mode-banner">
+      <div class="guest-mode-header">
+        <div class="guest-mode-title-wrap">
+          <div class="guest-mode-icon">
+            <i class="fas fa-user-clock"></i>
+          </div>
+          <div>
+            <div class="guest-mode-title">
+              <span>โหมดทดลองใช้งานสำหรับทดสอบ</span>
+              <span id="guest-mode-badge" class="badge" style="background:#f3f4f6;color:#6b7280;">กำลังโหลด...</span>
+            </div>
+          </div>
         </div>
-        <div>
-          <div style="font-size:0.95rem;font-weight:700;color:#111827;display:flex;align-items:center;gap:8px;">
-            โหมดทดลองใช้งานสำหรับทดสอบ 
-            <span id="guest-mode-badge" class="badge" style="background:#f3f4f6;color:#6b7280;">กำลังโหลด...</span>
-          </div>
-          <div style="font-size:0.8rem;color:#6b7280;margin-top:2px;">
-            เมื่อเปิดใช้งานจะมีปุ่ม "ทดลองใช้งาน" แสดงบนหน้า Login ให้นิสิตหรือผู้ใช้ทั่วไปแชทได้ทันทีโดยไม่ต้องล็อกอิน LINE ในของช่วงการทดสอบเว็บไซต์
-          </div>
+        <div style="flex-shrink:0;">
+          <label class="toggle-switch">
+            <input type="checkbox" id="guest-mode-toggle" onchange="handleGuestModeToggle(this.checked)">
+            <span class="toggle-slider"></span>
+          </label>
         </div>
       </div>
-      <div style="display:flex;align-items:center;gap:12px;flex-shrink:0;">
-        <label class="toggle-switch">
-          <input type="checkbox" id="guest-mode-toggle" onchange="handleGuestModeToggle(this.checked)">
-          <span class="toggle-slider"></span>
-        </label>
+      <div class="guest-mode-desc">
+        เมื่อเปิดใช้งานจะมีปุ่ม "ทดลองใช้งาน" แสดงบนหน้า Login ให้นิสิตหรือผู้ใช้ทั่วไปแชทได้ทันทีโดยไม่ต้องล็อกอิน LINE ในช่วงการทดสอบเว็บไซต์
       </div>
     </div>
 
@@ -569,7 +670,7 @@ input:checked + .toggle-slider:before {
         <div>
           <div class="stat-value" id="stat-total">—</div>
           <div class="stat-label">แชทสะสมทั้งหมด</div>
-          <div style="font-size:0.75rem;color:#6b7280;margin-top:2px;" id="stat-total-sub"></div>
+          <div class="stat-sub" style="font-size:0.75rem;color:#6b7280;margin-top:2px;" id="stat-total-sub"></div>
         </div>
       </div>
       <div class="stat-card">
@@ -577,7 +678,7 @@ input:checked + .toggle-slider:before {
         <div>
           <div class="stat-value" id="stat-today">—</div>
           <div class="stat-label">แชทวันนี้</div>
-          <div style="font-size:0.75rem;color:#6b7280;margin-top:2px;" id="stat-today-sub"></div>
+          <div class="stat-sub" style="font-size:0.75rem;color:#6b7280;margin-top:2px;" id="stat-today-sub"></div>
         </div>
       </div>
       <div class="stat-card">
@@ -738,6 +839,39 @@ input:checked + .toggle-slider:before {
         <i class="fas fa-sync-alt"></i> Scrape ข้อมูลใหม่ทันที
       </button>
     </div>
+
+    <!-- Backup & Restore Knowledge Base Card -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+        <div><i class="fas fa-database"></i> สำรองและกู้คืนข้อมูล Knowledge Base (Backup & Restore)</div>
+        <span class="badge" style="background:#ecfdf5;color:#059669;font-size:0.75rem;padding:3px 9px;">JSON Format</span>
+      </div>
+      <p style="font-size:0.85rem;color:#6b7280;margin:0 0 16px 0;line-height:1.5;">
+        ใช้สำหรับสำรองข้อมูลความรู้ทั้งหมดเก็บไว้ในเครื่อง หรือนำเข้าข้อมูลเดิมกลับเข้าสู่ระบบทันทีเวลาเริ่มระบบใหม่ หรือเมื่อ Scraper พบปัญหาเว็บต้นทางขัดข้อง
+      </p>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+        <!-- Export Button -->
+        <a href="/api/admin/knowledge/export" class="btn" style="background:#f0fdf4;color:#16a34a;border:1.5px solid #bbf7d0;display:inline-flex;align-items:center;gap:8px;font-weight:600;min-height:44px;text-decoration:none;" download>
+          <i class="fas fa-file-download"></i> ดาวน์โหลดข้อมูลสำรอง (Export JSON)
+        </a>
+
+        <!-- Import Button -->
+        <button type="button" class="btn" onclick="document.getElementById('knowledge-import-file').click()" style="background:#f8fafc;color:#334155;border:1.5px solid #cbd5e1;display:inline-flex;align-items:center;gap:8px;font-weight:600;min-height:44px;" id="import-json-btn">
+          <i class="fas fa-file-upload"></i> นำเข้าไฟล์สำรอง (Import JSON)
+        </button>
+        <input type="file" id="knowledge-import-file" accept=".json" style="display:none;" onchange="handleKnowledgeFileSelect(event)">
+
+        <!-- Restore Default Seed Button -->
+        <button type="button" class="btn" onclick="restoreDefaultSeedKnowledge()" style="background:#eff6ff;color:#2563eb;border:1.5px solid #bfdbfe;display:inline-flex;align-items:center;gap:8px;font-weight:600;min-height:44px;" id="restore-default-btn" title="กู้คืนหน้าเว็บตั้งต้นจาก static/seed_scraped_pages.json">
+          <i class="fas fa-undo"></i> กู้คืนจากค่าเริ่มต้นระบบ (Default 23 หน้า)
+        </button>
+      </div>
+
+      <!-- Feedback Area -->
+      <div id="knowledge-import-feedback" style="display:none;margin-top:14px;padding:10px 14px;border-radius:8px;font-size:0.85rem;"></div>
+    </div>
+
     <div class="card">
       <div class="card-title"><i class="fas fa-history"></i> ประวัติการ Scrape ล่าสุด</div>
       <table>
@@ -801,19 +935,45 @@ input:checked + .toggle-slider:before {
         </select>
       </div>
 
+      <!-- Bulk Actions Bar -->
+      <div id="links-bulk-bar" style="display:none;align-items:center;justify-content:space-between;background:#f0fdf4;border:1.5px solid #86efac;padding:10px 16px;border-radius:10px;margin-bottom:14px;flex-wrap:wrap;gap:10px;box-shadow:0 2px 6px rgba(0,0,0,0.04);">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-weight:700;color:#166534;font-size:0.9rem;" id="links-selected-count">
+            <i class="fas fa-check-square"></i> เลือกอยู่ 0 รายการ
+          </span>
+          <button type="button" class="btn-xs" onclick="deselectAllLinks()" style="background:#e2e8f0;color:#475569;border:none;cursor:pointer;padding:4px 10px;border-radius:6px;font-size:0.8rem;">
+            ยกเลิกการเลือก
+          </button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <button type="button" class="btn btn-primary" onclick="bulkActionLinks('map')" style="min-height:38px;padding:6px 14px;font-size:0.85rem;background:#16a34a;border:none;display:inline-flex;align-items:center;gap:6px;" id="bulk-enable-btn">
+            <i class="fas fa-check-circle"></i> เปิดใช้งานที่เลือก (Bulk Enable)
+          </button>
+          <button type="button" class="btn" onclick="bulkActionLinks('ignore')" style="min-height:38px;padding:6px 14px;font-size:0.85rem;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;display:inline-flex;align-items:center;gap:6px;" id="bulk-hide-btn">
+            <i class="fas fa-eye-slash"></i> ซ่อนที่เลือก (Bulk Hide)
+          </button>
+          <button type="button" class="btn" onclick="bulkActionLinks('unignore')" style="min-height:38px;padding:6px 14px;font-size:0.85rem;background:#f8fafc;color:#475569;border:1px solid #cbd5e1;display:inline-flex;align-items:center;gap:6px;" id="bulk-unhide-btn">
+            <i class="fas fa-eye"></i> เลิกซ่อน
+          </button>
+        </div>
+      </div>
+
       <!-- Table with Actions & Type Indicators -->
       <div style="overflow-x:auto;">
         <table class="discovered-table">
           <thead>
             <tr>
-              <th style="width:42px;text-align:center;">#</th>
+              <th style="width:38px;text-align:center;">
+                <input type="checkbox" id="links-select-all" onchange="toggleSelectAllLinks(this.checked)" title="เลือกทั้งหมดในหน้านี้" style="cursor:pointer;width:17px;height:17px;">
+              </th>
+              <th style="width:38px;text-align:center;">#</th>
               <th style="width:20%;">ชื่อบริการ / ป้ายกำกับ</th>
-              <th style="width:29%;">URL เป้าหมาย</th>
-              <th style="width:16%;">พบจากแหล่งข้อมูล</th>
+              <th style="width:28%;">URL เป้าหมาย</th>
+              <th style="width:15%;">พบจากแหล่งข้อมูล</th>
               <th style="width:110px;text-align:center;">สแกนล่าสุด</th>
               <th style="width:125px;text-align:center;">เวลาเปิดใช้งาน</th>
-              <th style="width:125px;text-align:center;">สถานะ</th>
-              <th style="width:135px;text-align:center;">จัดการ</th>
+              <th style="width:120px;text-align:center;">สถานะ</th>
+              <th style="width:130px;text-align:center;">จัดการ</th>
             </tr>
           </thead>
           <tbody id="links-table"></tbody>
@@ -1032,6 +1192,102 @@ async function triggerScrape() {
   }, 3000);
 }
 
+// ── Knowledge Base Backup & Restore ───────────
+async function handleKnowledgeFileSelect(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+
+  if (!confirm(`คุณต้องการนำเข้าข้อมูลจากไฟล์ "${file.name}" ใช่หรือไม่?\nข้อมูลที่มี URL ซ้ำจะถูกอัปเดตเป็นเนื้อหาล่าสุด และข้อมูลใหม่จะถูกเพิ่มเข้าสู่ระบบทันที`)) {
+    event.target.value = '';
+    return;
+  }
+
+  const feedback = document.getElementById('knowledge-import-feedback');
+  const btn = document.getElementById('import-json-btn');
+  btn.disabled = true;
+  feedback.style.display = 'block';
+  feedback.style.background = '#f8fafc';
+  feedback.style.color = '#334155';
+  feedback.style.border = '1px solid #e2e8f0';
+  feedback.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังตรวจสอบและนำเข้าข้อมูลเข้าฐานข้อมูล...';
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  try {
+    const res = await fetch('/api/admin/knowledge/import', {
+      method: 'POST',
+      body: formData
+    });
+    const data = await res.json();
+    if (data.success) {
+      feedback.style.background = '#ecfdf5';
+      feedback.style.color = '#15803d';
+      feedback.style.border = '1px solid #bbf7d0';
+      feedback.innerHTML = `<i class="fas fa-check-circle"></i> ${data.message}`;
+      loadScraperStatus();
+      loadStats();
+    } else {
+      feedback.style.background = '#fef2f2';
+      feedback.style.color = '#b91c1c';
+      feedback.style.border = '1px solid #fecaca';
+      feedback.innerHTML = `<i class="fas fa-exclamation-circle"></i> ข้อผิดพลาด: ${data.error || 'ไม่สามารถนำเข้าข้อมูลได้'}`;
+    }
+  } catch (err) {
+    feedback.style.background = '#fef2f2';
+    feedback.style.color = '#b91c1c';
+    feedback.style.border = '1px solid #fecaca';
+    feedback.innerHTML = `<i class="fas fa-exclamation-circle"></i> การเชื่อมต่อล้มเหลว: ${err.message}`;
+  } finally {
+    btn.disabled = false;
+    event.target.value = '';
+  }
+}
+
+async function restoreDefaultSeedKnowledge() {
+  if (!confirm('คุณต้องการกู้คืนข้อมูลเริ่มต้นของระบบ (Default Seed) ใช่หรือไม่?\nระบบจะดึงหน้าเว็บหลัก 23 หน้าเริ่มต้นกลับเข้าสู่ Knowledge Base')) {
+    return;
+  }
+
+  const feedback = document.getElementById('knowledge-import-feedback');
+  const btn = document.getElementById('restore-default-btn');
+  btn.disabled = true;
+  feedback.style.display = 'block';
+  feedback.style.background = '#f8fafc';
+  feedback.style.color = '#334155';
+  feedback.style.border = '1px solid #e2e8f0';
+  feedback.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังกู้คืนข้อมูลเริ่มต้นจากระบบ...';
+
+  try {
+    const res = await fetch('/api/admin/knowledge/import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ use_default_seed: true })
+    });
+    const data = await res.json();
+    if (data.success) {
+      feedback.style.background = '#ecfdf5';
+      feedback.style.color = '#15803d';
+      feedback.style.border = '1px solid #bbf7d0';
+      feedback.innerHTML = `<i class="fas fa-check-circle"></i> ${data.message}`;
+      loadScraperStatus();
+      loadStats();
+    } else {
+      feedback.style.background = '#fef2f2';
+      feedback.style.color = '#b91c1c';
+      feedback.style.border = '1px solid #fecaca';
+      feedback.innerHTML = `<i class="fas fa-exclamation-circle"></i> ข้อผิดพลาด: ${data.error || 'ไม่สามารถกู้คืนได้'}`;
+    }
+  } catch (err) {
+    feedback.style.background = '#fef2f2';
+    feedback.style.color = '#b91c1c';
+    feedback.style.border = '1px solid #fecaca';
+    feedback.innerHTML = `<i class="fas fa-exclamation-circle"></i> การเชื่อมต่อล้มเหลว: ${err.message}`;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 // ── Users ────────────────────────────────
 let allUsers = [], userPage = 1;
 
@@ -1213,7 +1469,7 @@ function getLinkTypeIcon(l) {
 
 async function loadDiscoveredLinks() {
   const tbody = document.getElementById('links-table');
-  tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:#6b7280;"><i class="fas fa-spinner fa-spin"></i> กำลังโหลดข้อมูล...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:24px;color:#6b7280;"><i class="fas fa-spinner fa-spin"></i> กำลังโหลดข้อมูล...</td></tr>';
   try {
     const res = await fetch('/api/admin/discovered-links?status=all');
     if (!res.ok) throw new Error('Failed to fetch');
@@ -1228,7 +1484,7 @@ async function loadDiscoveredLinks() {
     filterDiscoveredLinks();
   } catch (err) {
     console.error('loadDiscoveredLinks error:', err);
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:#dc2626;"><i class="fas fa-exclamation-triangle"></i> โหลดข้อมูลล้มเหลว กรุณาลองใหม่อีกครั้ง</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:24px;color:#dc2626;"><i class="fas fa-exclamation-triangle"></i> โหลดข้อมูลล้มเหลว กรุณาลองใหม่อีกครั้ง</td></tr>';
   }
 }
 
@@ -1314,9 +1570,121 @@ function filterDiscoveredLinks() {
   renderDiscoveredLinks(filtered);
 }
 
+let selectedLinkIds = new Set();
+let currentlyRenderedLinks = [];
+
+function toggleSelectAllLinks(checked) {
+  if (checked) {
+    currentlyRenderedLinks.forEach(l => selectedLinkIds.add(l.id));
+  } else {
+    currentlyRenderedLinks.forEach(l => selectedLinkIds.delete(l.id));
+  }
+  document.querySelectorAll('.link-checkbox').forEach(cb => {
+    cb.checked = checked;
+  });
+  updateBulkActionBar();
+}
+
+function onLinkCheckboxChange(id, checked) {
+  if (checked) {
+    selectedLinkIds.add(id);
+  } else {
+    selectedLinkIds.delete(id);
+  }
+  updateSelectAllCheckboxState();
+  updateBulkActionBar();
+}
+
+function updateSelectAllCheckboxState() {
+  const selectAllCb = document.getElementById('links-select-all');
+  if (!selectAllCb) return;
+  if (!currentlyRenderedLinks || currentlyRenderedLinks.length === 0) {
+    selectAllCb.checked = false;
+    selectAllCb.indeterminate = false;
+    return;
+  }
+  const renderedSelectedCount = currentlyRenderedLinks.filter(l => selectedLinkIds.has(l.id)).length;
+  if (renderedSelectedCount === currentlyRenderedLinks.length && currentlyRenderedLinks.length > 0) {
+    selectAllCb.checked = true;
+    selectAllCb.indeterminate = false;
+  } else if (renderedSelectedCount > 0) {
+    selectAllCb.checked = false;
+    selectAllCb.indeterminate = true;
+  } else {
+    selectAllCb.checked = false;
+    selectAllCb.indeterminate = false;
+  }
+}
+
+function updateBulkActionBar() {
+  const bar = document.getElementById('links-bulk-bar');
+  const countSpan = document.getElementById('links-selected-count');
+  if (!bar || !countSpan) return;
+
+  const count = selectedLinkIds.size;
+  if (count > 0) {
+    bar.style.display = 'flex';
+    countSpan.innerHTML = `<i class="fas fa-check-square"></i> เลือกอยู่ <strong>${count.toLocaleString()}</strong> รายการ`;
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+function deselectAllLinks() {
+  selectedLinkIds.clear();
+  document.querySelectorAll('.link-checkbox').forEach(cb => cb.checked = false);
+  const selectAllCb = document.getElementById('links-select-all');
+  if (selectAllCb) {
+    selectAllCb.checked = false;
+    selectAllCb.indeterminate = false;
+  }
+  updateBulkActionBar();
+}
+
+async function bulkActionLinks(action) {
+  const count = selectedLinkIds.size;
+  if (count === 0) {
+    alert('กรุณาเลือกรายการที่ต้องการจัดการอย่างน้อย 1 รายการ');
+    return;
+  }
+
+  let actionText = '';
+  if (action === 'map') actionText = 'เปิดใช้งานในระบบ';
+  else if (action === 'ignore') actionText = 'ซ่อนรายการที่เลือก';
+  else if (action === 'unignore') actionText = 'ยกเลิกการซ่อนรายการที่เลือก';
+
+  if (!confirm(`คุณต้องการ ${actionText} ทั้งหมด ${count} รายการที่เลือกใช่หรือไม่?`)) {
+    return;
+  }
+
+  const ids = Array.from(selectedLinkIds);
+  try {
+    const res = await fetch('/api/admin/discovered-links/bulk', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids, action })
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      alert(data.message || 'ดำเนินการสำเร็จ');
+      deselectAllLinks();
+      await loadDiscoveredLinks();
+      if (typeof loadStats === 'function') loadStats();
+    } else {
+      alert(data.error || 'เกิดข้อผิดพลาดในการดำเนินการ');
+    }
+  } catch (err) {
+    alert('การเชื่อมต่อล้มเหลว: ' + err.message);
+  }
+}
+
 function renderDiscoveredLinks(links) {
+  currentlyRenderedLinks = links || [];
   const tbody = document.getElementById('links-table');
   const empty = document.getElementById('links-empty');
+
+  updateSelectAllCheckboxState();
+  updateBulkActionBar();
 
   if (!links || links.length === 0) {
     tbody.innerHTML = '';
@@ -1374,7 +1742,11 @@ function renderDiscoveredLinks(links) {
       ? `<span style="color:#059669;font-weight:600;font-size:0.8rem;" title="เปิดใช้งานเมื่อ ${escapeHtml(l.mapped_at)}">${escapeHtml(l.mapped_at)}</span>`
       : `<span style="color:#94a3b8;font-size:0.8rem;">-</span>`;
 
+    const isChecked = selectedLinkIds.has(l.id) ? 'checked' : '';
     html += `<tr>
+      <td style="text-align:center;">
+        <input type="checkbox" class="link-checkbox" value="${l.id}" onchange="onLinkCheckboxChange(${l.id}, this.checked)" ${isChecked} style="cursor:pointer;width:17px;height:17px;">
+      </td>
       <td style="color:#94a3b8;font-size:0.8rem;text-align:center;">${idx + 1}</td>
       <td>
         <div style="display:flex;align-items:center;gap:6px;max-width:100%;">

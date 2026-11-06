@@ -9,23 +9,125 @@
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Sarabun',sans-serif;background:linear-gradient(135deg,#0d3d28,#1a5f3f,#2d8659);min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto}
-.login-box{background:white;border-radius:16px;padding:40px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
-.login-logo{text-align:center;margin-bottom:28px}
-.login-logo .icon{width:64px;height:64px;background:linear-gradient(135deg,#1a5f3f,#2d8659);border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:1.8rem;color:white}
-.login-logo h2{font-size:1.2rem;color:#1a5f3f;font-weight:700}
-.login-logo p{font-size:.85rem;color:#6b7280;margin-top:4px}
-.form-group{margin-bottom:18px}
-label{display:block;font-size:.875rem;font-weight:600;color:#374151;margin-bottom:6px}
-.input-wrap{position:relative}
-.input-wrap input{width:100%;padding:11px 14px 11px 40px;border:1px solid #e5e7eb;border-radius:8px;font-size:16px;font-family:inherit;outline:none;transition:.2s}
-.input-wrap input:focus{border-color:#1a5f3f;box-shadow:0 0 0 3px rgba(26,95,63,.1)}
-.input-wrap i{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:#9ca3af}
-.btn-login{width:100%;padding:12px;background:linear-gradient(135deg,#1a5f3f,#2d8659);color:white;border:none;border-radius:8px;font-size:1rem;font-weight:600;cursor:pointer;font-family:inherit;transition:.2s;margin-top:4px}
-.btn-login:hover{opacity:.9}
-.error-msg{background:#fee2e2;color:#dc2626;padding:10px 14px;border-radius:8px;font-size:.875rem;margin-bottom:16px;display:flex;align-items:center;gap:8px}
-@media(max-width:480px){.login-box{padding:28px 20px;border-radius:14px}}
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Sarabun', sans-serif;
+    background: linear-gradient(135deg, #0d3d28, #1a5f3f, #2d8659);
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+    overflow-y: auto;
+  }
+  .login-box {
+    background: white;
+    border-radius: 16px;
+    border: 1px solid #e5e7eb;
+    padding: 40px 34px;
+    width: 100%;
+    max-width: 380px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  }
+  .login-logo {
+    text-align: center;
+    margin-bottom: 26px;
+  }
+  .login-logo .icon {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, #1a5f3f, #2d8659);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 12px;
+    font-size: 1.6rem;
+    color: white;
+  }
+  .login-logo h2 {
+    font-size: 1.25rem;
+    color: #1a5f3f;
+    font-weight: 700;
+  }
+  .login-logo p {
+    font-size: 0.85rem;
+    color: #6b7280;
+    margin-top: 4px;
+  }
+  .form-group {
+    margin-bottom: 18px;
+  }
+  label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 6px;
+  }
+  .input-wrap {
+    position: relative;
+  }
+  .input-wrap input {
+    width: 100%;
+    padding: 12px 14px 12px 42px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 16px; /* ป้องกัน iOS ซูม */
+    font-family: inherit;
+    outline: none;
+    transition: 0.2s;
+  }
+  .input-wrap input:focus {
+    border-color: #1a5f3f;
+    box-shadow: 0 0 0 3px rgba(26, 95, 63, 0.12);
+  }
+  .input-wrap i {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9ca3af;
+  }
+  .btn-login {
+    width: 100%;
+    min-height: 46px;
+    padding: 12px;
+    background: linear-gradient(135deg, #1a5f3f, #2d8659);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: 0.2s;
+    margin-top: 6px;
+  }
+  .btn-login:hover {
+    opacity: 0.92;
+  }
+  .error-msg {
+    background: #fee2e2;
+    color: #dc2626;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  @media (max-width: 480px) {
+    .login-box {
+      padding: 28px 20px;
+      border-radius: 14px;
+    }
+    .btn-login {
+      min-height: 48px;
+    }
+  }
 </style>
 </head>
 <body>
