@@ -3,7 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from functools import wraps
 from datetime import datetime, timedelta as _td
 from PyPDF2 import PdfReader
-from urllib.parse import urlencode, urlparse, unquote
+from urllib.parse import urlencode, urlparse, unquote, urldefrag
 import threading
 import time
 import os
@@ -57,6 +57,7 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 }
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY") or secrets.token_hex(32)
 app.config["PERMANENT_SESSION_LIFETIME"] = _td(minutes=30)  # Session หมดอายุหลังจากไม่ได้ใช้งาน 30 นาที
+app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 # Session Cookie Security (ป้องกัน XSS ขโมยคุกกี้, บังคับ HTTPS บน Render, ป้องกัน CSRF)
 app.config["SESSION_COOKIE_HTTPONLY"] = True
@@ -148,6 +149,7 @@ class ChatLog(db.Model):
     session_id   = db.Column(db.String(100), nullable=True)
     feedback     = db.Column(db.Integer, nullable=True)
     is_guest     = db.Column(db.Boolean, default=False, index=True)
+    debug_info   = db.Column(db.Text, nullable=True)
 
 class LineUser(db.Model):
     __tablename__ = "line_users"
@@ -433,6 +435,15 @@ SYSTEM_LINKS_REGISTRY = [
         "check_target": "user",
         "is_curriculum": True,
     },
+    {
+        "id": "curriculum_gened",
+        "title": "หมวดวิชาศึกษาทั่วไป พ.ศ. 2567",
+        "url": "https://regis.src.ku.ac.th/filet/GenEd67.pdf",
+        "desc": "เล่มหลักสูตรหมวดวิชาศึกษาทั่วไป มหาวิทยาลัยเกษตรศาสตร์ (ฉบับปรับปรุง พ.ศ. 2567)",
+        "keywords": ("ศึกษาทั่วไป", "gened", "gen-ed", "วิชาศึกษาทั่วไป", "หมวดศึกษาทั่วไป"),
+        "check_target": "user",
+        "is_curriculum": True,
+    },
 ]
 
 def get_matching_system_links(user_message, bot_text="", history=None, initial_links=None, is_curriculum_query=False, has_pdf=False):
@@ -492,6 +503,9 @@ def get_matching_system_links(user_message, bot_text="", history=None, initial_l
     # ตรวจสอบเจตนาทุนการศึกษา / ความช่วยเหลือทางการเงิน
     is_scholarship_q = any(k in user_q for k in ("ทุน", "ทุนการศึกษา", "กยศ", "กรอ", "กู้ยืม", "ขาดแคลนทุนทรัพย์", "ยากจน"))
 
+    # ตรวจสอบเจตนาเครื่องแต่งกาย (Dress Code Intent)
+    is_dress_code_q = any(k in user_q for k in ("แต่งกาย", "ชุดนิสิต", "เครื่องแต่งกาย", "แต่งตัว", "กางเกง", "กระโปรง", "เนคไท", "เน็คไท", "เสื้อนิสิต"))
+
     # ตรวจสอบเจตนาการรับสมัคร (Admission Intent)
     admission_keywords = (
         "tcas", "รับสมัคร", "เปิดรับ", "รับเข้า", "เข้าศึกษา", "admission",
@@ -499,9 +513,9 @@ def get_matching_system_links(user_message, bot_text="", history=None, initial_l
         "รอบ 1", "รอบ 2", "รอบ 3", "รอบ 4", "อยากเข้า", "เข้าได้ไหม",
         "ศิลป์-คำนวณ", "ศิลป์คำนวณ", "วิทย์-คณิต", "วิทย์คณิต", "สายศิลป์"
     )
-    # ถ้าถามเรื่องทุนอย่างชัดเจน จะไม่ปนลิงก์รับสมัคร เพื่อไม่ให้ปุ่มรกหน้าจอ
-    is_admission_q = not is_scholarship_q and any(k in user_q for k in admission_keywords)
-    if not is_admission_q and not is_scholarship_q and is_short_followup:
+    # ถ้าถามเรื่องทุนหรือเรื่องการแต่งกายอย่างชัดเจน จะไม่ปนลิงก์รับสมัคร เพื่อไม่ให้ปุ่มรกหน้าจอ
+    is_admission_q = not is_scholarship_q and not is_dress_code_q and any(k in user_q for k in admission_keywords)
+    if not is_admission_q and not is_scholarship_q and not is_dress_code_q and is_short_followup:
         curriculum_intent = any(k in user_q for k in ("เรียนอะไร", "หลักสูตร", "แผนการเรียน", "วิชาที่ต้องเรียน", "ต่างจากบางเขน", "เน้นอะไร"))
         if not curriculum_intent and any(k in hist_user_context for k in ("tcas", "รับสมัคร", "portfolio", "admission", "พอร์ต")):
             is_admission_q = True
@@ -534,6 +548,10 @@ def get_matching_system_links(user_message, bot_text="", history=None, initial_l
                 if is_scholarship_q and "admissions.src.ku.ac.th" in url:
                     continue
 
+                # ถ้าถามเรื่องเครื่องแต่งกาย ไม่เอาลิงก์รับสมัคร และไม่เอาข้อบังคับการศึกษาปริญญาตรีที่โมเดลส่งมา
+                if is_dress_code_q and ("admissions.src.ku.ac.th" in url or "ข้อบังคับมหาวิทยาลัยเกษตรศาสตร์-2566.pdf" in url):
+                    continue
+
                 if title and url not in existing_urls:
                     good_links.append({"title": title, "url": url, "desc": l.get("desc", "")})
                     existing_urls.add(url)
@@ -552,8 +570,8 @@ def get_matching_system_links(user_message, bot_text="", history=None, initial_l
         if is_admission_q and item.get("is_curriculum"):
             continue
 
-        # ถ้าถามเรื่องทุน ห้ามดึงลิงก์รับสมัคร
-        if is_scholarship_q and item.get("is_admission"):
+        # ถ้าถามเรื่องทุน หรือเรื่องการแต่งกาย ห้ามดึงลิงก์รับสมัคร
+        if (is_scholarship_q or is_dress_code_q) and item.get("is_admission"):
             continue
 
         # ตรวจสอบว่าต้องมี keyword หลักสูตรก่อนหรือไม่สำหรับเล่มหลักสูตรรายสาขา
@@ -591,6 +609,28 @@ def get_matching_system_links(user_message, bot_text="", history=None, initial_l
     limit = 1 if has_pdf else 2
     return good_links[:limit]
 
+def canonicalize_discovered_url(url: str) -> str:
+    """ทำความสะอาดและจัดรูปแบบ URL ให้อยู่ในมาตรฐานเดียวกัน (ตัด fragment #..., ตัด trailing slash, จัด lower domain)"""
+    if not url:
+        return ""
+    url_no_frag = urldefrag(url)[0].strip()
+    cleaned = re.sub(r'/[^/]+\.php/(pdf/[^/]+)$', r'/\1', url_no_frag, flags=re.I)
+    cleaned = cleaned.rstrip('.,;:)()[]\'"')
+    parsed = urlparse(cleaned)
+    if not parsed.scheme or not parsed.netloc:
+        return cleaned
+
+    scheme = parsed.scheme.lower()
+    netloc = parsed.netloc.lower()
+    path = parsed.path
+    if path == "/" or not path:
+        path = ""
+    elif path.endswith("/"):
+        path = path.rstrip("/")
+
+    query = f"?{parsed.query}" if parsed.query else ""
+    return f"{scheme}://{netloc}{path}{query}"
+
 def sync_discovered_links_from_db():
     """สแกนและบันทึกรวมลิงก์ภายนอกเครือข่าย มก. (*.ku.ac.th, *.ku.th) จาก ScrapedPage และ FAQ ลง discovered_links"""
     try:
@@ -618,7 +658,7 @@ def sync_discovered_links_from_db():
             if not p.content:
                 continue
             for label, link in labeled_pattern.findall(p.content):
-                clean_url = link.rstrip('.,;:)()[]\'"')
+                clean_url = canonicalize_discovered_url(link)
                 if is_spider_trap and is_spider_trap(clean_url):
                     continue
                 lbl = label.strip()
@@ -628,7 +668,7 @@ def sync_discovered_links_from_db():
                     discovered[clean_url]["label"] = lbl
 
             for link in general_pattern.findall(p.content):
-                clean_url = link.rstrip('.,;:)()[]\'"')
+                clean_url = canonicalize_discovered_url(link)
                 if is_spider_trap and is_spider_trap(clean_url):
                     continue
                 if clean_url not in discovered:
@@ -640,7 +680,7 @@ def sync_discovered_links_from_db():
             if not f.answer:
                 continue
             for link in general_pattern.findall(f.answer):
-                clean_url = link.rstrip('.,;:)()[]\'"')
+                clean_url = canonicalize_discovered_url(link)
                 if is_spider_trap and is_spider_trap(clean_url):
                     continue
                 if clean_url not in discovered:
@@ -650,6 +690,11 @@ def sync_discovered_links_from_db():
         new_count = 0
         for url, data in discovered.items():
             existing = DiscoveredLink.query.filter_by(url=url).first()
+            if not existing:
+                alt_url = url + "/" if not url.endswith("/") else url.rstrip("/")
+                existing = DiscoveredLink.query.filter_by(url=alt_url).first()
+                if existing:
+                    existing.url = url
             norm_url = url.rstrip("/").lower()
             is_blocked_from_mapping = any(bad in norm_url for bad in ("login_admin", "criteria", "announce.php", "login_c.php"))
             is_mapped = (not is_blocked_from_mapping) and any(norm_url == r or norm_url.startswith(r) for r in registered_urls)
@@ -813,7 +858,7 @@ def start_scheduler():
 # ──────────────────────────────────────────
 # PDF helpers
 # ──────────────────────────────────────────
-PDF_DIR = os.path.join(os.path.dirname(__file__), "static", "pdfs")
+PDF_DIR = os.path.join(os.path.dirname(__file__), "static", "docs", "forms")
 
 def get_pdf_category(fn):
     cats = {
@@ -903,7 +948,414 @@ def sanitize_bot_output(bot_text, has_links=False, query_context=""):
 
     return bot_text
 
-def ask_gemini(user_message, history=None):
+def evaluate_faithfulness(bot_text, context_text):
+    """ตรวจสอบความซื่อตรงของข้อมูล (Faithfulness) ตามมาตรฐาน Skill rag-system-auditor
+    สกัดตัวเลข, วันที่, ค่าธรรมเนียม, หน่วยกิต และคำสำคัญเฉพาะทางในคำตอบ แล้วตรวจว่ามีใน Context หรือไม่"""
+    if not bot_text:
+        return {"status": "unverified", "score": 1.0, "grounded_facts": [], "unsupported_facts": []}
+
+    combined_ctx = (context_text or "").lower()
+
+    # สกัดตัวเลขสำคัญและข้อเท็จจริงทางการเงิน/การศึกษา
+    number_patterns = re.findall(
+        r'\b\d{1,3}(?:,\d{3})+(?:\.\d+)?\b|\b\d+(?:\.\d+)?\s*(?:บาท|หน่วยกิต|วัน|เทอม|เดือน|ปี|รอบ|gpax)\b|\b(?:25\d{2}|6\d{1})\b',
+        bot_text,
+        flags=re.I
+    )
+
+    facts_to_check = list(dict.fromkeys([p.strip() for p in number_patterns if len(p.strip()) > 1]))
+    grounded_facts = []
+    unsupported_facts = []
+
+    for f in facts_to_check:
+        clean_f = f.lower()
+        num_only = re.sub(r'[^\d\.,]', '', clean_f).strip()
+        if clean_f in combined_ctx or (num_only and num_only in combined_ctx):
+            grounded_facts.append(f)
+        else:
+            unsupported_facts.append(f)
+
+    total_facts = len(grounded_facts) + len(unsupported_facts)
+    if total_facts == 0:
+        score = 1.0
+        status = "grounded"
+    else:
+        score = round(len(grounded_facts) / total_facts, 2)
+        if score >= 0.85:
+            status = "grounded"
+        elif score >= 0.50:
+            status = "warning"
+        else:
+            status = "hallucination_risk"
+
+    return {
+        "status": status,
+        "score": score,
+        "grounded_facts": grounded_facts,
+        "unsupported_facts": unsupported_facts
+    }
+
+def _perform_retrieval(user_message):
+    """ดำเนินการสืบค้นข้อมูลในคลังเอกสารและ FAQ (Core RAG Retrieval)"""
+    msg_lower = user_message.lower()
+    _stop_words = (
+        "คณะวิทยาศาสตร์", "มหาวิทยาลัยเกษตรศาสตร์", "วิทยาเขตศรีราชา",
+        "ม.เกษตร", "ศรีราชา", "เกษตร", "ต้องทำยังไง", "ทำยังไง", "ยังไง",
+        "อย่างไร", "อะไรบ้าง", "เมื่อไหร่", "เท่าไหร่", "ที่ไหน", "ได้ไหม",
+        "ได้มั้ย", "คือใคร", "สอบถามได้ไหม", "สอบถามได้มั้ย", "สอบถาม", "ขอสอบถาม",
+        "รบกวนสอบถาม", "รบกวน", "อยากทราบ", "ขอถาม", "อยากรู้", "พอดีจะ", "พอดี",
+        "ครับ", "ค่ะ", "คะ", "นะ",
+    )
+    cleaned_msg = msg_lower
+    for sw in _stop_words:
+        cleaned_msg = cleaned_msg.replace(sw, " ")
+    cleaned_msg = cleaned_msg.strip()
+    search_src = cleaned_msg if len(cleaned_msg) >= 2 else msg_lower
+
+    kw = [w for w in search_src.split() if len(w) > 1]
+    compact = search_src.replace(" ", "")
+    kw += [compact[i:i+3] for i in range(len(compact) - 2)]
+    kw = list(dict.fromkeys(kw))
+
+    def _score(text):
+        if not kw or not text:
+            return 0
+        t = text.lower()
+        return sum(1 for w in kw if w in t)
+
+    _MAJOR_MAP = {
+        "cs": {
+            "keywords": ("cs", "วิทยาการคอมพิวเตอร์", "วิทย์คอม", "คอมพิวเตอร์", "com sci", "computer science"),
+            "files": ("computerscience", "computer-science"),
+        },
+        "dst": {
+            "keywords": ("dst", "ดิจิทัล", "ดิจิทัลไซน์", "digital", "เทคโนโลยีดิจิทัล"),
+            "files": ("digital", "digitaltechnology"),
+        },
+        "it": {
+            "keywords": ("it", "เทคโนโลยีสารสนเทศ", "สารสนเทศ", "information technology"),
+            "files": ("information technology", "information-technology"),
+        },
+        "data": {
+            "keywords": ("data", "วิเคราะห์ข้อมูล", "คณิตศาสตร์ประกันภัย", "ประกันภัย", "actuarial"),
+            "files": ("data-analytics", "dataanalytics", "actuarial"),
+        },
+        "env": {
+            "keywords": ("สิ่งแวดล้อม", "environmental"),
+            "files": ("environmental", "environmentalscience"),
+        },
+        "physics": {
+            "keywords": ("ฟิสิกส์", "physics"),
+            "files": ("physics",),
+        },
+        "chem": {
+            "keywords": ("เคมี", "chemical"),
+            "files": ("chemical", "chemistry", "appliedchemistry"),
+        },
+        "gened": {
+            "keywords": ("ศึกษาทั่วไป", "หมวดศึกษาทั่วไป", "วิชาศึกษาทั่วไป", "gened", "gen-ed", "general education"),
+            "files": ("generaleducation", "gened"),
+        },
+    }
+    detected_majors = set()
+    for m_key, m_info in _MAJOR_MAP.items():
+        if any(k in msg_lower for k in m_info["keywords"]):
+            detected_majors.add(m_key)
+
+    context_str = ""
+    docs_to_use = []
+    doc_score_map = {}
+    scored_docs = []
+    is_fallback = False
+    is_overview = any(p in compact for p in (
+        "มีข้อมูลอะไรบ้าง", "มีข้อมูลด้านไหน", "มีข้อมูลเรื่องอะไร", "มีข้อมูลอะไร",
+        "ช่วยอะไรได้บ้าง", "ช่วยเรื่องอะไรได้บ้าง", "ทำอะไรได้บ้าง", "ถามอะไรได้บ้าง",
+        "มีบริการอะไรบ้าง", "ค้นหาอะไรได้บ้าง", "รู้เรื่องอะไรบ้าง", "มีอะไรให้ถามบ้าง",
+        "ในระบบมีข้อมูลอะไร", "มีข้อมูลเกี่ยวกับอะไร"
+    ))
+
+    if CHAT_CONTEXT:
+        for idx, d in enumerate(CHAT_CONTEXT):
+            src_lower = d.get("source", "").lower()
+            content_lower = d.get("content", "").lower()
+            cat_lower = d.get("category", "").lower()
+
+            sc = _score(content_lower) + _score(cat_lower) * 3 + _score(src_lower) * 3
+            if detected_majors:
+                for m_key in detected_majors:
+                    target_files = _MAJOR_MAP[m_key]["files"]
+                    if any(f in src_lower for f in target_files):
+                        sc += 25
+                if "หลักสูตร" in cat_lower or ".txt" in src_lower or ".pdf" in src_lower:
+                    is_target_major = any(any(f in src_lower for f in _MAJOR_MAP[m_key]["files"]) for m_key in detected_majors)
+                    if not is_target_major:
+                        sc -= 15
+
+            doc_score_map[id(d)] = sc
+            if sc > 0:
+                scored_docs.append((sc, idx, d))
+
+        scored_docs.sort(key=lambda x: (-x[0], x[1]))
+        filtered = [d for _, _, d in scored_docs]
+
+        if any(k in msg_lower for k in ("ค่าเทอม", "ค่าธรรมเนียม", "ค่าเล่าเรียน", "หลักสูตรพิเศษ", "ภาคพิเศษ")):
+            fee_docs = [d for d in CHAT_CONTEXT if any(k in d.get("category", "").lower() or k in d.get("source", "").lower() for k in ("ค่าธรรมเนียม", "ระเบียบการ", "tuition", "fee", "tcas"))]
+            prog_docs = [d for d in filtered if "program" in d.get("category", "")]
+            top_tuition_docs = fee_docs + [d for d in prog_docs if d not in fee_docs]
+            filtered = top_tuition_docs + [d for d in filtered if d not in top_tuition_docs]
+
+        # ป้องกันไม่ให้คำว่า "สอบถาม", "ทดสอบ", "ตรวจสอบ" ไปทริกเกอร์หมวดปฏิทินสอบ
+        cal_clean_text = re.sub(r'สอบถาม|ทดสอบ|ตรวจสอบ', ' ', msg_lower)
+        _cal_kw = ("วันสอบ", "ตารางสอบ", "ห้องสอบ", "สอบกลางภาค", "สอบปลายภาค", "สอบไล่", "ขอสอบ",
+                   "ปฏิทิน", "เปิดเทอม", "ปิดเทอม", "เปิดภาค", "ปิดภาค",
+                   "ลงทะเบียน", "ถอน", "เพิ่มวิชา", "กำหนดการ", "เทอม", "ภาคเรียน", "วันสุดท้าย")
+        has_cal_match = any(k in cal_clean_text for k in _cal_kw) or bool(re.search(r'(?<![ก-๙])สอบ(?![ก-๙])', cal_clean_text))
+        if has_cal_match and "ค่าเทอม" not in msg_lower:
+            cal_docs = [d for d in CHAT_CONTEXT if "ปฏิทิน" in d.get("category", "")]
+            filtered = cal_docs + [d for d in filtered if d not in cal_docs]
+
+        if is_overview:
+            docs_to_use = []
+        elif filtered:
+            docs_to_use = filtered[:8]
+        else:
+            docs_to_use = CHAT_CONTEXT[:2]
+            is_fallback = True
+
+        context_str = "\n\nRelevant Information:\n"
+        for doc in docs_to_use:
+            limit = 40000 if ("ปฏิทิน" in doc.get("category", "") or "หลักสูตร" in doc.get("category", "") or "ระเบียบการ" in doc.get("category", "") or ".pdf" in doc.get("source", "").lower()) else 6000
+            context_str += f"Source: {doc['source']} ({doc['category']})\nContent: {doc['content'][:limit]}\n\n"
+
+    faq_str = ""
+    scored_faq = []
+    is_faq_enabled = (get_setting("faq_enabled", "true") == "true")
+    if is_faq_enabled and FAQ_CONTEXT:
+        # คำสามัญทั่วไปที่ไม่ควรให้คะแนนเดี่ยวๆ ตัดสินความตรงของ FAQ
+        _generic_faq_words = {"เรียน", "วิชา", "ต้อง", "เรื่อง", "อะไร", "ทำ", "การ", "ของ", "ที่", "มี", "ไป", "ให้", "ได้", "ภาค"}
+        meaningful_kw = [w for w in kw if w not in _generic_faq_words and len(w) >= 2]
+        if not meaningful_kw:
+            meaningful_kw = [w for w in kw if len(w) >= 2]
+
+        for idx, e in enumerate(FAQ_CONTEXT):
+            q_lower = e["q"].lower()
+            a_lower = e["a"].lower()
+            # คำนวณความตรงของคำถาม (ให้น้ำหนักมากกว่าคำตอบ)
+            q_sc = sum(3 for w in meaningful_kw if w in q_lower)
+            a_sc = sum(1 for w in meaningful_kw if w in a_lower)
+            # โบนัสกรณีพบคำหลักเต็มคำในคำถาม FAQ
+            main_tokens = [w for w in search_src.split() if len(w) >= 3 and w not in _generic_faq_words]
+            if any(tok in q_lower for tok in main_tokens):
+                q_sc += 8
+
+            sc = q_sc * 2 + a_sc
+            if sc >= 12:  # เกณฑ์ขั้นต่ำ ต้องมีความตรงจริง ไม่ใช่แค่มีคำเชื่อม
+                scored_faq.append((sc, idx, e))
+
+        scored_faq.sort(key=lambda x: (-x[0], x[1]))
+        if scored_faq:
+            top_faq_sc = scored_faq[0][0]
+            # ดึงเฉพาะข้อที่คะแนนเกาะกลุ่มกับอันดับ 1 (ไม่ต่ำกว่า 60% ของ top_score) และไม่เกิน 3 ข้อ
+            filtered_faq = [e for sc, _, e in scored_faq if sc >= max(12, top_faq_sc * 0.6)][:3]
+            if filtered_faq:
+                faq_str = "\n\nข้อมูล FAQ ที่เกี่ยวข้อง:\n"
+                for e in filtered_faq:
+                    faq_str += f"Q: {e['q']}\nA: {e['a']}\n\n"
+
+    return {
+        "kw": kw,
+        "detected_majors": detected_majors,
+        "docs_to_use": docs_to_use,
+        "doc_score_map": doc_score_map,
+        "scored_faq": scored_faq,
+        "is_fallback": is_fallback,
+        "is_overview": is_overview,
+        "context_str": context_str,
+        "faq_str": faq_str
+    }
+
+def compute_rag_debug_info(user_message, bot_text, good_files, good_links,
+                           docs_to_use, scored_docs_map, scored_faq,
+                           detected_majors, kw, is_fallback, is_overview,
+                           context_str="", faq_str=""):
+    """คำนวณระดับความมั่นใจ และรวบรวมที่มาของข้อมูล (The RAG Triad Analysis)"""
+    top_doc_score = max(scored_docs_map.values()) if scored_docs_map else 0
+    top_faq_score = scored_faq[0][0] if scored_faq else 0
+
+    reasons = []
+    confidence_score = 50
+
+    if top_faq_score >= 18:
+        confidence_score += 28
+        reasons.append(f"พบคู่คำถาม-คำตอบตรงใน FAQ (คะแนนความตรง {top_faq_score})")
+    elif top_faq_score >= 12:
+        confidence_score += 15
+        reasons.append(f"พบ FAQ ที่มีคำสำคัญสอดคล้อง (คะแนน {top_faq_score})")
+
+    if top_doc_score >= 25:
+        confidence_score += 22
+        reasons.append(f"พบคลังข้อมูลหน้าเว็บ/ระเบียบการตรงจุดสูงมาก (คะแนน {top_doc_score})")
+    elif top_doc_score >= 10:
+        confidence_score += 14
+        reasons.append(f"พบเอกสารที่เกี่ยวข้องในระบบ (คะแนน {top_doc_score})")
+    elif top_doc_score > 0:
+        confidence_score += 8
+        reasons.append(f"พบเอกสารที่มีคำค้นบางส่วน (คะแนน {top_doc_score})")
+
+    if detected_majors:
+        confidence_score += 10
+        m_list = ", ".join(sorted(m.upper() for m in detected_majors))
+        reasons.append(f"ตรวจพบสาขาวิชาตรง {m_list} และ Boost เอกสารหลักสูตรเฉพาะทาง")
+
+    if is_fallback:
+        confidence_score -= 30
+        reasons.append("⚠️ ไม่พบเอกสารตรงเป้า ระบบจำเป็นต้องใช้เอกสารภาพรวมสำรอง (Fallback Docs)")
+    elif is_overview:
+        reasons.append("คำถามภาพรวมระบบ (Overview Mode)")
+
+    combined_ctx = (context_str or "") + " " + (faq_str or "")
+    faith_res = evaluate_faithfulness(bot_text, combined_ctx)
+    if faith_res["unsupported_facts"]:
+        confidence_score -= 20
+        reasons.append(f"⚠️ ตรวจพบข้อมูลตัวเลข {len(faith_res['unsupported_facts'])} จุดที่ไม่ปรากฏใน Context เสี่ยงต่อการตอบหลอน")
+    elif faith_res["grounded_facts"]:
+        confidence_score += 10
+        reasons.append("ข้อมูลตัวเลขและเงื่อนไขสำคัญในคำตอบ มีหลักฐานยืนยันใน Context ครบถ้วน")
+
+    confidence_score = max(20, min(98, confidence_score))
+
+    if confidence_score >= 75:
+        confidence_level = "HIGH"
+    elif confidence_score >= 45:
+        confidence_level = "MEDIUM"
+    else:
+        confidence_level = "LOW"
+
+    if top_faq_score >= 8 and top_faq_score >= top_doc_score:
+        route = "faq_grounded"
+    elif is_fallback:
+        route = "no_context_fallback"
+    else:
+        route = "rag_retrieval"
+
+    sources_data = []
+    for d in (docs_to_use or []):
+        sc = scored_docs_map.get(id(d), 0)
+        content_raw = d.get("content", "")
+        sources_data.append({
+            "source": d.get("source", "-"),
+            "category": d.get("category", "ทั่วไป"),
+            "score": sc,
+            "snippet": (content_raw[:280] + "...") if len(content_raw) > 280 else content_raw,
+            "char_count": len(content_raw),
+        })
+
+    faq_data = []
+    is_faq_enabled = (get_setting("faq_enabled", "true") == "true")
+    if is_faq_enabled and scored_faq:
+        top_faq_sc = scored_faq[0][0]
+        # แสดงเฉพาะ FAQ ที่ผ่านเกณฑ์ 60% และส่งให้ AI อ่านจริงเท่านั้น ป้องกันไม่ให้แชทขยะติดมาในหน้าจอ
+        actual_faqs = [(sc, e) for sc, _, e in scored_faq if sc >= max(12, top_faq_sc * 0.6)][:3]
+        for sc, e in actual_faqs:
+            ans_raw = e.get("a", "")
+            faq_data.append({
+                "question": e.get("q", "-"),
+                "answer_snippet": (ans_raw[:200] + "...") if len(ans_raw) > 200 else ans_raw,
+                "score": sc,
+            })
+
+    return {
+        "route": route,
+        "confidence_score": confidence_score,
+        "confidence_level": confidence_level,
+        "confidence_reasons": reasons,
+        "faithfulness": faith_res,
+        "retrieved_sources": sources_data,
+        "matched_faq": faq_data,
+        "detected_majors": sorted(list(detected_majors)),
+        "extracted_keywords": kw[:10] if kw else [],
+        "suggested_files": good_files or [],
+        "suggested_links": good_links or [],
+        "model": os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite"),
+        "timestamp": datetime.utcnow().isoformat(),
+        "is_reconstructed": False,
+    }
+
+def generate_chat_debug_analysis(user_message, bot_answer=None):
+    """จำลองการวิเคราะห์ที่มาและความมั่นใจย้อนหลัง (Reconstructed on-the-fly)"""
+    msg_clean = re.sub(r'[\s\?\!\.\,~…]+$', '', user_message.strip().lower())
+    msg_norm = re.sub(r'(.)\1{2,}', r'\1', msg_clean)
+    msg_nospace = msg_clean.replace(" ", "")
+
+    _greetings = {
+        "สวัสดี", "สวัสดีครับ", "สวัสดีครับผม", "สวัสดีคับ", "สวัสดีค้าบ",
+        "สวัสดีค่ะ", "สวัสดีคะ", "สวัสดีค่า", "สวัสดีจ้า", "สวัสดีฮะ",
+        "หวัดดี", "หวัดดีครับ", "หวัดดีคับ", "หวัดดีค้าบ", "หวัดดีค่ะ",
+        "ดีครับ", "ดีคับ", "ดีค้าบ", "ดีค่ะ", "ดีจ้า", "ทัก", "ทักครับ", "ทักทาย",
+        "ฮัลโหล", "ฮโหล", "hello", "hi", "hey", "good morning", "good afternoon",
+    }
+    if msg_clean in _greetings or msg_norm in _greetings:
+        return {
+            "route": "direct_rule",
+            "confidence_score": 100,
+            "confidence_level": "HIGH",
+            "confidence_reasons": ["ตรงกับคำทักทายมาตรฐานของระบบ (Pre-LLM Guard) ตอบทันทีด้วยความมั่นใจ 100%"],
+            "faithfulness": {"status": "grounded", "score": 1.0, "grounded_facts": [], "unsupported_facts": []},
+            "retrieved_sources": [],
+            "matched_faq": [],
+            "detected_majors": [],
+            "extracted_keywords": [],
+            "suggested_files": [],
+            "suggested_links": [],
+            "model": "system_guard",
+            "timestamp": datetime.utcnow().isoformat(),
+            "is_reconstructed": True,
+        }
+
+    _thanks = {
+        "ขอบคุณ", "ขอบคุณครับ", "ขอบคุณคับ", "ขอบคุณค้าบ", "ขอบคุณค่ะ", "ขอบคุณคะ", "ขอบคุณค่า",
+        "ขอบคุณมาก", "ขอบคุณมากครับ", "ขอบคุณมากค่ะ", "ขอบใจ", "ขอบใจจ้า",
+        "โอเค", "โอเคครับ", "โอเคค่ะ", "รับทราบ", "เข้าใจแล้ว",
+        "ok", "okay", "thanks", "thank you", "thx", "ty",
+    }
+    if msg_clean in _thanks or msg_norm in _thanks:
+        return {
+            "route": "direct_rule",
+            "confidence_score": 100,
+            "confidence_level": "HIGH",
+            "confidence_reasons": ["ตรงกับคำขอบคุณมาตรฐาน (Pre-LLM Guard) ตอบทันทีด้วยความมั่นใจ 100%"],
+            "faithfulness": {"status": "grounded", "score": 1.0, "grounded_facts": [], "unsupported_facts": []},
+            "retrieved_sources": [],
+            "matched_faq": [],
+            "detected_majors": [],
+            "extracted_keywords": [],
+            "suggested_files": [],
+            "suggested_links": [],
+            "model": "system_guard",
+            "timestamp": datetime.utcnow().isoformat(),
+            "is_reconstructed": True,
+        }
+
+    ret = _perform_retrieval(user_message)
+    debug_data = compute_rag_debug_info(
+        user_message=user_message,
+        bot_text=bot_answer or "",
+        good_files=[],
+        good_links=[],
+        docs_to_use=ret["docs_to_use"],
+        scored_docs_map=ret["doc_score_map"],
+        scored_faq=ret["scored_faq"],
+        detected_majors=ret["detected_majors"],
+        kw=ret["kw"],
+        is_fallback=ret["is_fallback"],
+        is_overview=ret["is_overview"],
+        context_str=ret["context_str"],
+        faq_str=ret["faq_str"]
+    )
+    debug_data["is_reconstructed"] = True
+    return debug_data
+
+def ask_gemini(user_message, history=None, return_debug=False):
     msg_lower = user_message.lower()
     # ดักคำทักทายและคำถามเล่นทั่วไปก่อนยิง API เพื่อประหยัดโควต้า
     msg_clean = re.sub(r'[\s\?\!\.\,~…]+$', '', user_message.strip().lower())
@@ -918,11 +1370,15 @@ def ask_gemini(user_message, history=None):
         "ฮัลโหล", "ฮโหล", "hello", "hi", "hey", "good morning", "good afternoon",
     }
     if msg_clean in _greetings or msg_norm in _greetings:
-        return (
+        resp = (
             "สวัสดีครับ มีข้อมูลด้านใดของคณะวิทยาศาสตร์ ศรีราชา ให้ช่วยค้นหาไหมครับ "
-            "สามารถสอบถามเรื่องหลักสูตร การลงทะเบียน แบบฟอร์มคำร้อง หรือทุนการศึกษาได้เลยครับ",
-            [], [],
+            "สามารถสอบถามเรื่องหลักสูตร การลงทะเบียน แบบฟอร์มคำร้อง หรือทุนการศึกษาได้เลยครับ"
         )
+        if return_debug:
+            dbg = generate_chat_debug_analysis(user_message, resp)
+            dbg["is_reconstructed"] = False
+            return resp, [], [], dbg
+        return resp, [], []
 
     _thanks = {
         "ขอบคุณ", "ขอบคุณครับ", "ขอบคุณคับ", "ขอบคุณค้าบ", "ขอบคุณค่ะ", "ขอบคุณคะ", "ขอบคุณค่า",
@@ -931,10 +1387,12 @@ def ask_gemini(user_message, history=None):
         "ok", "okay", "thanks", "thank you", "thx", "ty",
     }
     if msg_clean in _thanks or msg_norm in _thanks:
-        return (
-            "ยินดีครับ หากมีข้อสงสัยเพิ่มเติมเกี่ยวกับคณะวิทยาศาสตร์ ศรีราชา สอบถามได้ตลอดเลยครับ",
-            [], [],
-        )
+        resp = "ยินดีครับ หากมีข้อสงสัยเพิ่มเติมเกี่ยวกับคณะวิทยาศาสตร์ ศรีราชา สอบถามได้ตลอดเลยครับ"
+        if return_debug:
+            dbg = generate_chat_debug_analysis(user_message, resp)
+            dbg["is_reconstructed"] = False
+            return resp, [], [], dbg
+        return resp, [], []
 
     # ตรวจสอบและรีเฟรช FAQ จากฐานข้อมูลเสมอ หากมีข้อมูลใหม่เข้ามาในระบบ
     try:
@@ -962,12 +1420,30 @@ def ask_gemini(user_message, history=None):
         "เป็นบอทอะไร", "ใครสร้างคุณ", "ใครสร้างบอท", "ใครพัฒนาระบบ",
     )
     if not is_curriculum_query and (msg_clean in _model_exact or (len(msg_clean) <= 60 and any(p in msg_nospace for p in _model_phrases))):
-        return (
+        resp = (
             "ผมคือ Science Assistant ระบบผู้ช่วยอัจฉริยะของคณะวิทยาศาสตร์ ศรีราชา มหาวิทยาลัยเกษตรศาสตร์ "
             "พัฒนาขึ้นเพื่อช่วยตอบคำถามเกี่ยวกับหลักสูตร การลงทะเบียน เอกสารคำร้อง และข้อมูลภายในคณะครับ "
-            "พิมพ์เรื่องที่ต้องการสอบถามได้เลยครับ",
-            [], [],
+            "พิมพ์เรื่องที่ต้องการสอบถามได้เลยครับ"
         )
+        if return_debug:
+            dbg = {
+                "route": "direct_rule",
+                "confidence_score": 100,
+                "confidence_level": "HIGH",
+                "confidence_reasons": ["ตรงกับคำถามระบุตัวตน/โมเดลของระบบ (Pre-LLM Guard)"],
+                "faithfulness": {"status": "grounded", "score": 1.0, "grounded_facts": [], "unsupported_facts": []},
+                "retrieved_sources": [],
+                "matched_faq": [],
+                "detected_majors": [],
+                "extracted_keywords": [],
+                "suggested_files": [],
+                "suggested_links": [],
+                "model": "system_guard",
+                "timestamp": datetime.utcnow().isoformat(),
+                "is_reconstructed": False,
+            }
+            return resp, [], [], dbg
+        return resp, [], []
 
     _playful = {
         "เทส", "เทสๆ", "ทดสอบ", "ทดสอบระบบ", "test", "testing", "ping",
@@ -981,138 +1457,40 @@ def ask_gemini(user_message, history=None):
         or msg_norm in _playful
         or re.fullmatch(r'5{2,}\+*|ฮ่าๆ+|haha+|lol|อิอิ', msg_clean)
     ):
-        return (
+        resp = (
             "ระบบพร้อมใช้งานครับ สามารถพิมพ์คำถามเกี่ยวกับหลักสูตร การลงทะเบียน "
-            "เอกสารคำร้อง หรือข้อมูลของคณะวิทยาศาสตร์ ศรีราชา ได้เลยครับ",
-            [], [],
+            "เอกสารคำร้อง หรือข้อมูลของคณะวิทยาศาสตร์ ศรีราชา ได้เลยครับ"
         )
+        if return_debug:
+            dbg = {
+                "route": "direct_rule",
+                "confidence_score": 100,
+                "confidence_level": "HIGH",
+                "confidence_reasons": ["ตรงกับคำทดสอบระบบ/ข้อความเล่นสั้น (Pre-LLM Guard)"],
+                "faithfulness": {"status": "grounded", "score": 1.0, "grounded_facts": [], "unsupported_facts": []},
+                "retrieved_sources": [],
+                "matched_faq": [],
+                "detected_majors": [],
+                "extracted_keywords": [],
+                "suggested_files": [],
+                "suggested_links": [],
+                "model": "system_guard",
+                "timestamp": datetime.utcnow().isoformat(),
+                "is_reconstructed": False,
+            }
+            return resp, [], [], dbg
+        return resp, [], []
 
-    msg_lower = user_message.lower()
-    # ตัดคำฟุ่มเฟือยออกก่อนทำ 3-gram กันไม่ให้ทุกหน้าในเว็บติดผลค้นหาหมด
-    _stop_words = (
-        "คณะวิทยาศาสตร์", "มหาวิทยาลัยเกษตรศาสตร์", "วิทยาเขตศรีราชา",
-        "ม.เกษตร", "ศรีราชา", "เกษตร", "ต้องทำยังไง", "ทำยังไง", "ยังไง",
-        "อย่างไร", "อะไรบ้าง", "เมื่อไหร่", "เท่าไหร่", "ที่ไหน", "ได้ไหม",
-        "คือใคร", "ครับ", "ค่ะ", "คะ", "นะ",
-    )
-    cleaned_msg = msg_lower
-    for sw in _stop_words:
-        cleaned_msg = cleaned_msg.replace(sw, " ")
-    cleaned_msg = cleaned_msg.strip()
-    search_src = cleaned_msg if len(cleaned_msg) >= 2 else msg_lower
-
-    kw = [w for w in search_src.split() if len(w) > 1]
-    compact = search_src.replace(" ", "")
-    kw += [compact[i:i+3] for i in range(len(compact) - 2)]
-    kw = list(dict.fromkeys(kw))
-
-    def _score(text):
-        if not kw or not text:
-            return 0
-        t = text.lower()
-        return sum(1 for w in kw if w in t)
-
-    # แผนที่ตรวจจับสาขาวิชาเพื่อ Boost เอกสารหลักสูตรให้ตรงสาขา ป้องกันสาขาอื่นแย่งโควตา Context
-    _MAJOR_MAP = {
-        "cs": {
-            "keywords": ("cs", "วิทยาการคอมพิวเตอร์", "วิทย์คอม", "คอมพิวเตอร์", "com sci", "computer science"),
-            "files": ("computerscience", "computer-science"),
-        },
-        "dst": {
-            "keywords": ("dst", "ดิจิทัล", "ดิจิทัลไซน์", "digital", "เทคโนโลยีดิจิทัล"),
-            "files": ("digital",),
-        },
-        "it": {
-            "keywords": ("it", "เทคโนโลยีสารสนเทศ", "สารสนเทศ", "information technology"),
-            "files": ("information technology", "information-technology"),
-        },
-        "data": {
-            "keywords": ("data", "วิเคราะห์ข้อมูล", "คณิตศาสตร์ประกันภัย", "ประกันภัย", "actuarial"),
-            "files": ("data-analytics", "actuarial"),
-        },
-        "env": {
-            "keywords": ("สิ่งแวดล้อม", "environmental"),
-            "files": ("environmental",),
-        },
-        "physics": {
-            "keywords": ("ฟิสิกส์", "physics"),
-            "files": ("physics",),
-        },
-        "chem": {
-            "keywords": ("เคมี", "chemical"),
-            "files": ("chemical",),
-        },
-    }
-    detected_majors = set()
-    for m_key, m_info in _MAJOR_MAP.items():
-        if any(k in msg_lower for k in m_info["keywords"]):
-            detected_majors.add(m_key)
-
-    # กรองและเรียงลำดับเฉพาะหน้าที่เกี่ยวข้องมากสุด
-    context_str = ""
-    if CHAT_CONTEXT:
-        scored_docs = []
-        for idx, d in enumerate(CHAT_CONTEXT):
-            src_lower = d.get("source", "").lower()
-            content_lower = d.get("content", "").lower()
-            cat_lower = d.get("category", "").lower()
-
-            sc = _score(content_lower) + _score(cat_lower) * 3 + _score(src_lower) * 3
-
-            # Major-aware boost / penalty: ดันหลักสูตรตรงสาขาขึ้นอันดับ 1 เสมอ
-            if detected_majors:
-                for m_key in detected_majors:
-                    target_files = _MAJOR_MAP[m_key]["files"]
-                    if any(f in src_lower for f in target_files):
-                        sc += 25
-                if "หลักสูตร" in cat_lower or ".txt" in src_lower or ".pdf" in src_lower:
-                    is_target_major = any(any(f in src_lower for f in _MAJOR_MAP[m_key]["files"]) for m_key in detected_majors)
-                    if not is_target_major:
-                        sc -= 15
-
-            if sc > 0:
-                scored_docs.append((sc, idx, d))
-        scored_docs.sort(key=lambda x: (-x[0], x[1]))
-        filtered = [d for _, _, d in scored_docs]
-
-        # ค่าเทอม / หลักสูตรปกติ-พิเศษ / ระเบียบการค่าธรรมเนียม: ดันข้อมูลระเบียบการค่าธรรมเนียมและหลักสูตรขึ้นหน้าสุด
-        if any(k in msg_lower for k in ("ค่าเทอม", "ค่าธรรมเนียม", "ค่าเล่าเรียน", "หลักสูตรพิเศษ", "ภาคพิเศษ")):
-            fee_docs = [d for d in CHAT_CONTEXT if any(k in d.get("category", "").lower() or k in d.get("source", "").lower() for k in ("ค่าธรรมเนียม", "ระเบียบการ", "tuition", "fee", "tcas"))]
-            prog_docs = [d for d in filtered if "program" in d.get("category", "")]
-            top_tuition_docs = fee_docs + [d for d in prog_docs if d not in fee_docs]
-            filtered = top_tuition_docs + [d for d in filtered if d not in top_tuition_docs]
-
-        # ปฏิทินการศึกษา: ถ้าคำถามเกี่ยวกับวัน/สอบ/ลงทะเบียน ให้ดันปฏิทินขึ้นหน้าสุดเสมอ
-        _cal_kw = ("สอบ", "ปฏิทิน", "เปิดเทอม", "ปิดเทอม", "เปิดภาค", "ปิดภาค",
-                   "ลงทะเบียน", "ถอน", "เพิ่มวิชา", "กำหนดการ", "เทอม", "ภาคเรียน", "วันสุดท้าย")
-        if any(k in msg_lower for k in _cal_kw) and "ค่าเทอม" not in msg_lower:
-            cal_docs = [d for d in CHAT_CONTEXT if "ปฏิทิน" in d.get("category", "")]
-            filtered = cal_docs + [d for d in filtered if d not in cal_docs]
-        is_overview = any(p in msg_nospace for p in (
-            "มีข้อมูลอะไรบ้าง", "มีข้อมูลด้านไหน", "มีข้อมูลเรื่องอะไร", "มีข้อมูลอะไร",
-            "ช่วยอะไรได้บ้าง", "ช่วยเรื่องอะไรได้บ้าง", "ทำอะไรได้บ้าง", "ถามอะไรได้บ้าง",
-            "มีบริการอะไรบ้าง", "ค้นหาอะไรได้บ้าง", "รู้เรื่องอะไรบ้าง", "มีอะไรให้ถามบ้าง",
-            "ในระบบมีข้อมูลอะไร", "มีข้อมูลเกี่ยวกับอะไร"
-        ))
-        docs_to_use = [] if is_overview else (filtered[:8] if filtered else CHAT_CONTEXT[:2])
-        context_str = "\n\nRelevant Information:\n"
-        for doc in docs_to_use:
-            limit = 40000 if ("ปฏิทิน" in doc.get("category", "") or "หลักสูตร" in doc.get("category", "") or "ระเบียบการ" in doc.get("category", "") or ".pdf" in doc.get("source", "").lower()) else 6000
-            context_str += f"Source: {doc['source']} ({doc['category']})\nContent: {doc['content'][:limit]}\n\n"
-
-    # เพิ่ม FAQ จาก Excel ที่เกี่ยวข้อง
-    faq_str = ""
-    if FAQ_CONTEXT:
-        scored_faq = []
-        for idx, e in enumerate(FAQ_CONTEXT):
-            sc = _score(e["q"]) * 2 + _score(e["a"])
-            if sc > 0:
-                scored_faq.append((sc, idx, e))
-        scored_faq.sort(key=lambda x: (-x[0], x[1]))
-        if scored_faq:
-            faq_str = "\n\nข้อมูล FAQ ที่เกี่ยวข้อง:\n"
-            for _, _, e in scored_faq[:5]:
-                faq_str += f"Q: {e['q']}\nA: {e['a']}\n\n"
+    ret = _perform_retrieval(user_message)
+    kw = ret["kw"]
+    detected_majors = ret["detected_majors"]
+    docs_to_use = ret["docs_to_use"]
+    doc_score_map = ret["doc_score_map"]
+    scored_faq = ret["scored_faq"]
+    is_fallback = ret["is_fallback"]
+    is_overview = ret["is_overview"]
+    context_str = ret["context_str"]
+    faq_str = ret["faq_str"]
 
     system = f"""{prompt}
 {context_str}{faq_str}
@@ -1281,6 +1659,24 @@ def ask_gemini(user_message, history=None):
 
     query_context = (user_message + " " + bot_text).lower()
     bot_text = sanitize_bot_output(bot_text, has_links=bool(good_links), query_context=query_context)
+
+    if return_debug:
+        debug_info = compute_rag_debug_info(
+            user_message=user_message,
+            bot_text=bot_text,
+            good_files=good_files,
+            good_links=good_links,
+            docs_to_use=docs_to_use,
+            scored_docs_map=doc_score_map,
+            scored_faq=scored_faq,
+            detected_majors=detected_majors,
+            kw=kw,
+            is_fallback=is_fallback,
+            is_overview=is_overview,
+            context_str=context_str,
+            faq_str=faq_str
+        )
+        return bot_text, good_files, good_links, debug_info
 
     return bot_text, good_files, good_links
 
@@ -1517,7 +1913,7 @@ def chat():
 
     history = data.get("history", [])
     try:
-        bot_text, files, links = ask_gemini(user_msg, history=history)
+        bot_text, files, links, debug_data = ask_gemini(user_msg, history=history, return_debug=True)
         print(f"[DEBUG] suggested_files={files} | ALL_PDFS_count={len(ALL_PDFS)}")
 
         if is_guest:
@@ -1538,12 +1934,14 @@ def chat():
                 session_id   = session_id,
                 user_id      = db_user_id,
                 is_guest     = is_guest,
+                debug_info   = json.dumps(debug_data, ensure_ascii=False) if debug_data else None,
             )
             db.session.add(log)
             db.session.commit()
         except Exception as db_err:
             print(f"[ChatLog] Save error: {db_err}")
             db.session.rollback()
+
         return jsonify({
             "response": bot_text,
             "suggested_files": files,
@@ -1649,6 +2047,56 @@ def save_feedback():
 # ──────────────────────────────────────────
 # Admin Routes
 # ──────────────────────────────────────────
+@app.route("/api/admin/chatlogs/<int:log_id>/debug")
+@admin_required
+def api_chatlog_debug(log_id):
+    log = ChatLog.query.get_or_404(log_id)
+    if log.debug_info:
+        try:
+            data = json.loads(log.debug_info)
+            data["log_id"] = log.id
+            data["user_message"] = log.user_message
+            data["bot_answer"] = log.bot_answer
+            data["timestamp"] = to_thai_time(log.timestamp)
+            data["is_guest"] = bool(log.is_guest)
+            data["session_id"] = log.session_id or "-"
+            return jsonify(data)
+        except Exception as e:
+            print(f"[Debug Parse Error] {e}")
+
+    # Log เก่าที่ยังไม่มี debug_info: วิเคราะห์ย้อนหลังสด
+    reconstructed = generate_chat_debug_analysis(log.user_message, log.bot_answer)
+    reconstructed["log_id"] = log.id
+    reconstructed["user_message"] = log.user_message
+    reconstructed["bot_answer"] = log.bot_answer
+    reconstructed["timestamp"] = to_thai_time(log.timestamp)
+    reconstructed["is_guest"] = bool(log.is_guest)
+    reconstructed["session_id"] = log.session_id or "-"
+    reconstructed["is_reconstructed"] = True
+    return jsonify(reconstructed)
+
+@app.route("/api/admin/debug/inspect", methods=["POST"])
+@admin_required
+def api_debug_inspect():
+    data = request.get_json(silent=True) or {}
+    question = (data.get("question") or "").strip()
+    if not question:
+        return jsonify({"error": "กรุณาระบุคำถามที่ต้องการตรวจสอบ"}), 400
+
+    run_llm = bool(data.get("run_llm", False))
+    if run_llm:
+        bot_text, files, links, debug_data = ask_gemini(question, return_debug=True)
+        debug_data["user_message"] = question
+        debug_data["bot_answer"] = bot_text
+        debug_data["is_live_test"] = True
+        return jsonify(debug_data)
+    else:
+        debug_data = generate_chat_debug_analysis(question, bot_answer=None)
+        debug_data["user_message"] = question
+        debug_data["bot_answer"] = "(โหมดพรีวิวการค้นหา: ไม่ได้เรียก Gemini API เพื่อประหยัดโควตา)"
+        debug_data["is_live_test"] = True
+        return jsonify(debug_data)
+
 @app.route("/admin")
 @app.route("/admin/login", methods=["GET"])
 def admin_login():
@@ -1788,6 +2236,7 @@ def api_admin_stats():
                 "finished_at": to_thai_time(l.finished_at),
             } for l in scrape_logs],
             "guest_mode": (get_setting("guest_mode", "false") == "true"),
+            "faq_enabled": (get_setting("faq_enabled", "true") == "true"),
         })
     except Exception as e:
         print(f"[Stats Error] {e}")
@@ -1801,15 +2250,30 @@ def api_chatlogs():
     logs = ChatLog.query.order_by(ChatLog.timestamp.desc()).paginate(
         page=page, per_page=per_page, error_out=False
     )
-    return jsonify({
-        "logs": [{
+    logs_data = []
+    for l in logs.items:
+        conf = None
+        if l.debug_info:
+            try:
+                m = re.search(r'"confidence_score":\s*(\d+)', l.debug_info)
+                if m:
+                    conf = int(m.group(1))
+            except Exception:
+                pass
+        logs_data.append({
             "id":           l.id,
             "user_message": l.user_message,
             "bot_answer":   l.bot_answer[:200] + "..." if len(l.bot_answer) > 200 else l.bot_answer,
+            "raw_answer":   l.bot_answer,
             "timestamp":    to_thai_time(l.timestamp),
             "session_id":   l.session_id or "-",
             "is_guest":     bool(getattr(l, "is_guest", False)),
-        } for l in logs.items],
+            "has_debug":    bool(getattr(l, "debug_info", None)),
+            "feedback":     l.feedback,
+            "confidence":   conf,
+        })
+    return jsonify({
+        "logs": logs_data,
         "total": logs.total,
         "pages": logs.pages,
         "current_page": page,
@@ -1824,7 +2288,7 @@ def export_chatlogs():
     writer = csv.writer(output)
     writer.writerow(["ID", "Timestamp", "Session ID", "User Type", "User Message", "Bot Answer"])
     for l in logs:
-        user_type = "Guest" if getattr(l, "is_guest", False) else "Student"
+        user_type = "Guest" if getattr(l, "is_guest", False) else "LINE User"
         writer.writerow([l.id, to_thai_time(l.timestamp),
                          l.session_id or "", user_type, l.user_message, l.bot_answer])
     output.seek(0)
@@ -1907,6 +2371,18 @@ def api_toggle_guest_mode():
         "success": True,
         "enabled": enabled,
         "message": "เปิดโหมดทดลองใช้งานแล้ว" if enabled else "ปิดโหมดทดลองใช้งานแล้ว"
+    })
+
+@app.route("/api/admin/settings/faq_mode", methods=["POST"])
+@admin_required
+def api_toggle_faq_mode():
+    data = request.get_json(silent=True) or {}
+    enabled = bool(data.get("enabled", True))
+    set_setting("faq_enabled", "true" if enabled else "false")
+    return jsonify({
+        "success": True,
+        "enabled": enabled,
+        "message": "เปิดใช้งานคลังข้อมูล FAQ ในระบบ AI แล้ว" if enabled else "ปิดการใช้งานคลังข้อมูล FAQ ชั่วคราวแล้ว"
     })
 
 @app.route("/api/admin/users")
@@ -2305,6 +2781,11 @@ def initialize_app():
                     conn.execute(text("ALTER TABLE chat_log ADD COLUMN feedback INTEGER"))
                     conn.commit()
                 print("[Migration] Added column: feedback")
+            if "debug_info" not in columns:
+                with db.engine.connect() as conn:
+                    conn.execute(text("ALTER TABLE chat_log ADD COLUMN debug_info TEXT"))
+                    conn.commit()
+                print("[Migration] Added column: debug_info")
             else:
                 print("[Migration] Schema OK")
         except Exception as e:
@@ -2392,13 +2873,13 @@ def initialize_app():
     start_scheduler()
 
 def load_curriculum_pdfs():
-    """โหลด curriculum จาก .txt (OCR) ใน static/curriculum_text/ และ PDF ที่อ่านได้ใน static/curriculum/"""
+    """โหลด curriculum จาก .txt (OCR) ใน static/docs/curriculum/txt/ และ PDF ที่อ่านได้ใน static/docs/curriculum/pdf/"""
     global CHAT_CONTEXT
     chunk_size = 8000
     count = 0
 
     # โหลดจาก txt ที่ OCR ไว้แล้วก่อน
-    txt_dir = os.path.join(os.path.dirname(__file__), "static", "curriculum_text")
+    txt_dir = os.path.join(os.path.dirname(__file__), "static", "docs", "curriculum", "txt")
     txt_names = set()
     if os.path.exists(txt_dir):
         for fn in sorted(os.listdir(txt_dir)):
@@ -2424,7 +2905,7 @@ def load_curriculum_pdfs():
                 print(f"[Curriculum] Error reading {fn}: {e}")
 
     # โหลด PDF ที่อ่านได้ปกติ (เฉพาะที่ไม่มี txt แล้ว)
-    pdf_dir = os.path.join(os.path.dirname(__file__), "static", "curriculum")
+    pdf_dir = os.path.join(os.path.dirname(__file__), "static", "docs", "curriculum", "pdf")
     if os.path.exists(pdf_dir):
         for fn in sorted(os.listdir(pdf_dir)):
             if not fn.endswith(".pdf") or fn in txt_names:

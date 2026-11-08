@@ -29,3 +29,7 @@ eval_results.json
 .DS_Store
 Thumbs.db
 echo venv
+
+# Document & Reports
+Document/
+*.docx

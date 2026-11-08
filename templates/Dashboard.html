@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="th">
 <head>
 <meta charset="UTF-8">
@@ -480,6 +480,127 @@ input:checked + .toggle-slider:before {
 .btn-restore:hover {
   background: #dbeafe;
 }
+
+/* Category Filter Pills (My-UI-Skill) */
+.category-pills-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.category-pill {
+  padding: 6px 13px;
+  font-size: 0.82rem;
+  border-radius: 9999px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #475569;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  font-family: inherit;
+  outline: none;
+}
+.category-pill:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #1e293b;
+}
+.category-pill.active {
+  background: #1b4332;
+  color: #ffffff;
+  border-color: #1b4332;
+  box-shadow: 0 1px 3px rgba(27, 67, 50, 0.18);
+  font-weight: 600;
+}
+.category-pill .pill-count {
+  font-size: 0.72rem;
+  padding: 1px 7px;
+  border-radius: 9999px;
+  background: rgba(0, 0, 0, 0.05);
+  color: inherit;
+  font-weight: 600;
+}
+.category-pill.active .pill-count {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+/* Pagination (My-UI-Skill) */
+.pagination-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #f1f5f9;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.pagination-info {
+  font-size: 0.85rem;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.page-btn {
+  min-width: 34px;
+  height: 34px;
+  padding: 0 9px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #475569;
+  border-radius: 7px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  font-family: inherit;
+  outline: none;
+}
+.page-btn:hover:not(:disabled) {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #1e293b;
+}
+.page-btn.active {
+  background: #1b4332;
+  color: #ffffff;
+  border-color: #1b4332;
+}
+.page-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  color: #94a3b8;
+}
+.page-size-select {
+  padding: 5px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  color: #374151;
+  background: white;
+  cursor: pointer;
+  outline: none;
+  font-family: inherit;
+}
 .bulk-toolbar {
   display: none;
   align-items: center;
@@ -726,7 +847,7 @@ input:checked + .toggle-slider:before {
         <canvas id="dailyChart" height="180"></canvas>
       </div>
       <div class="card">
-        <div class="card-title"><i class="fas fa-fire"></i> คำถามยอดนิยม Top 15 (เฉพาะนิสิตจริง)</div>
+        <div class="card-title"><i class="fas fa-fire"></i> คำถามยอดนิยม Top 15</div>
         <div id="top-questions"></div>
       </div>
     </div>
@@ -735,14 +856,23 @@ input:checked + .toggle-slider:before {
   <!-- Chat Logs Page -->
   <div class="page" id="page-chatlogs">
     <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
         <div class="card-title" style="margin:0"><i class="fas fa-list"></i> ประวัติการสนทนา</div>
-        <a href="/api/admin/chatlogs/export" class="btn btn-export">
-          <i class="fas fa-download"></i> Export CSV
-        </a>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button type="button" class="btn btn-secondary" onclick="openLiveDebuggerModal()" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;font-size:.85rem;border-radius:8px;background:#f8fafc;border:1px solid #cbd5e1;color:#334155;cursor:pointer;font-weight:600;">
+            <i class="fas fa-vial" style="color:#0ea5e9"></i> ทดสอบวิเคราะห์สด (Live Sandbox)
+          </button>
+          <a href="/api/admin/chatlogs/export" class="btn btn-export">
+            <i class="fas fa-download"></i> Export CSV
+          </a>
+        </div>
       </div>
-      <div class="search-bar">
-        <input type="text" id="log-search" placeholder="ค้นหาคำถาม..." oninput="filterLogs()">
+      <div class="search-bar" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:14px;">
+        <input type="text" id="log-search" placeholder="ค้นหาคำถามหรือคำตอบ..." oninput="filterLogs()" style="flex:1;min-width:240px;">
+        <label style="display:inline-flex;align-items:center;gap:6px;font-size:0.85rem;color:#475569;cursor:pointer;background:#f8fafc;padding:8px 14px;border:1px solid #cbd5e1;border-radius:8px;user-select:none;">
+          <input type="checkbox" id="filter-needs-review" onchange="filterLogs()" style="cursor:pointer;accent-color:#dc2626;">
+          <span style="font-weight:600;color:#dc2626;"><i class="fas fa-exclamation-triangle"></i> เฉพาะที่ต้องตรวจสอบ\</span>
+        </label>
       </div>
       <div class="table-responsive">
         <table>
@@ -753,6 +883,7 @@ input:checked + .toggle-slider:before {
               <th>Session</th>
               <th>คำถาม</th>
               <th>คำตอบ (ย่อ)</th>
+              <th style="text-align:center;">ตรวจที่มา & ความมั่นใจ</th>
             </tr>
           </thead>
           <tbody id="log-table"></tbody>
@@ -791,6 +922,32 @@ input:checked + .toggle-slider:before {
 
   <!-- FAQ Management Page -->
   <div class="page" id="page-faq">
+    <!-- FAQ Master Toggle Card -->
+    <div class="card" style="margin-bottom:16px;background:#f8fafc;border:1px solid #e2e8f0;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:40px;height:40px;border-radius:10px;background:#f0fdf4;display:flex;align-items:center;justify-content:center;color:#16a34a;font-size:1.2rem;">
+            <i class="fas fa-database"></i>
+          </div>
+          <div>
+            <div style="font-weight:700;color:#1e293b;font-size:0.95rem;">
+              การใช้งานคลังข้อมูล FAQ ในระบบ AI
+              <span id="faq-mode-badge" style="font-size:0.75rem;padding:2px 8px;border-radius:99px;margin-left:8px;font-weight:600;background:#dcfce7;color:#15803d;border:1px solid #bbf7d0;">เปิดใช้งานอยู่ (Active)</span>
+            </div>
+            <div style="font-size:0.8rem;color:#64748b;margin-top:2px;">
+              เมื่อเปิดใช้งาน AI จะนำคำถาม-คำตอบทางการจากคลัง FAQ ด้านล่างมาช่วยตอบ หากปิดใช้งาน AI จะค้นหาเฉพาะจากหน้าเว็บและหลักสูตรเท่านั้น
+            </div>
+          </div>
+        </div>
+        <div style="flex-shrink:0;">
+          <label class="toggle-switch">
+            <input type="checkbox" id="faq-mode-toggle" onchange="handleFaqModeToggle(this.checked)" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
     <!-- Add / Edit Form -->
     <div class="card" style="margin-bottom:16px;">
       <div class="card-title"><i class="fas fa-plus-circle"></i> <span id="faq-form-title">เพิ่ม FAQ ใหม่</span></div>
@@ -820,7 +977,7 @@ input:checked + .toggle-slider:before {
       </div>
       <table>
         <thead>
-          <tr><th>#</th><th>คำถาม</th><th>คำตอบ (ย่อ)</th><th style="width:120px">จัดการ</th></tr>
+          <tr><th>#</th><th>คำถาม</th><th>คำตอบ (ย่อ)</th><th style="width:150px">จัดการ</th></tr>
         </thead>
         <tbody id="faq-table"></tbody>
       </table>
@@ -922,6 +1079,12 @@ input:checked + .toggle-slider:before {
         </div>
       </div>
 
+      <!-- คำอธิบายการใช้งาน -->
+      <div style="margin-bottom:16px;padding:10px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-left:4px solid #0284c7;border-radius:8px;font-size:0.85rem;color:#475569;display:flex;align-items:center;gap:8px;">
+        <i class="fas fa-info-circle" style="color:#0284c7;flex-shrink:0;"></i>
+        <span>หน้านี้ใช้สำหรับแนบลิ้งก์หรือไฟล์ให้กับผู้ใช้ ที่จะแนบอยู่ใต้คำตอบข้อความของแชทบอทแสดงให้กับผู้ใช้</span>
+      </div>
+
       <!-- Search & Filters -->
       <div style="display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
         <div class="search-bar" style="flex:1;margin-bottom:0;">
@@ -935,6 +1098,31 @@ input:checked + .toggle-slider:before {
         </select>
       </div>
 
+      <!-- Category Filter Pills (My-UI-Skill) -->
+      <div class="category-pills-bar">
+        <span style="font-size:0.8rem;font-weight:600;color:#64748b;margin-right:2px;">
+          <i class="fas fa-filter"></i> หมวดหมู่:
+        </span>
+        <button type="button" class="category-pill active" onclick="setLinksCategory('all')" id="pill-all">
+          <i class="fas fa-layer-group"></i> ทั้งหมด <span class="pill-count" id="pill-count-all">0</span>
+        </button>
+        <button type="button" class="category-pill" onclick="setLinksCategory('admissions')" id="pill-admissions">
+          <i class="fas fa-graduation-cap"></i> รับสมัคร / TCAS <span class="pill-count" id="pill-count-admissions">0</span>
+        </button>
+        <button type="button" class="category-pill" onclick="setLinksCategory('regis')" id="pill-regis">
+          <i class="fas fa-file-signature"></i> สำนักทะเบียน & คำร้อง <span class="pill-count" id="pill-count-regis">0</span>
+        </button>
+        <button type="button" class="category-pill" onclick="setLinksCategory('pdf')" id="pill-pdf">
+          <i class="fas fa-file-pdf"></i> ไฟล์เอกสาร PDF <span class="pill-count" id="pill-count-pdf">0</span>
+        </button>
+        <button type="button" class="category-pill" onclick="setLinksCategory('library')" id="pill-library">
+          <i class="fas fa-book-reader"></i> หอสมุด <span class="pill-count" id="pill-count-library">0</span>
+        </button>
+        <button type="button" class="category-pill" onclick="setLinksCategory('systems')" id="pill-systems">
+          <i class="fas fa-network-wired"></i> ระบบกลาง & คณะ <span class="pill-count" id="pill-count-systems">0</span>
+        </button>
+      </div>
+
       <!-- Bulk Actions Bar -->
       <div id="links-bulk-bar" style="display:none;align-items:center;justify-content:space-between;background:#f0fdf4;border:1.5px solid #86efac;padding:10px 16px;border-radius:10px;margin-bottom:14px;flex-wrap:wrap;gap:10px;box-shadow:0 2px 6px rgba(0,0,0,0.04);">
         <div style="display:flex;align-items:center;gap:10px;">
@@ -946,6 +1134,9 @@ input:checked + .toggle-slider:before {
           </button>
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <button type="button" class="btn" onclick="selectRecommendedCoreLinks()" style="min-height:38px;padding:6px 14px;font-size:0.85rem;background:#fffbeb;color:#b45309;border:1px solid #fde68a;display:inline-flex;align-items:center;gap:6px;" id="bulk-core-btn" title="เลือกติ๊กลิงก์จำเป็นยอดนิยม (คำร้อง, ลงทะเบียน, ค่าธรรมเนียม, กยศ.) อัตโนมัติ">
+            <i class="fas fa-star" style="color:#f59e0b;"></i> เลือกเฉพาะลิงก์แนะนำ (Core Links)
+          </button>
           <button type="button" class="btn btn-primary" onclick="bulkActionLinks('map')" style="min-height:38px;padding:6px 14px;font-size:0.85rem;background:#16a34a;border:none;display:inline-flex;align-items:center;gap:6px;" id="bulk-enable-btn">
             <i class="fas fa-check-circle"></i> เปิดใช้งานที่เลือก (Bulk Enable)
           </button>
@@ -981,6 +1172,25 @@ input:checked + .toggle-slider:before {
       </div>
       <div id="links-empty" style="display:none;text-align:center;padding:30px;color:#9ca3af;font-size:0.9rem;">
         ไม่พบข้อมูลลิงก์ที่ตรงกับเงื่อนไขการค้นหา
+      </div>
+
+      <!-- Pagination Bar (My-UI-Skill) -->
+      <div class="pagination-wrapper" id="links-pagination-bar" style="display:none;">
+        <div class="pagination-info">
+          <span id="links-page-info">แสดง 1–15 จาก 0 รายการ</span>
+          <div style="display:inline-flex;align-items:center;gap:6px;">
+            <label for="links-page-size" style="font-size:0.8rem;color:#64748b;">แสดงหน้าละ:</label>
+            <select id="links-page-size" class="page-size-select" onchange="changeLinksPageSize(this.value)">
+              <option value="15" selected>15</option>
+              <option value="30">30</option>
+              <option value="50">50</option>
+              <option value="all">ทั้งหมด</option>
+            </select>
+          </div>
+        </div>
+        <div class="pagination-controls" id="links-pagination-controls">
+          <!-- Dynamically generated page buttons -->
+        </div>
       </div>
     </div>
   </div>
@@ -1037,13 +1247,14 @@ async function loadStats() {
     const d = await r.json();
     totalLogsCount = d.total_chats || 0;
     updateGuestModeUI(d.guest_mode);
+    updateFaqModeUI(d.faq_enabled !== undefined ? d.faq_enabled : true);
     document.getElementById('stat-total').textContent    = d.total_chats.toLocaleString();
     if (document.getElementById('stat-total-sub') && d.student_chats !== undefined) {
-      document.getElementById('stat-total-sub').textContent = 'นิสิต: ' + (d.student_chats || 0).toLocaleString() + ' | Guest: ' + (d.guest_chats || 0).toLocaleString();
+      document.getElementById('stat-total-sub').textContent = 'ผู้ใช้ LINE: ' + (d.student_chats || 0).toLocaleString() + ' | Guest: ' + (d.guest_chats || 0).toLocaleString();
     }
     document.getElementById('stat-today').textContent    = d.today_chats.toLocaleString();
     if (document.getElementById('stat-today-sub') && d.today_student_chats !== undefined) {
-      document.getElementById('stat-today-sub').textContent = 'นิสิต: ' + (d.today_student_chats || 0).toLocaleString() + ' | Guest: ' + (d.today_guest_chats || 0).toLocaleString();
+      document.getElementById('stat-today-sub').textContent = 'ผู้ใช้ LINE: ' + (d.today_student_chats || 0).toLocaleString() + ' | Guest: ' + (d.today_guest_chats || 0).toLocaleString();
     }
     document.getElementById('stat-sessions').textContent = d.total_sessions.toLocaleString();
     document.getElementById('stat-pages').textContent    = d.scraped_pages.toLocaleString();
@@ -1113,9 +1324,8 @@ async function loadLogs(page = 1) {
 
 function renderLogs(logs) {
   const tbody = document.getElementById('log-table');
-  if (!logs.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#9ca3af;padding:20px;">ไม่พบข้อมูล</td></tr>'; return; }
+  if (!logs.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#9ca3af;padding:20px;">ไม่พบข้อมูล</td></tr>'; return; }
   // เลขแถวแรกของหน้านี้ = total - (page-1)*PAGE_SIZE
-  // เช่น หน้า 1: 151-(0*20)=151, หน้า 8: 151-(7*20)=11
   const startNum = totalLogsCount - (currentPage - 1) * PAGE_SIZE;
   tbody.innerHTML = logs.map((l, i) => {
     let sIdDisplay = '';
@@ -1126,21 +1336,45 @@ function renderLogs(logs) {
       sIdDisplay = sId.length > 14 ? escHtml(sId.slice(0, 14)) + '...' : escHtml(sId);
     }
 
+    let reviewBadges = '';
+    if (l.feedback === -1) {
+      reviewBadges += `<span style="background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;padding:2px 7px;border-radius:99px;font-size:0.7rem;font-weight:700;display:inline-flex;align-items:center;gap:3px;margin-right:6px;"><i class="fas fa-thumbs-down"></i> ผู้ใช้ไม่ถูกใจ</span>`;
+    }
+    if (l.confidence !== null && l.confidence !== undefined && l.confidence < 60) {
+      reviewBadges += `<span style="background:#fef3c7;color:#b45309;border:1px solid #fed7aa;padding:2px 7px;border-radius:99px;font-size:0.7rem;font-weight:700;display:inline-flex;align-items:center;gap:3px;margin-right:6px;"><i class="fas fa-exclamation-triangle"></i> มั่นใจต่ำ (${l.confidence}%)</span>`;
+    }
+
     return `<tr>
       <td style="color:#9ca3af">${startNum - i}</td>
       <td style="white-space:nowrap;font-size:.8rem">${l.timestamp}</td>
       <td style="font-size:.75rem;color:#6b7280;font-family:monospace;white-space:nowrap;" title="${escHtml(l.session_id || '')}">
         ${sIdDisplay}
       </td>
-      <td>${escHtml(l.user_message.length > 60 ? l.user_message.slice(0,60)+'...' : l.user_message)}</td>
+      <td>
+        ${reviewBadges}
+        <span>${escHtml(l.user_message.length > 60 ? l.user_message.slice(0,60)+'...' : l.user_message)}</span>
+      </td>
       <td style="color:#6b7280">${escHtml(l.bot_answer)}</td>
+      <td style="text-align:center;white-space:nowrap;">
+        <button onclick="openDebugModal(${l.id})" class="btn-inspect" style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;font-size:.78rem;font-weight:600;border-radius:99px;background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;cursor:pointer;transition:all .15s ease;" onmouseover="this.style.background='#dcfce7'" onmouseout="this.style.background='#f0fdf4'">
+          <i class="fas fa-stethoscope"></i> ตรวจที่มา
+        </button>
+        <button onclick="openConvertFaqModalFromLog(${l.id})" style="display:inline-flex;align-items:center;gap:4px;padding:5px 10px;font-size:.78rem;font-weight:600;border-radius:99px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;cursor:pointer;margin-left:5px;transition:all .15s ease;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'" title="แก้คำตอบ & บันทึกเป็น FAQ ทันที">
+          <i class="fas fa-file-signature"></i> +FAQ
+        </button>
+      </td>
     </tr>`;
   }).join('');
 }
 
 function filterLogs() {
-  const kw = document.getElementById('log-search').value.toLowerCase();
-  renderLogs(allLogs.filter(l => l.user_message.toLowerCase().includes(kw) || l.bot_answer.toLowerCase().includes(kw)));
+  const kw = (document.getElementById('log-search').value || '').toLowerCase();
+  const onlyReview = document.getElementById('filter-needs-review') ? document.getElementById('filter-needs-review').checked : false;
+  let filtered = allLogs.filter(l => (l.user_message || '').toLowerCase().includes(kw) || (l.bot_answer || '').toLowerCase().includes(kw));
+  if (onlyReview) {
+    filtered = filtered.filter(l => l.feedback === -1 || (l.confidence !== null && l.confidence !== undefined && l.confidence < 60));
+  }
+  renderLogs(filtered);
 }
 
 function renderPagination(pages, current) {
@@ -1438,6 +1672,10 @@ async function deleteFAQ(id) {
 // ── Discovered Links Management ───────────
 let allDiscoveredLinks = [];
 let currentLinksCardFilter = 'all';
+let currentLinksCategory = 'all';
+let linksCurrentPage = 1;
+let linksPageSize = 15;
+let currentlyFilteredFullList = [];
 
 function safeDecodeURI(u) {
   if (!u) return '';
@@ -1535,9 +1773,118 @@ function updateCardActiveStates(status) {
   else if (status === 'unmapped' && cardUnmapped) cardUnmapped.classList.add('active-orange');
 }
 
-function filterDiscoveredLinks() {
+function setLinksCategory(cat) {
+  currentLinksCategory = cat;
+  document.querySelectorAll('.category-pill').forEach(btn => {
+    btn.classList.toggle('active', btn.id === 'pill-' + cat);
+  });
+  filterDiscoveredLinks(true);
+}
+
+function changeLinksPageSize(size) {
+  linksPageSize = size === 'all' ? 'all' : parseInt(size);
+  filterDiscoveredLinks(true);
+}
+
+function changeLinksPage(newPage) {
+  linksCurrentPage = newPage;
+  filterDiscoveredLinks(false);
+}
+
+function matchLinkCategory(l, cat) {
+  if (cat === 'all') return true;
+  const u = (l.url || '').toLowerCase();
+  const title = (l.title || '').toLowerCase();
+  const isDoc = /\.(pdf|doc|docx|xls|xlsx)(\?.*)?$/i.test(u);
+
+  if (cat === 'pdf') return isDoc;
+  if (cat === 'admissions') {
+    return u.includes('admission') || title.includes('รับสมัคร') || title.includes('tcas') || title.includes('โควตา') || title.includes('เกณฑ์');
+  }
+  if (cat === 'regis') {
+    return (u.includes('regis') || u.includes('registrar') || title.includes('ลงทะเบียน') || title.includes('คำร้อง') || title.includes('ตารางสอบ') || title.includes('เกรด') || title.includes('ข้อบังคับ') || title.includes('ค่าธรรมเนียม')) && !u.includes('admission');
+  }
+  if (cat === 'library') {
+    return u.includes('lib.') || u.includes('library') || title.includes('หอสมุด') || title.includes('ห้องสมุด') || title.includes('ebook');
+  }
+  if (cat === 'systems') {
+    return !u.includes('admission') && !u.includes('regis') && !u.includes('lib.') && !u.includes('library');
+  }
+  return true;
+}
+
+function updateCategoryPillCounts(search, status) {
+  const counts = { all: 0, admissions: 0, regis: 0, pdf: 0, library: 0, systems: 0 };
+  allDiscoveredLinks.forEach(l => {
+    const decodedUrl = (l.url_decoded || safeDecodeURI(l.url || '')).toLowerCase();
+    const rawUrl = (l.url || '').toLowerCase();
+    const decodedSource = (l.source_page_decoded || safeDecodeURI(l.source_page || '')).toLowerCase();
+    const rawSource = (l.source_page || '').toLowerCase();
+    const title = (l.title || '').toLowerCase();
+
+    const matchesSearch = !search ||
+      title.includes(search) ||
+      decodedUrl.includes(search) ||
+      rawUrl.includes(search) ||
+      decodedSource.includes(search) ||
+      rawSource.includes(search);
+
+    let matchesStatus = true;
+    if (status === 'all') {
+      matchesStatus = !l.is_ignored;
+    } else if (status === 'mapped') {
+      matchesStatus = l.is_system_mapped && !l.is_ignored;
+    } else if (status === 'unmapped') {
+      matchesStatus = !l.is_system_mapped && !l.is_ignored;
+    } else if (status === 'ignored') {
+      matchesStatus = !!l.is_ignored;
+    }
+
+    if (!matchesSearch || !matchesStatus) return;
+
+    counts.all++;
+    if (matchLinkCategory(l, 'admissions')) counts.admissions++;
+    if (matchLinkCategory(l, 'regis')) counts.regis++;
+    if (matchLinkCategory(l, 'pdf')) counts.pdf++;
+    if (matchLinkCategory(l, 'library')) counts.library++;
+    if (matchLinkCategory(l, 'systems')) counts.systems++;
+  });
+
+  for (const cat in counts) {
+    const el = document.getElementById('pill-count-' + cat);
+    if (el) el.textContent = counts[cat].toLocaleString();
+  }
+}
+
+function selectRecommendedCoreLinks() {
+  const coreKw = ['download.php', 'help_reg', 'help_pay', 'borrow', 'rules', 'curriculum', 'isea.ku.ac.th', 'nisit.ku.ac.th', 'criteria'];
+  let addedCount = 0;
+
+  allDiscoveredLinks.forEach(l => {
+    if (l.is_ignored || l.is_system_mapped) return;
+    const u = (l.url || '').toLowerCase();
+    const title = (l.title || '').toLowerCase();
+    const isCore = coreKw.some(k => u.includes(k) || title.includes(k));
+    if (isCore) {
+      if (!selectedLinkIds.has(l.id)) addedCount++;
+      selectedLinkIds.add(l.id);
+    }
+  });
+
+  document.querySelectorAll('.link-checkbox').forEach(cb => {
+    const id = parseInt(cb.value);
+    if (selectedLinkIds.has(id)) cb.checked = true;
+  });
+  updateSelectAllCheckboxState();
+  updateBulkActionBar();
+}
+
+function filterDiscoveredLinks(resetPage = true) {
+  if (resetPage) linksCurrentPage = 1;
   const search = (document.getElementById('links-search').value || '').toLowerCase().trim();
   const status = document.getElementById('links-status-filter').value;
+
+  updateCategoryPillCounts(search, status);
 
   const filtered = allDiscoveredLinks.filter(l => {
     const decodedUrl = (l.url_decoded || safeDecodeURI(l.url || '')).toLowerCase();
@@ -1564,10 +1911,23 @@ function filterDiscoveredLinks() {
       matchesStatus = !!l.is_ignored;
     }
 
-    return matchesSearch && matchesStatus;
+    const matchesCategory = matchLinkCategory(l, currentLinksCategory);
+
+    return matchesSearch && matchesStatus && matchesCategory;
   });
 
-  renderDiscoveredLinks(filtered);
+  currentlyFilteredFullList = filtered;
+
+  const totalFiltered = filtered.length;
+  const totalPages = linksPageSize === 'all' ? 1 : Math.max(1, Math.ceil(totalFiltered / linksPageSize));
+  if (linksCurrentPage > totalPages) linksCurrentPage = totalPages;
+  if (linksCurrentPage < 1) linksCurrentPage = 1;
+
+  const startIndex = linksPageSize === 'all' ? 0 : (linksCurrentPage - 1) * linksPageSize;
+  const endIndex = linksPageSize === 'all' ? totalFiltered : Math.min(startIndex + linksPageSize, totalFiltered);
+  const pageItems = filtered.slice(startIndex, endIndex);
+
+  renderDiscoveredLinks(pageItems, totalFiltered, startIndex, endIndex, totalPages);
 }
 
 let selectedLinkIds = new Set();
@@ -1678,23 +2038,73 @@ async function bulkActionLinks(action) {
   }
 }
 
-function renderDiscoveredLinks(links) {
-  currentlyRenderedLinks = links || [];
+function renderPaginationControls(totalFiltered, startIndex, endIndex, totalPages) {
+  const infoEl = document.getElementById('links-page-info');
+  const controlsEl = document.getElementById('links-pagination-controls');
+  if (infoEl) {
+    if (totalFiltered === 0) {
+      infoEl.textContent = 'ไม่พบรายการที่ตรงกับเงื่อนไข';
+    } else {
+      infoEl.innerHTML = `แสดง <strong>${startIndex + 1}–${endIndex}</strong> จากทั้งหมด <strong>${totalFiltered.toLocaleString()}</strong> รายการ`;
+    }
+  }
+  if (!controlsEl) return;
+  if (totalPages <= 1) {
+    controlsEl.innerHTML = '';
+    return;
+  }
+
+  let html = '';
+  html += `<button type="button" class="page-btn" onclick="changeLinksPage(1)" ${linksCurrentPage === 1 ? 'disabled' : ''} title="หน้าแรก"><i class="fas fa-angle-double-left"></i></button>`;
+  html += `<button type="button" class="page-btn" onclick="changeLinksPage(${linksCurrentPage - 1})" ${linksCurrentPage === 1 ? 'disabled' : ''} title="หน้าก่อนหน้า"><i class="fas fa-angle-left"></i></button>`;
+
+  let startP = Math.max(1, linksCurrentPage - 2);
+  let endP = Math.min(totalPages, linksCurrentPage + 2);
+  if (endP - startP < 4) {
+    if (startP === 1) endP = Math.min(totalPages, startP + 4);
+    else if (endP === totalPages) startP = Math.max(1, endP - 4);
+  }
+
+  if (startP > 1) {
+    html += `<button type="button" class="page-btn" onclick="changeLinksPage(1)">1</button>`;
+    if (startP > 2) html += `<span style="padding:0 3px;color:#94a3b8;font-size:0.8rem;">...</span>`;
+  }
+
+  for (let p = startP; p <= endP; p++) {
+    html += `<button type="button" class="page-btn ${p === linksCurrentPage ? 'active' : ''}" onclick="changeLinksPage(${p})">${p}</button>`;
+  }
+
+  if (endP < totalPages) {
+    if (endP < totalPages - 1) html += `<span style="padding:0 3px;color:#94a3b8;font-size:0.8rem;">...</span>`;
+    html += `<button type="button" class="page-btn" onclick="changeLinksPage(${totalPages})">${totalPages}</button>`;
+  }
+
+  html += `<button type="button" class="page-btn" onclick="changeLinksPage(${linksCurrentPage + 1})" ${linksCurrentPage === totalPages ? 'disabled' : ''} title="หน้าถัดไป"><i class="fas fa-angle-right"></i></button>`;
+  html += `<button type="button" class="page-btn" onclick="changeLinksPage(${totalPages})" ${linksCurrentPage === totalPages ? 'disabled' : ''} title="หน้าสุดท้าย"><i class="fas fa-angle-double-right"></i></button>`;
+
+  controlsEl.innerHTML = html;
+}
+
+function renderDiscoveredLinks(pageItems, totalFiltered, startIndex, endIndex, totalPages) {
+  currentlyRenderedLinks = pageItems || [];
   const tbody = document.getElementById('links-table');
   const empty = document.getElementById('links-empty');
+  const paginationBar = document.getElementById('links-pagination-bar');
 
   updateSelectAllCheckboxState();
   updateBulkActionBar();
 
-  if (!links || links.length === 0) {
+  if (!totalFiltered || totalFiltered === 0) {
     tbody.innerHTML = '';
     empty.style.display = 'block';
+    if (paginationBar) paginationBar.style.display = 'none';
     return;
   }
   empty.style.display = 'none';
+  if (paginationBar) paginationBar.style.display = 'flex';
 
   let html = '';
-  links.forEach((l, idx) => {
+  pageItems.forEach((l, idx) => {
     let statusBadge = '';
     if (l.is_ignored) {
       statusBadge = '<span class="badge ignored"><i class="fas fa-eye-slash"></i> ซ่อนไว้ (Ignored)</span>';
@@ -1747,7 +2157,7 @@ function renderDiscoveredLinks(links) {
       <td style="text-align:center;">
         <input type="checkbox" class="link-checkbox" value="${l.id}" onchange="onLinkCheckboxChange(${l.id}, this.checked)" ${isChecked} style="cursor:pointer;width:17px;height:17px;">
       </td>
-      <td style="color:#94a3b8;font-size:0.8rem;text-align:center;">${idx + 1}</td>
+      <td style="color:#94a3b8;font-size:0.8rem;text-align:center;">${startIndex + idx + 1}</td>
       <td>
         <div style="display:flex;align-items:center;gap:6px;max-width:100%;">
           ${getLinkTypeIcon(l)}
@@ -1768,6 +2178,7 @@ function renderDiscoveredLinks(links) {
     </tr>`;
   });
   tbody.innerHTML = html;
+  renderPaginationControls(totalFiltered, startIndex, endIndex, totalPages);
 }
 
 // ── Single Link Edit Modal ───────────────
@@ -1917,28 +2328,489 @@ function updateGuestModeUI(enabled) {
   }
 }
 
-async function handleGuestModeToggle(enabled) {
-  const toggle = document.getElementById('guest-mode-toggle');
-  toggle.disabled = true;
-  try {
-    const res = await fetch('/api/admin/settings/guest_mode', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ enabled })
-    });
-    const data = await res.json();
-    if (data.success) {
-      updateGuestModeUI(data.enabled);
-    } else {
-      alert('เกิดข้อผิดพลาดในการเปลี่ยนการตั้งค่า');
+function updateFaqModeUI(enabled) {
+  const toggle = document.getElementById('faq-mode-toggle');
+  const badge  = document.getElementById('faq-mode-badge');
+  if (!toggle || !badge) return;
+  toggle.checked = !!enabled;
+  if (enabled) {
+    badge.textContent = 'เปิดใช้งานอยู่ (Active)';
+    badge.style.background = '#dcfce7';
+    badge.style.color = '#15803d';
+    badge.style.border = '1px solid #bbf7d0';
+  } else {
+    badge.textContent = 'ปิดใช้งานชั่วคราว (Disabled)';
+    badge.style.background = '#f3f4f6';
+    badge.style.color = '#6b7280';
+    badge.style.border = '1px solid #e5e7eb';
+  }
+}
+
+function handleFaqModeToggle(enabled) {
+  const toggle = document.getElementById('faq-mode-toggle');
+  toggle.checked = !enabled;
+
+  showConfirmDialog({
+    title: enabled ? 'เปิดใช้งานคลังข้อมูล FAQ' : 'ปิดการใช้งานคลังข้อมูล FAQ ชั่วคราว',
+    icon: enabled ? 'fa-database' : 'fa-power-off',
+    iconColor: enabled ? '#16a34a' : '#ea580c',
+    iconBg: enabled ? '#f0fdf4' : '#fff7ed',
+    message: enabled
+      ? 'ต้องการ "เปิดใช้งานคลังข้อมูล FAQ" ในระบบ AI ใช่หรือไม่?'
+      : 'ต้องการ "ปิดใช้งานคลังข้อมูล FAQ" ในระบบ AI ชั่วคราวใช่หรือไม่?',
+    detail: enabled
+      ? 'AI จะนำคำถามและคำตอบทางการจากคลัง FAQ มาช่วยตอบคำถามของนิสิตเป็นอันดับแรกเพื่อความแม่นยำสูงสุด'
+      : 'AI จะข้ามการค้นหาจากคลัง FAQ ทั้งหมด และตอบคำถามโดยอ้างอิงเฉพาะจากหน้าเว็บไซต์และเอกสารหลักสูตร/ระเบียบการเท่านั้น',
+    confirmText: enabled ? 'ยืนยันเปิดใช้งาน' : 'ยืนยันปิดชั่วคราว',
+    confirmColor: enabled ? '#16a34a' : '#ea580c',
+    onConfirm: async () => {
+      toggle.disabled = true;
+      try {
+        const res = await fetch('/api/admin/settings/faq_mode', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ enabled })
+        });
+        const data = await res.json();
+        if (data.success) {
+          updateFaqModeUI(data.enabled);
+        } else {
+          alert('เกิดข้อผิดพลาดในการเปลี่ยนการตั้งค่า');
+          toggle.checked = !enabled;
+        }
+      } catch (err) {
+        console.error('Toggle error:', err);
+        alert('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้');
+        toggle.checked = !enabled;
+      } finally {
+        toggle.disabled = false;
+      }
+    },
+    onCancel: () => {
       toggle.checked = !enabled;
     }
+  });
+}
+
+// ── Generic Reusable Confirmation Dialog ────────
+let pendingConfirmCallback = null;
+let pendingCancelCallback = null;
+
+function showConfirmDialog({ title, icon, iconColor, iconBg, message, detail, confirmText, confirmColor, onConfirm, onCancel }) {
+  document.getElementById('confirm-modal-title').textContent = title || 'ยืนยันการทำรายการ';
+  const iconEl = document.getElementById('confirm-modal-icon');
+  iconEl.className = 'fas ' + (icon || 'fa-question-circle');
+  const iconWrap = document.getElementById('confirm-modal-icon-wrap');
+  iconWrap.style.color = iconColor || '#16a34a';
+  iconWrap.style.background = iconBg || '#f0fdf4';
+
+  document.getElementById('confirm-modal-message').textContent = message || '';
+  const detailEl = document.getElementById('confirm-modal-detail');
+  if (detail) {
+    detailEl.textContent = detail;
+    detailEl.style.display = 'block';
+  } else {
+    detailEl.style.display = 'none';
+  }
+
+  const btn = document.getElementById('confirm-modal-action-btn');
+  btn.textContent = confirmText || 'ยืนยัน';
+  btn.style.background = confirmColor || '#16a34a';
+
+  pendingConfirmCallback = onConfirm;
+  pendingCancelCallback = onCancel;
+
+  document.getElementById('generic-confirm-modal').classList.add('open');
+}
+
+function closeGenericConfirmModal(isConfirm = false) {
+  document.getElementById('generic-confirm-modal').classList.remove('open');
+  if (!isConfirm && typeof pendingCancelCallback === 'function') {
+    pendingCancelCallback();
+  }
+  pendingConfirmCallback = null;
+  pendingCancelCallback = null;
+}
+
+function executeGenericConfirmModal() {
+  const cb = pendingConfirmCallback;
+  closeGenericConfirmModal(true);
+  if (typeof cb === 'function') {
+    cb();
+  }
+}
+
+function handleGuestModeToggle(enabled) {
+  const toggle = document.getElementById('guest-mode-toggle');
+  // คืนสถานะ Toggle ชั่วคราวระหว่างรอผู้ใช้กดยืนยันใน Modal
+  toggle.checked = !enabled;
+
+  showConfirmDialog({
+    title: enabled ? 'เปิดใช้งานโหมดทดลองใช้งาน' : 'ปิดโหมดทดลองใช้งาน',
+    icon: enabled ? 'fa-user-check' : 'fa-user-slash',
+    iconColor: enabled ? '#16a34a' : '#ea580c',
+    iconBg: enabled ? '#f0fdf4' : '#fff7ed',
+    message: enabled
+      ? 'คุณต้องการ "เปิดใช้งานโหมดทดลองใช้งาน" ใช่หรือไม่?'
+      : 'คุณต้องการ "ปิดโหมดทดลองใช้งาน" ใช่หรือไม่?',
+    detail: enabled
+      ? 'จะมีปุ่ม "ทดลองใช้งาน" แสดงบนหน้า Login ให้นิสิตหรือบุคคลทั่วไปเข้าแชททดสอบระบบได้ทันทีโดยไม่ต้องล็อกอิน LINE (จำกัด 5 คำถามต่อเซสชัน)'
+      : 'ปุ่ม "ทดลองใช้งาน" บนหน้า Login จะถูกซ่อน และผู้ใช้ทุกคนจะต้องล็อกอินผ่านบัญชี LINE เท่านั้นจึงจะสามารถเข้าใช้งานระบบได้',
+    confirmText: enabled ? 'ยืนยันเปิดใช้งาน' : 'ยืนยันปิดใช้งาน',
+    confirmColor: enabled ? '#16a34a' : '#ea580c',
+    onConfirm: async () => {
+      toggle.disabled = true;
+      try {
+        const res = await fetch('/api/admin/settings/guest_mode', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ enabled })
+        });
+        const data = await res.json();
+        if (data.success) {
+          updateGuestModeUI(data.enabled);
+        } else {
+          alert('เกิดข้อผิดพลาดในการเปลี่ยนการตั้งค่า');
+          toggle.checked = !enabled;
+        }
+      } catch (err) {
+        console.error('Toggle error:', err);
+        alert('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้');
+        toggle.checked = !enabled;
+      } finally {
+        toggle.disabled = false;
+      }
+    },
+    onCancel: () => {
+      toggle.checked = !enabled;
+    }
+  });
+}
+
+// ── Debug Inspector & Grounding ─────────────────
+let currentDebugLogId = null;
+
+async function openDebugModal(logId) {
+  currentDebugLogId = logId;
+  const modal = document.getElementById('debug-inspector-modal');
+  const body = document.getElementById('debug-modal-content');
+  body.innerHTML = `
+    <div style="text-align:center;padding:40px 20px;color:#6b7280;">
+      <i class="fas fa-spinner fa-spin" style="font-size:2rem;color:#16a34a;margin-bottom:12px;"></i>
+      <div style="font-size:0.95rem;font-weight:600;">กำลังวิเคราะห์ที่มาและความมั่นใจของคำตอบ...</div>
+      <div style="font-size:0.8rem;color:#9ca3af;margin-top:4px;">ดึงข้อมูล The RAG Triad (Grounding, Chunks, FAQ)...</div>
+    </div>`;
+  modal.classList.add('open');
+
+  try {
+    const res = await fetch(`/api/admin/chatlogs/${logId}/debug`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    currentDebugData = data;
+    renderDebugInspector(data, 'debug-modal-content');
   } catch (err) {
-    console.error('Toggle error:', err);
-    alert('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้');
-    toggle.checked = !enabled;
-  } finally {
-    toggle.disabled = false;
+    body.innerHTML = `
+      <div style="background:#fef2f2;border:1px solid #fecaca;padding:16px;border-radius:10px;color:#991b1b;text-align:center;">
+        <i class="fas fa-exclamation-triangle" style="font-size:1.5rem;margin-bottom:8px;"></i>
+        <div style="font-weight:700;">ไม่สามารถดึงข้อมูล Debug ได้</div>
+        <div style="font-size:0.85rem;margin-top:4px;">${escHtml(err.message)}</div>
+      </div>`;
+  }
+}
+
+function closeDebugModal() {
+  document.getElementById('debug-inspector-modal').classList.remove('open');
+  currentDebugLogId = null;
+}
+
+function reanalyzeCurrentLog() {
+  if (currentDebugLogId) {
+    openDebugModal(currentDebugLogId);
+  }
+}
+
+function renderDebugInspector(data, containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  const score = data.confidence_score || 50;
+  const level = data.confidence_level || 'MEDIUM';
+  const route = data.route || 'rag_retrieval';
+  const isRecon = data.is_reconstructed;
+  const faith = data.faithfulness || { status: 'unverified', score: 1.0, grounded_facts: [], unsupported_facts: [] };
+
+  // Theme colors for confidence
+  let confColor = '#16a34a';
+  let confBg = '#f0fdf4';
+  let confBorder = '#bbf7d0';
+  let confText = '● ความมั่นใจสูง (High Confidence)';
+  if (level === 'LOW' || score < 45) {
+    confColor = '#dc2626';
+    confBg = '#fef2f2';
+    confBorder = '#fecaca';
+    confText = '● ความมั่นใจต่ำ (Low Confidence)';
+  } else if (level === 'MEDIUM' || score < 75) {
+    confColor = '#ea580c';
+    confBg = '#fff7ed';
+    confBorder = '#fed7aa';
+    confText = '● ความมั่นใจปานกลาง (Medium Confidence)';
+  }
+
+  // Route labels
+  let routeLabel = '🌐 Web & PDF RAG';
+  let routeColor = '#2563eb';
+  let routeBg = '#eff6ff';
+  if (route === 'direct_rule') {
+    routeLabel = '⚡ Pre-LLM Guard (กฎคงที่)';
+    routeColor = '#7c3aed';
+    routeBg = '#f5f3ff';
+  } else if (route === 'faq_grounded') {
+    routeLabel = '📘 FAQ Grounded (ดึงตรงจาก FAQ)';
+    routeColor = '#059669';
+    routeBg = '#ecfdf5';
+  } else if (route === 'no_context_fallback') {
+    routeLabel = '⚠️ No Context Fallback (เอกสารสำรอง)';
+    routeColor = '#d97706';
+    routeBg = '#fffbeb';
+  }
+
+  // Faithfulness label
+  let faithLabel = '✅ ซื่อตรงตาม Context (Grounded 100%)';
+  let faithBg = '#f0fdf4';
+  let faithColor = '#16a34a';
+  if (faith.status === 'hallucination_risk') {
+    faithLabel = '⚠️ เสี่ยงตอบหลอน (พบค่านอก Context)';
+    faithBg = '#fef2f2';
+    faithColor = '#dc2626';
+  } else if (faith.status === 'warning') {
+    faithLabel = '⚠️ มีจุดควรตรวจทาน (บางส่วนไม่พบใน Context)';
+    faithBg = '#fff7ed';
+    faithColor = '#ea580c';
+  }
+
+  // Chunks accordion
+  const sources = data.retrieved_sources || [];
+  let sourcesHtml = '';
+  if (sources.length === 0) {
+    sourcesHtml = '<div style="color:#9ca3af;font-size:.85rem;padding:12px;background:#f9fafb;border-radius:8px;text-align:center;">ไม่พบเอกสารหน้าเว็บ/ระเบียบการที่เกี่ยวข้อง (อาจตอบด้วยกฎตายตัวหรือ FAQ)</div>';
+  } else {
+    sourcesHtml = sources.map((s, idx) => `
+      <div style="border:1px solid #e5e7eb;border-radius:10px;margin-bottom:8px;background:#ffffff;overflow:hidden;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#f8fafc;cursor:pointer;user-select:none;" onclick="toggleAccordion('chunk-${containerId}-${idx}')">
+          <div style="display:flex;align-items:center;gap:8px;font-size:.85rem;font-weight:600;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+            <span style="background:#e0f2fe;color:#0369a1;padding:2px 8px;border-radius:99px;font-size:.72rem;">#${idx+1} ${escHtml(s.category)}</span>
+            <span style="overflow:hidden;text-overflow:ellipsis;" title="${escHtml(s.source)}">${escHtml(s.source)}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+            <span style="font-size:.75rem;font-weight:700;color:#16a34a;background:#f0fdf4;padding:2px 8px;border-radius:6px;border:1px solid #bbf7d0;">คะแนน: ${s.score}</span>
+            <i class="fas fa-chevron-down" id="chunk-arrow-${containerId}-${idx}" style="font-size:.75rem;color:#94a3b8;transition:transform .2s ease;"></i>
+          </div>
+        </div>
+        <div id="chunk-${containerId}-${idx}" style="display:none;padding:12px 14px;font-size:.8rem;color:#334155;background:#ffffff;border-top:1px solid #f1f5f9;">
+          <div style="font-size:.75rem;color:#64748b;margin-bottom:6px;"><i class="fas fa-file-alt"></i> ข้อมูลที่ส่งให้ Gemini อ่าน (${s.char_count || 0} ตัวอักษร):</div>
+          <div style="white-space:pre-wrap;line-height:1.6;background:#f8fafc;padding:10px 12px;border-radius:6px;border:1px solid #e2e8f0;font-family:sans-serif;max-height:220px;overflow-y:auto;">${escHtml(s.snippet || '-')}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // FAQ list
+  const faqs = data.matched_faq || [];
+  let faqsHtml = '';
+  if (faqs.length === 0) {
+    faqsHtml = '<div style="color:#9ca3af;font-size:.85rem;padding:10px;background:#f9fafb;border-radius:8px;text-align:center;">ไม่มีคำถาม FAQ ที่ตรงเกณฑ์</div>';
+  } else {
+    faqsHtml = faqs.map((f, idx) => `
+      <div style="border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;margin-bottom:6px;background:#f8fafc;">
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:.83rem;font-weight:600;color:#0f172a;">
+          <div><i class="fas fa-question-circle" style="color:#16a34a;"></i> ${escHtml(f.question)}</div>
+          <span style="font-size:.72rem;background:#ecfdf5;color:#059669;padding:2px 8px;border-radius:99px;font-weight:700;">คะแนน ${f.score}</span>
+        </div>
+        <div style="font-size:.78rem;color:#64748b;margin-top:4px;white-space:pre-wrap;">${escHtml(f.answer_snippet)}</div>
+      </div>
+    `).join('');
+  }
+
+  // Reasons list
+  const reasons = data.confidence_reasons || [];
+  const reasonsHtml = reasons.map(r => `<li style="margin-bottom:4px;">${escHtml(r)}</li>`).join('');
+
+  // Deliverables pills
+  const files = data.suggested_files || [];
+  const links = data.suggested_links || [];
+  const majors = data.detected_majors || [];
+
+  container.innerHTML = `
+    <!-- Top Metadata Info -->
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;background:#f8fafc;padding:10px 14px;border-radius:10px;border:1px solid #e2e8f0;margin-bottom:14px;font-size:.8rem;color:#475569;">
+      <div>
+        <strong>Log #${data.log_id || 'Live'}</strong> |
+        <span><i class="far fa-clock"></i> ${data.timestamp || 'สด'}</span> |
+        <span><i class="fas fa-user"></i> ${data.is_guest ? 'Guest' : 'ผู้ใช้ LINE'}</span>
+      </div>
+      <div>
+        ${isRecon ? '<span style="background:#fef3c7;color:#b45309;padding:3px 8px;border-radius:99px;font-size:.72rem;font-weight:600;"><i class="fas fa-history"></i> ประเมินย้อนหลังสด</span>' : '<span style="background:#dcfce7;color:#15803d;padding:3px 8px;border-radius:99px;font-size:.72rem;font-weight:600;"><i class="fas fa-check-circle"></i> ข้อมูลบันทึกขณะรันจริง</span>'}
+      </div>
+    </div>
+
+    <!-- 3-Column Summary Cards -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(210px, 1fr));gap:12px;margin-bottom:16px;">
+      <div style="background:${confBg};border:1px solid ${confBorder};border-radius:12px;padding:14px;text-align:center;">
+        <div style="font-size:0.75rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">คะแนนความมั่นใจ</div>
+        <div style="font-size:1.8rem;font-weight:800;color:${confColor};margin:4px 0;">${score}%</div>
+        <span style="font-size:0.75rem;font-weight:600;color:${confColor};">${confText}</span>
+      </div>
+
+      <div style="background:${routeBg};border:1px solid #bfdbfe;border-radius:12px;padding:14px;text-align:center;">
+        <div style="font-size:0.75rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">กระบวนการค้นหา (Pipeline Route)</div>
+        <div style="font-size:1.05rem;font-weight:800;color:${routeColor};margin:8px 0 4px 0;">${routeLabel}</div>
+        <span style="font-size:0.72rem;color:#64748b;">โมเดล: ${escHtml(data.model || 'gemini-3.1-flash-lite')}</span>
+      </div>
+
+      <div style="background:${faithBg};border:1px solid #bbf7d0;border-radius:12px;padding:14px;text-align:center;">
+        <div style="font-size:0.75rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">ความซื่อตรง (Faithfulness)</div>
+        <div style="font-size:1.05rem;font-weight:800;color:${faithColor};margin:8px 0 4px 0;">${faithLabel}</div>
+        <span style="font-size:0.72rem;color:#64748b;">อัตราข้อเท็จจริงตรง Context: ${Math.round((faith.score||1)*100)}%</span>
+      </div>
+    </div>
+
+    <!-- Reason Checklist -->
+    ${reasons.length ? `
+      <div style="background:#ffffff;border:1px solid #e5e7eb;border-radius:10px;padding:12px 16px;margin-bottom:14px;">
+        <div style="font-size:0.82rem;font-weight:700;color:#1e293b;margin-bottom:6px;"><i class="fas fa-clipboard-check" style="color:#16a34a;"></i> สรุปผลการประเมิน The RAG Triad:</div>
+        <ul style="font-size:0.8rem;color:#475569;margin:0;padding-left:20px;line-height:1.5;">
+          ${reasonsHtml}
+        </ul>
+      </div>
+    ` : ''}
+
+    <!-- Question & Answer Display -->
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">
+      <div style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:10px;padding:12px 14px;">
+        <div style="font-size:0.75rem;font-weight:700;color:#475569;margin-bottom:4px;"><i class="fas fa-user-circle"></i> คำถามของผู้ใช้:</div>
+        <div style="font-size:0.9rem;font-weight:600;color:#0f172a;line-height:1.5;">${escHtml(data.user_message || '-')}</div>
+      </div>
+
+      <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <div style="font-size:0.75rem;font-weight:700;color:#16a34a;"><i class="fas fa-robot"></i> คำตอบที่ AI ให้มา:</div>
+          <button type="button" onclick="navigator.clipboard.writeText(decodeURIComponent('${encodeURIComponent(data.bot_answer || '')}'));alert('คัดลอกคำตอบแล้ว');" style="background:none;border:none;color:#64748b;font-size:0.75rem;cursor:pointer;"><i class="far fa-copy"></i> คัดลอก</button>
+        </div>
+        <div style="font-size:0.85rem;color:#1e293b;line-height:1.6;white-space:pre-wrap;">${escHtml(data.bot_answer || '-')}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:2px;">
+        <button type="button" onclick="openConvertFaqModal(currentDebugData ? currentDebugData.user_message : '', currentDebugData ? currentDebugData.bot_answer : '')" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:#16a34a;color:#ffffff;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;transition:all .15s ease;" onmouseover="this.style.background='#15803d'" onmouseout="this.style.background='#16a34a'">
+          <i class="fas fa-file-signature"></i> ✏️ แก้คำตอบ & บันทึกเป็น FAQ ทันที
+        </button>
+        <span style="font-size:0.75rem;color:#64748b;">(บันทึกลงคลัง FAQ ทางการ เพื่อให้ AI ตอบคำตอบนี้ 100% ในอนาคต)</span>
+      </div>
+    </div>
+
+    <!-- Entities & Tags -->
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;background:#f8fafc;padding:10px 14px;border-radius:10px;border:1px solid #e2e8f0;">
+      <div style="font-size:0.78rem;font-weight:700;color:#475569;display:flex;align-items:center;gap:6px;width:100%;margin-bottom:2px;">
+        <i class="fas fa-tags" style="color:#0ea5e9;"></i> เอนทิตีและไฟล์ที่ระบบตรวจพบ:
+      </div>
+      <div>
+        <span style="font-size:0.75rem;color:#64748b;">สาขาวิชา: </span>
+        ${majors.length ? majors.map(m => `<span style="background:#e0f2fe;color:#0369a1;padding:2px 8px;border-radius:99px;font-size:0.72rem;font-weight:700;">${escHtml(m.toUpperCase())}</span>`).join(' ') : '<span style="font-size:0.75rem;color:#94a3b8;">ทั่วไป (ไม่ระบุสาขา)</span>'}
+      </div>
+      ${files.length ? `
+        <div style="margin-left:8px;">
+          <span style="font-size:0.75rem;color:#64748b;">PDF ที่แนะนำ: </span>
+          ${files.map(f => `<span style="background:#fef2f2;color:#dc2626;padding:2px 8px;border-radius:99px;font-size:0.72rem;font-weight:600;"><i class="fas fa-file-pdf"></i> ${escHtml(f)}</span>`).join(' ')}
+        </div>
+      ` : ''}
+      ${links.length ? `
+        <div style="margin-left:8px;">
+          <span style="font-size:0.75rem;color:#64748b;">ลิงก์บริการ: </span>
+          ${links.map(l => `<span style="background:#ecfdf5;color:#059669;padding:2px 8px;border-radius:99px;font-size:0.72rem;font-weight:600;"><i class="fas fa-link"></i> ${escHtml(l.title || l.url)}</span>`).join(' ')}
+        </div>
+      ` : ''}
+    </div>
+
+    <!-- Retrieved Chunks Accordion -->
+    <div style="margin-bottom:16px;">
+      <div style="font-size:0.85rem;font-weight:700;color:#1e293b;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;">
+        <span><i class="fas fa-layer-group" style="color:#0ea5e9;"></i> เอกสารหน้าเว็บ & ระเบียบการที่ส่งให้ AI อ่าน (${sources.length} แหล่งข้อมูล)</span>
+        <span style="font-size:0.72rem;color:#64748b;">คลิกแถบเพื่อเปิดดูเนื้อหาเต็ม</span>
+      </div>
+      ${sourcesHtml}
+    </div>
+
+    <!-- Matched FAQ -->
+    <div>
+      <div style="font-size:0.85rem;font-weight:700;color:#1e293b;margin-bottom:8px;">
+        <i class="fas fa-question-circle" style="color:#10b981;"></i> ข้อความ FAQ ที่ตรงเกณฑ์การค้นหา (${faqs.length} ข้อ)
+      </div>
+      ${faqsHtml}
+    </div>
+  `;
+}
+
+function toggleAccordion(id) {
+  const el = document.getElementById(id);
+  const arrow = document.getElementById(id.replace('chunk-', 'chunk-arrow-'));
+  if (el) {
+    if (el.style.display === 'none' || !el.style.display) {
+      el.style.display = 'block';
+      if (arrow) arrow.style.transform = 'rotate(180deg)';
+    } else {
+      el.style.display = 'none';
+      if (arrow) arrow.style.transform = 'rotate(0deg)';
+    }
+  }
+}
+
+// ── Live Sandbox Modal ──────────────────────────
+function openLiveDebuggerModal() {
+  document.getElementById('live-sandbox-modal').classList.add('open');
+  document.getElementById('live-sandbox-input').focus();
+}
+
+function closeLiveDebuggerModal() {
+  document.getElementById('live-sandbox-modal').classList.remove('open');
+}
+
+function setQuickQuestion(q) {
+  const input = document.getElementById('live-sandbox-input');
+  input.value = q;
+  runLiveInspect();
+}
+
+async function runLiveInspect() {
+  const input = document.getElementById('live-sandbox-input');
+  const question = input.value.trim();
+  if (!question) {
+    alert('กรุณาพิมพ์คำถามที่ต้องการทดสอบ');
+    return;
+  }
+
+  const runLLM = document.getElementById('live-sandbox-run-llm').checked;
+  const resultBox = document.getElementById('live-sandbox-result');
+  resultBox.innerHTML = `
+    <div style="text-align:center;padding:40px 20px;color:#6b7280;">
+      <i class="fas fa-spinner fa-spin" style="font-size:2rem;color:#0ea5e9;margin-bottom:12px;"></i>
+      <div style="font-weight:600;">กำลังรันการสืบค้นและคำนวณ The RAG Triad...</div>
+      <div style="font-size:0.8rem;color:#9ca3af;margin-top:4px;">${runLLM ? 'กำลังเรียกโมเดล Gemini สร้างคำตอบสด...' : 'จำลองกระบวนการ Retrieval โดยไม่เสียโควตา LLM'}</div>
+    </div>`;
+
+  try {
+    const res = await fetch('/api/admin/debug/inspect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: question, run_llm: runLLM })
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    renderDebugInspector(data, 'live-sandbox-result');
+  } catch (err) {
+    resultBox.innerHTML = `
+      <div style="background:#fef2f2;border:1px solid #fecaca;padding:16px;border-radius:10px;color:#991b1b;text-align:center;">
+        <i class="fas fa-exclamation-triangle" style="font-size:1.5rem;margin-bottom:8px;"></i>
+        <div style="font-weight:700;">เกิดข้อผิดพลาดในการตรวจสอบ</div>
+        <div style="font-size:0.85rem;margin-top:4px;">${escHtml(err.message)}</div>
+      </div>`;
   }
 }
 
@@ -1991,6 +2863,228 @@ setInterval(loadStats, 60000); // refresh ทุก 1 นาที
       <button class="btn" style="background:#f3f4f6;color:#374151;" onclick="closeEditLinkModal()">ยกเลิก</button>
       <button class="btn btn-primary" onclick="submitEditLinkModal()" id="btn-save-link">
         <i class="fas fa-save"></i> บันทึกการแก้ไข
+      </button>
+    </div>
+  </div>
+</div>
+<!-- Modal: AI Answer & Grounding Inspector -->
+<div id="debug-inspector-modal" class="modal-overlay">
+  <div class="modal-box" style="max-width:860px;width:95%;">
+    <div class="modal-header" style="background:#f0fdf4;border-bottom:1px solid #bbf7d0;">
+      <h3 style="color:#16a34a;margin:0;">
+        <i class="fas fa-stethoscope"></i> ตรวจสอบที่มาของคำตอบ & ความมั่นใจ (AI Grounding Inspector)
+      </h3>
+      <button class="modal-close" onclick="closeDebugModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="debug-modal-content" style="max-height:78vh;overflow-y:auto;padding:18px 22px;">
+      <!-- Dynamic content from renderDebugInspector -->
+    </div>
+    <div class="modal-footer" style="display:flex;justify-content:space-between;align-items:center;">
+      <button type="button" class="btn btn-secondary" onclick="reanalyzeCurrentLog()" style="font-size:.82rem;padding:7px 14px;">
+        <i class="fas fa-sync-alt"></i> วิเคราะห์ซ้ำตามฐานข้อมูลล่าสุด
+      </button>
+      <button type="button" class="btn" style="background:#e2e8f0;color:#334155;font-size:.82rem;padding:7px 16px;" onclick="closeDebugModal()">
+        ปิดหน้าต่าง
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: One-Click Convert to FAQ -->
+<div id="convert-faq-modal" class="modal-overlay">
+  <div class="modal-box" style="max-width:680px;width:95%;">
+    <div class="modal-header" style="background:#f0fdf4;border-bottom:1px solid #bbf7d0;">
+      <h3 style="color:#16a34a;margin:0;">
+        <i class="fas fa-file-signature"></i> ✏️ แก้คำตอบ & บันทึกเป็น FAQ ทันที
+      </h3>
+      <button class="modal-close" onclick="closeConvertFaqModal()">&times;</button>
+    </div>
+    <div class="modal-body" style="padding:18px 22px;">
+      <p style="font-size:0.85rem;color:#64748b;margin-bottom:14px;line-height:1.5;">
+        เมื่อบันทึกแล้ว ข้อมูลนี้จะถูกดึงเป็นคลังคำตอบที่มีความน่าเชื่อถือสูงสุด (FAQ Grounded) และถูกโหลดเข้าสู่ระบบ AI ทันที เพื่อป้องกันการตอบผิดหรือหลอนในอนาคต 100%
+      </p>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:0.85rem;font-weight:700;color:#1e293b;display:block;margin-bottom:6px;">
+          คำถามของผู้ใช้ (Question Pattern):
+        </label>
+        <input type="text" id="convert-faq-question" placeholder="เช่น วิชา 02999144 อยู่ในหมวดไหน..." style="width:100%;padding:10px 14px;border:1px solid #cbd5e1;border-radius:8px;font-size:0.9rem;box-sizing:border-box;">
+      </div>
+      <div style="margin-bottom:14px;">
+        <label style="font-size:0.85rem;font-weight:700;color:#1e293b;display:block;margin-bottom:6px;">
+          คำตอบที่ถูกต้องที่ต้องการให้ AI ตอบ (Verified Official Answer):
+        </label>
+        <textarea id="convert-faq-answer" rows="5" placeholder="ระบุคำตอบที่ถูกต้องและเป็นทางการ..." style="width:100%;padding:10px 14px;border:1px solid #cbd5e1;border-radius:8px;font-size:0.9rem;box-sizing:border-box;resize:vertical;font-family:inherit;"></textarea>
+      </div>
+      <div id="convert-faq-msg" style="display:none;padding:10px 14px;border-radius:8px;font-size:0.85rem;margin-bottom:12px;"></div>
+    </div>
+    <div class="modal-footer" style="display:flex;justify-content:flex-end;gap:10px;">
+      <button type="button" class="btn" style="background:#e2e8f0;color:#334155;padding:8px 16px;" onclick="closeConvertFaqModal()">
+        ยกเลิก
+      </button>
+      <button type="button" class="btn btn-primary" id="btn-save-convert-faq" onclick="submitConvertFaq()" style="background:#16a34a;padding:8px 20px;font-weight:600;">
+        <i class="fas fa-check"></i> บันทึกเป็น FAQ ทันที
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentDebugData = null;
+
+function openConvertFaqModal(q, a) {
+  document.getElementById('convert-faq-question').value = q || '';
+  document.getElementById('convert-faq-answer').value = a || '';
+  const msgEl = document.getElementById('convert-faq-msg');
+  if (msgEl) msgEl.style.display = 'none';
+  document.getElementById('convert-faq-modal').classList.add('open');
+}
+
+function openConvertFaqModalFromLog(logId) {
+  const l = allLogs.find(x => x.id === logId);
+  if (l) {
+    openConvertFaqModal(l.user_message, l.raw_answer || l.bot_answer);
+  }
+}
+
+function closeConvertFaqModal() {
+  document.getElementById('convert-faq-modal').classList.remove('open');
+}
+
+async function submitConvertFaq() {
+  const q = document.getElementById('convert-faq-question').value.trim();
+  const a = document.getElementById('convert-faq-answer').value.trim();
+  const msgEl = document.getElementById('convert-faq-msg');
+  const btn = document.getElementById('btn-save-convert-faq');
+
+  if (!q || !a) {
+    alert('กรุณากรอกทั้งคำถามและคำตอบ');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังบันทึก...';
+
+  try {
+    const res = await fetch('/api/admin/faq', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: q, answer: a })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      if (msgEl) {
+        msgEl.style.display = 'block';
+        msgEl.style.background = '#ecfdf5';
+        msgEl.style.color = '#15803d';
+        msgEl.style.border = '1px solid #bbf7d0';
+        msgEl.innerHTML = '<i class="fas fa-check-circle"></i> บันทึกเป็น FAQ สำเร็จ! ระบบได้อัปเดต Grounding ให้ AI เรียบร้อยแล้ว';
+      }
+      setTimeout(() => {
+        closeConvertFaqModal();
+        if (typeof loadStats === 'function') loadStats();
+        if (typeof loadFAQ === 'function') loadFAQ(1);
+      }, 1200);
+    } else {
+      if (msgEl) {
+        msgEl.style.display = 'block';
+        msgEl.style.background = '#fef2f2';
+        msgEl.style.color = '#b91c1c';
+        msgEl.style.border = '1px solid #fecaca';
+        msgEl.innerHTML = `<i class="fas fa-exclamation-circle"></i> ข้อผิดพลาด: ${data.error || 'ไม่สามารถบันทึกได้'}`;
+      }
+    }
+  } catch (err) {
+    if (msgEl) {
+      msgEl.style.display = 'block';
+      msgEl.style.background = '#fef2f2';
+      msgEl.style.color = '#b91c1c';
+      msgEl.style.border = '1px solid #fecaca';
+      msgEl.innerHTML = `<i class="fas fa-exclamation-circle"></i> เกิดข้อผิดพลาด: ${err.message}`;
+    }
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-check"></i> บันทึกเป็น FAQ ทันที';
+  }
+}
+</script>
+
+<!-- Modal: Live RAG Sandbox -->
+<div id="live-sandbox-modal" class="modal-overlay">
+  <div class="modal-box" style="max-width:860px;width:95%;">
+    <div class="modal-header" style="background:#f0f9ff;border-bottom:1px solid #bae6fd;">
+      <h3 style="color:#0284c7;margin:0;">
+        <i class="fas fa-vial"></i> ทดสอบและตรวจสอบ AI สด (Live RAG Debugger)
+      </h3>
+      <button class="modal-close" onclick="closeLiveDebuggerModal()">&times;</button>
+    </div>
+    <div class="modal-body" style="max-height:80vh;overflow-y:auto;padding:18px 22px;">
+      <div style="margin-bottom:12px;">
+        <label style="font-size:0.85rem;font-weight:700;color:#1e293b;display:block;margin-bottom:6px;">
+          พิมพ์คำถามที่ต้องการทดสอบการค้นหาและตรวจสอบที่มา:
+        </label>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="live-sandbox-input" placeholder="เช่น ค่าเทอม CS, ป่วยตอนสอบทำไง, ดรอปวิชา..." style="flex:1;padding:10px 14px;border:1px solid #cbd5e1;border-radius:8px;font-size:0.9rem;" onkeydown="if(event.key==='Enter') runLiveInspect()">
+          <button type="button" class="btn btn-primary" onclick="runLiveInspect()" style="padding:10px 20px;white-space:nowrap;background:#0284c7;">
+            <i class="fas fa-search"></i> ตรวจสอบ
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick sample pills -->
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:14px;font-size:0.78rem;">
+        <span style="color:#64748b;font-weight:600;">ตัวอย่างคำถามทดสอบ:</span>
+        <button type="button" onclick="setQuickQuestion('ค่าเทอมสาขาวิทยาการคอมพิวเตอร์เท่าไหร่')" style="background:#f1f5f9;border:1px solid #e2e8f0;padding:3px 10px;border-radius:99px;cursor:pointer;color:#334155;">ค่าเทอม CS</button>
+        <button type="button" onclick="setQuickQuestion('ป่วยตอนสอบต้องทำยังไง')" style="background:#f1f5f9;border:1px solid #e2e8f0;padding:3px 10px;border-radius:99px;cursor:pointer;color:#334155;">ป่วยตอนสอบ</button>
+        <button type="button" onclick="setQuickQuestion('จะลาพักการศึกษาต้องทำยังไง')" style="background:#f1f5f9;border:1px solid #e2e8f0;padding:3px 10px;border-radius:99px;cursor:pointer;color:#334155;">ลาพักการศึกษา</button>
+        <button type="button" onclick="setQuickQuestion('สมัครเรียน TCAS รอบไหนบ้าง')" style="background:#f1f5f9;border:1px solid #e2e8f0;padding:3px 10px;border-radius:99px;cursor:pointer;color:#334155;">TCAS</button>
+        <button type="button" onclick="setQuickQuestion('สวัสดีครับ')" style="background:#f1f5f9;border:1px solid #e2e8f0;padding:3px 10px;border-radius:99px;cursor:pointer;color:#334155;">ทักทาย</button>
+      </div>
+
+      <!-- LLM Toggle Option -->
+      <div style="display:flex;align-items:center;gap:8px;background:#f8fafc;padding:10px 14px;border-radius:8px;border:1px solid #e2e8f0;margin-bottom:16px;">
+        <input type="checkbox" id="live-sandbox-run-llm" style="width:16px;height:16px;accent-color:#0284c7;cursor:pointer;">
+        <label for="live-sandbox-run-llm" style="margin:0;font-size:0.83rem;color:#334155;cursor:pointer;user-select:none;">
+          <strong>ยิงถามโมเดล Gemini จริงเพื่อดูคำตอบบอตด้วย</strong> (ใช้ 1 โควตา API — หากไม่ติ๊กจะจำลองการสืบค้นฟรี ไม่เสียโควตา)
+        </label>
+      </div>
+
+      <!-- Result Container -->
+      <div id="live-sandbox-result">
+        <div style="text-align:center;padding:40px 20px;color:#94a3b8;border:2px dashed #e2e8f0;border-radius:12px;">
+          <i class="fas fa-microscope" style="font-size:2.2rem;margin-bottom:10px;color:#cbd5e1;"></i>
+          <div style="font-weight:600;color:#64748b;">พิมพ์คำถามด้านบน หรือคลิกตัวอย่างคำถาม เพื่อเริ่มวิเคราะห์ระบบ RAG สด</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn" style="background:#e2e8f0;color:#334155;font-size:.82rem;padding:7px 16px;" onclick="closeLiveDebuggerModal()">
+        ปิดหน้าต่าง
+      </button>
+    </div>
+  </div>
+</div>
+<!-- Modal: Reusable Action Confirmation Dialog -->
+<div id="generic-confirm-modal" class="modal-overlay">
+  <div class="modal-box" style="max-width:480px;width:92%;border-radius:14px;">
+    <div class="modal-header" style="background:#ffffff;border-bottom:1px solid #f1f5f9;padding:16px 20px;">
+      <h3 style="margin:0;font-size:1.02rem;color:#0f172a;display:flex;align-items:center;gap:10px;">
+        <span id="confirm-modal-icon-wrap" style="width:34px;height:34px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;background:#f0fdf4;color:#16a34a;font-size:1.05rem;">
+          <i id="confirm-modal-icon" class="fas fa-question-circle"></i>
+        </span>
+        <span id="confirm-modal-title">ยืนยันการทำรายการ</span>
+      </h3>
+      <button class="modal-close" onclick="closeGenericConfirmModal(false)">&times;</button>
+    </div>
+    <div class="modal-body" style="padding:18px 20px;">
+      <div id="confirm-modal-message" style="font-size:0.95rem;font-weight:700;color:#1e293b;line-height:1.5;margin-bottom:8px;"></div>
+      <div id="confirm-modal-detail" style="font-size:0.85rem;color:#475569;background:#f8fafc;padding:12px 14px;border-radius:8px;border:1px solid #e2e8f0;line-height:1.6;"></div>
+    </div>
+    <div class="modal-footer" style="padding:12px 20px;background:#f8fafc;display:flex;justify-content:flex-end;gap:10px;">
+      <button type="button" class="btn" style="background:#f1f5f9;color:#475569;border:1px solid #cbd5e1;font-size:.85rem;padding:8px 16px;border-radius:8px;font-weight:600;" onclick="closeGenericConfirmModal(false)">
+        ยกเลิก
+      </button>
+      <button type="button" class="btn btn-primary" id="confirm-modal-action-btn" style="font-size:.85rem;padding:8px 20px;border-radius:8px;font-weight:600;border:none;" onclick="executeGenericConfirmModal()">
+        ยืนยันทำรายการ
       </button>
     </div>
   </div>

@@ -16,11 +16,16 @@
             box-sizing: border-box;
         }
 
+        html, body {
+            height: 100%;
+        }
+
         body {
             font-family: 'Sarabun', 'Sukhumvit Set', 'Thonburi', sans-serif;
             background: #f5f5f5;
             min-height: 100vh;
-            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
         }
 
         
@@ -135,21 +140,25 @@
         /* Main Layout */
         .container {
             max-width: 1400px;
+            width: 100%;
             margin: 0 auto;
-            padding: 20px;
+            padding: 16px 20px 16px;
             display: grid;
             grid-template-columns: 1fr 380px;
             gap: 20px;
+            flex: 1;
+            min-height: 0;
         }
 
         /* Chat Section */
         .chat-section {
             background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
             display: flex;
             flex-direction: column;
-            height: calc(100vh - 180px);
+            height: 100%;
+            min-height: 0;
         }
 
         .chat-header {
@@ -687,7 +696,11 @@
         .sidebar {
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 16px;
+            height: 100%;
+            min-height: 0;
+            overflow-y: auto;
+            padding-right: 4px;
         }
 
         .card {
@@ -695,6 +708,7 @@
             border-radius: 8px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
             overflow: hidden;
+            flex-shrink: 0;
         }
 
         .card-header {
@@ -925,6 +939,10 @@
         }
         .sidebar-backdrop {
             display: none;
+        }
+
+        .site-footer {
+            flex-shrink: 0;
         }
 
         /* ── User Profile & LINE Login in Navbar ── */
@@ -1897,11 +1915,16 @@
             // แปลง Markdown **ตัวหนา**
             safe = safe.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 
-            // แยกรายการลำดับตัวเลขหรือ Bullet ที่เขียนติดกันในบรรทัดเดียวให้ขึ้นบรรทัดใหม่
-            safe = safe.replace(/([:：])\s*(\d+[\.\)])\s+/g, '$1\n$2 ');
-            safe = safe.replace(/([^\n])\s+(\d+[\.\)])\s+/g, '$1\n$2 ');
+            // แยกรายการลำดับตัวเลขหรือ Bullet ที่เขียนติดกันในบรรทัดเดียวให้ขึ้นบรรทัดใหม่ (หลัง : รับทั้ง 1. และ 1), ส่วนกลางประโยครับเฉพาะ 1. ป้องกันวงเล็บปิด เช่น ชั้น 1), ปี 1))
+            safe = safe.replace(/([:：])\s*(\d{1,2}[\.\)])\s+/g, '$1\n$2 ');
+            safe = safe.replace(/([^\n])\s+(\d{1,2}\.)\s+/g, '$1\n$2 ');
             safe = safe.replace(/([:：])\s*([•\-\*])\s+/g, '$1\n$2 ');
             safe = safe.replace(/([^\n])\s+([•])\s+/g, '$1\n$2 ');
+
+            // ป้องกันคำบอกสถานที่/หน่วยนับแตกบรรทัดทิ้งตัวเลขโดดๆ (เช่น "ชั้น 1)", "ปี 1", "อาคาร 25", "ต่อ 663013")
+            safe = safe.replace(/(\b(?:ชั้น|ปี|อาคาร|ห้อง|หมู่|ตึก|ต่อ))\s+(\d+)/g, '$1&nbsp;$2');
+            // ป้องกันวงเล็บระบุอาคาร/สถานที่แตกข้ามบรรทัด เช่น (อาคาร 25 ชั้น 1)
+            safe = safe.replace(/(\([^\)\n]{1,40}?(?:อาคาร|ชั้น|ตึก|ห้อง)[^\)\n]{1,40}?\))/g, '<span style="white-space: nowrap;">$1</span>');
 
             const lines = safe.split('\n');
             let formatted = [];
@@ -1935,8 +1958,8 @@
                     inList = false;
                 }
 
-                // ตรวจจับหัวข้อตัวเลข เช่น 1. หรือ 2. หรือ 1)
-                const numMatch = line.match(/^(\d+[\.\)])\s+(.*)$/);
+                // ตรวจจับหัวข้อตัวเลข เช่น 1. หรือ 2. หรือ 1) (เฉพาะตัวเลข 1-2 หลัก ไม่ตรวจจับปี พ.ศ. 4 หลัก)
+                const numMatch = line.match(/^(\d{1,2}[\.\)])\s+(.*)$/);
                 if (numMatch) {
                     formatted.push(`<div style="margin-top: 10px; margin-bottom: 6px; font-weight: 600; line-height: 1.72;"><strong style="color: #1a5f3f; margin-right: 4px;">${numMatch[1]}</strong>${numMatch[2]}</div>`);
                     continue;
@@ -1964,35 +1987,35 @@
             const files = extra.files || [];
             if (!links.length && !files.length) return '';
             let html = '<div class="inline-resources">';
-            if (links.length) {
-                links.forEach(l => {
-                    if (l && l.url) {
-                        html += `<a class="inline-res-btn" href="${escapeHtml(l.url)}" target="_blank" rel="noopener noreferrer">`
-                             + `<i class="fa-solid fa-link" style="font-size:0.75rem;opacity:0.85;"></i> `
-                             + `<span>${escapeHtml(l.title || l.url)}</span> `
-                             + `<i class="fa-solid fa-arrow-up-right-from-square" style="font-size:0.7rem;margin-left:3px;opacity:0.85;"></i>`
-                             + `</a>`;
-                    }
-                });
-            }
-            if (files.length) {
-                files.forEach(name => {
-                    const pdf = allPdfData.find(p => p.name === name) || allPdfData.find(p => p.name.toLowerCase().includes(name.toLowerCase()));
-                    if (pdf && pdf.id) {
-                        html += `<a class="inline-res-btn" href="/download/${pdf.id}">`
-                             + `<i class="fa-solid fa-file-pdf" style="font-size:0.75rem;color:#dc2626;"></i> `
-                             + `<span>${escapeHtml(pdf.name)}</span> `
-                             + `<i class="fa-solid fa-download" style="font-size:0.7rem;margin-left:3px;opacity:0.85;"></i>`
-                             + `</a>`;
-                    } else {
-                        html += `<span class="inline-res-btn">`
-                             + `<i class="fa-solid fa-file-pdf" style="font-size:0.75rem;color:#dc2626;"></i> `
-                             + `<span>${escapeHtml(name)}</span>`
-                             + `</span>`;
-                    }
-                });
-            }
-            html += '</div>';
+                if (links.length) {
+                    links.forEach(l => {
+                        if (l && l.url) {
+                            html += `<a class="inline-res-btn" href="${escapeHtml(l.url)}" target="_blank" rel="noopener noreferrer">`
+                                 + `<i class="fa-solid fa-link" style="font-size:0.75rem;opacity:0.85;"></i> `
+                                 + `<span>${escapeHtml(l.title || l.url)}</span> `
+                                 + `<i class="fa-solid fa-arrow-up-right-from-square" style="font-size:0.7rem;margin-left:3px;opacity:0.85;"></i>`
+                                 + `</a>`;
+                        }
+                    });
+                }
+                if (files.length) {
+                    files.forEach(name => {
+                        const pdf = allPdfData.find(p => p.name === name) || allPdfData.find(p => p.name.toLowerCase().includes(name.toLowerCase()));
+                        if (pdf && pdf.id) {
+                            html += `<a class="inline-res-btn" href="/download/${pdf.id}">`
+                                 + `<i class="fa-solid fa-file-pdf" style="font-size:0.75rem;color:#dc2626;"></i> `
+                                 + `<span>${escapeHtml(pdf.name)}</span> `
+                                 + `<i class="fa-solid fa-download" style="font-size:0.7rem;margin-left:3px;opacity:0.85;"></i>`
+                                 + `</a>`;
+                        } else {
+                            html += `<span class="inline-res-btn">`
+                                 + `<i class="fa-solid fa-file-pdf" style="font-size:0.75rem;color:#dc2626;"></i> `
+                                 + `<span>${escapeHtml(name)}</span>`
+                                 + `</span>`;
+                        }
+                    });
+                }
+                html += '</div>';
             return html;
         }
 

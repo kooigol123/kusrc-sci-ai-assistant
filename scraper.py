@@ -52,6 +52,7 @@ PRIORITY_PAGES = {
     "tuition_fees":     "https://sci.src.ku.ac.th/en/tuition-fees/",
     "student_affairs":  "https://sa.src.ku.ac.th/",
     "regis_requests":   "https://regis.src.ku.ac.th/res/request.php",
+    "regis_curriculum": "https://regis.src.ku.ac.th/res/curriculum.php",
     "library":          "https://lib.src.ku.ac.th/",
 }
 
@@ -107,7 +108,7 @@ def should_skip(url):
     url_lower = url.lower()
     # อนุญาตเฉพาะ PDF ประกาศรับสมัคร เกณฑ์การศึกษา และระเบียบการสำคัญ
     if url_lower.endswith(".pdf"):
-        if any(k in url_lower for k in ("tcas", "criteria", "announce", "fee", "rule", "help_pay", "ข้อบังคับ")):
+        if any(k in url_lower for k in ("tcas", "criteria", "announce", "fee", "rule", "help_pay", "ข้อบังคับ", "gened", "curriculum")):
             return False
         return True
     return any(p in url_lower for p in SKIP_PATTERNS)
@@ -115,6 +116,15 @@ def should_skip(url):
 def is_same_domain(url):
     parsed = urlparse(url)
     return parsed.scheme in ("http", "https") and parsed.netloc in ("sci.src.ku.ac.th", "admissions.src.ku.ac.th")
+
+def normalize_url(url):
+    """ทำ URL ให้เป็นมาตรฐาน: ไม่เติม trailing slash ให้ไฟล์เอกสารหรือเว็บสคริปต์ (.pdf, .php, .html, .aspx, .jsp)"""
+    if not url:
+        return ""
+    clean = url.split("#")[0].strip()
+    path_no_query = clean.split("?")[0].lower()
+    is_file = any(path_no_query.endswith(ext) for ext in (".pdf", ".php", ".html", ".htm", ".aspx", ".jsp", ".doc", ".docx"))
+    return clean if is_file else (clean.rstrip("/") + "/")
 
 # ── Circuit Breaker สำหรับป้องกันค้าง Timeout เมื่อโฮสต์ปลายทางไม่ตอบสนอง ──
 OFFLINE_HOSTS = set()
@@ -194,6 +204,8 @@ def scrape_page(url):
         for a in soup.find_all("a", href=True):
             label = a.get_text(" ", strip=True)
             full_url = urljoin(url, a["href"]).split("#")[0].strip()
+            # ซ่อม URL กรณีเจอบั๊ก path ซ้อน เช่น announce.php/pdf/ -> pdf/
+            full_url = re.sub(r'/[^/]+\.php/(pdf/[^/]+)$', r'/\1', full_url, flags=re.I)
             if label and len(label) > 2 and full_url.startswith(("http://", "https://")):
                 if is_spider_trap(full_url):
                     continue
@@ -226,9 +238,9 @@ def scrape_page(url):
         links = []
         for a in soup.find_all("a", href=True):
             href = urljoin(url, a["href"]).split("#")[0].strip()
-            if is_same_domain(href) and not should_skip(href):
-                # ไฟล์ PDF ไม่ต้องเติม trailing slash
-                norm_link = href if href.lower().endswith(".pdf") else (href.rstrip("/") + "/")
+            href = re.sub(r'/[^/]+\.php/(pdf/[^/]+)$', r'/\1', href, flags=re.I)
+            if is_same_domain(href) and not should_skip(href) and not is_spider_trap(href):
+                norm_link = normalize_url(href)
                 links.append(norm_link)
 
         return text, list(set(links))
@@ -251,7 +263,7 @@ def get_kusrc_data():
     # เริ่มจาก priority pages ก่อนเสมอ
     print(f"[Scraper] Starting with {len(PRIORITY_PAGES)} priority pages...")
     for category, url in PRIORITY_PAGES.items():
-        norm = url if url.lower().endswith(".pdf") else (url.rstrip("/") + "/")
+        norm = normalize_url(url)
         if norm not in visited:
             to_visit.append((norm, category))
             visited.add(norm)
