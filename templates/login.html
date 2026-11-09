@@ -144,7 +144,7 @@
 
         @media (max-width: 480px) {
             body {
-                padding: 16px 12px;
+                padding: 16px 14px max(88px, calc(env(safe-area-inset-bottom, 24px) + 60px));
             }
             .card {
                 padding: 28px 20px;

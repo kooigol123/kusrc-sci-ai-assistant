@@ -13,6 +13,8 @@ import secrets
 import hmac
 import requests
 import traceback
+import math
+from collections import Counter
 from bs4 import BeautifulSoup
 
 import google.generativeai as genai
@@ -240,12 +242,49 @@ def migrate_faq_from_excel():
     except Exception as e:
         print(f"[FAQ] Migration failed: {e}")
 
+FAQ_IDF = {}
+FAQ_TOKEN_DATA = []
+
+def get_faq_ngrams(text, n_range=(3, 4)):
+    """สกัดคำและ Character N-Grams (3-4 ตัวอักษร) สำหรับการจับคู่ข้อความภาษาไทย"""
+    if not text:
+        return []
+    cleaned = text.lower().strip()
+    words = [w for w in cleaned.split() if len(w) > 1]
+    compact = cleaned.replace(" ", "")
+    ngrams = []
+    L = len(compact)
+    for n in range(n_range[0], n_range[1] + 1):
+        if L >= n:
+            ngrams.extend([compact[i:i+n] for i in range(L - n + 1)])
+    return list(dict.fromkeys(words + ngrams))
+
 def load_faq_from_db():
-    global FAQ_CONTEXT
+    global FAQ_CONTEXT, FAQ_IDF, FAQ_TOKEN_DATA
     try:
         entries = [{"q": f.question, "a": f.answer} for f in FAQ.query.all()]
         FAQ_CONTEXT = entries
-        print(f"[FAQ] Loaded {len(FAQ_CONTEXT)} entries from DB")
+        N = len(FAQ_CONTEXT)
+        if N > 0:
+            df = Counter()
+            token_data = []
+            for f in FAQ_CONTEXT:
+                q_set = set(get_faq_ngrams(f["q"]))
+                a_set = set(get_faq_ngrams(f["a"]))
+                all_set = q_set | a_set
+                token_data.append((f, q_set, a_set, all_set))
+                for g in all_set:
+                    df[g] += 1
+            FAQ_TOKEN_DATA = token_data
+            FAQ_IDF = {
+                g: max(0.01, math.log((N - count + 0.5) / (count + 0.5) + 1.0))
+                for g, count in df.items()
+            }
+            print(f"[FAQ] Loaded {N} entries from DB (Dynamic IDF indexed {len(FAQ_IDF)} n-grams)")
+        else:
+            FAQ_TOKEN_DATA = []
+            FAQ_IDF = {}
+            print(f"[FAQ] Loaded 0 entries from DB")
     except Exception as e:
         print(f"[FAQ] Failed to load from DB: {e}")
 
@@ -1130,37 +1169,38 @@ def _perform_retrieval(user_message):
     faq_str = ""
     scored_faq = []
     is_faq_enabled = (get_setting("faq_enabled", "true") == "true")
-    if is_faq_enabled and FAQ_CONTEXT:
-        # คำสามัญทั่วไปที่ไม่ควรให้คะแนนเดี่ยวๆ ตัดสินความตรงของ FAQ
-        _generic_faq_words = {"เรียน", "วิชา", "ต้อง", "เรื่อง", "อะไร", "ทำ", "การ", "ของ", "ที่", "มี", "ไป", "ให้", "ได้", "ภาค"}
-        meaningful_kw = [w for w in kw if w not in _generic_faq_words and len(w) >= 2]
-        if not meaningful_kw:
-            meaningful_kw = [w for w in kw if len(w) >= 2]
+    if is_faq_enabled and FAQ_CONTEXT and FAQ_TOKEN_DATA:
+        N = len(FAQ_CONTEXT)
+        q_ngrams = get_faq_ngrams(search_src)
+        if q_ngrams:
+            query_weights = {g: FAQ_IDF.get(g, math.log(N + 1)) for g in q_ngrams}
+            weights_sorted = sorted(query_weights.values())
+            median_weight = weights_sorted[len(weights_sorted) // 2]
+            significant_grams = [g for g, w in query_weights.items() if w >= median_weight]
 
-        for idx, e in enumerate(FAQ_CONTEXT):
-            q_lower = e["q"].lower()
-            a_lower = e["a"].lower()
-            # คำนวณความตรงของคำถาม (ให้น้ำหนักมากกว่าคำตอบ)
-            q_sc = sum(3 for w in meaningful_kw if w in q_lower)
-            a_sc = sum(1 for w in meaningful_kw if w in a_lower)
-            # โบนัสกรณีพบคำหลักเต็มคำในคำถาม FAQ
-            main_tokens = [w for w in search_src.split() if len(w) >= 3 and w not in _generic_faq_words]
-            if any(tok in q_lower for tok in main_tokens):
-                q_sc += 8
+            for idx, (f, q_set, a_set, all_set) in enumerate(FAQ_TOKEN_DATA):
+                matched_sig = sum(1 for g in significant_grams if g in all_set)
+                coverage = matched_sig / len(significant_grams) if significant_grams else 0
+                if coverage < 0.30:
+                    continue
 
-            sc = q_sc * 2 + a_sc
-            if sc >= 12:  # เกณฑ์ขั้นต่ำ ต้องมีความตรงจริง ไม่ใช่แค่มีคำเชื่อม
-                scored_faq.append((sc, idx, e))
+                q_sc = sum(query_weights[g] * 3.0 for g in q_ngrams if g in q_set)
+                a_sc = sum(query_weights[g] * 1.0 for g in q_ngrams if g in a_set)
+                if search_src in f["q"].lower():
+                    q_sc += 20.0
 
-        scored_faq.sort(key=lambda x: (-x[0], x[1]))
-        if scored_faq:
-            top_faq_sc = scored_faq[0][0]
-            # ดึงเฉพาะข้อที่คะแนนเกาะกลุ่มกับอันดับ 1 (ไม่ต่ำกว่า 60% ของ top_score) และไม่เกิน 3 ข้อ
-            filtered_faq = [e for sc, _, e in scored_faq if sc >= max(12, top_faq_sc * 0.6)][:3]
-            if filtered_faq:
-                faq_str = "\n\nข้อมูล FAQ ที่เกี่ยวข้อง:\n"
-                for e in filtered_faq:
-                    faq_str += f"Q: {e['q']}\nA: {e['a']}\n\n"
+                total_sc = round((q_sc + a_sc) * coverage, 1)
+                if total_sc >= 10.0:
+                    scored_faq.append((total_sc, idx, f))
+
+            scored_faq.sort(key=lambda x: (-x[0], x[1]))
+            if scored_faq:
+                top_faq_sc = scored_faq[0][0]
+                filtered_faq = [e for sc, _, e in scored_faq if sc >= max(10.0, top_faq_sc * 0.6)][:3]
+                if filtered_faq:
+                    faq_str = "\n\nข้อมูล FAQ ที่เกี่ยวข้อง:\n"
+                    for e in filtered_faq:
+                        faq_str += f"Q: {e['q']}\nA: {e['a']}\n\n"
 
     return {
         "kw": kw,
@@ -1185,12 +1225,26 @@ def compute_rag_debug_info(user_message, bot_text, good_files, good_links,
     reasons = []
     confidence_score = 50
 
-    if top_faq_score >= 18:
+    # ตรวจสอบว่าคำตอบของบอทมีการอ้างอิงข้อมูลจาก FAQ จริงหรือไม่ (Grounding Fact-Check)
+    faq_actually_cited = False
+    if scored_faq:
+        top_faq_entry = scored_faq[0][2]
+        ans_sig = [g for g in get_faq_ngrams(top_faq_entry.get("a", "")) if FAQ_IDF.get(g, 0) >= 1.5]
+        if ans_sig:
+            overlap = sum(1 for tok in ans_sig if tok in bot_text.lower())
+            if (overlap / len(ans_sig)) >= 0.20:
+                faq_actually_cited = True
+        elif len(top_faq_entry.get("a", "")) > 0:
+            words_in_ans = [w for w in top_faq_entry["a"].split() if len(w) >= 3]
+            if any(w in bot_text.lower() for w in words_in_ans):
+                faq_actually_cited = True
+
+    if faq_actually_cited and top_faq_score >= 18:
         confidence_score += 28
-        reasons.append(f"พบคู่คำถาม-คำตอบตรงใน FAQ (คะแนนความตรง {top_faq_score})")
-    elif top_faq_score >= 12:
+        reasons.append(f"พบคู่คำถาม-คำตอบตรงใน FAQ (คะแนนความตรง {int(top_faq_score)})")
+    elif faq_actually_cited and top_faq_score >= 10:
         confidence_score += 15
-        reasons.append(f"พบ FAQ ที่มีคำสำคัญสอดคล้อง (คะแนน {top_faq_score})")
+        reasons.append(f"พบ FAQ ที่มีคำสำคัญสอดคล้อง (คะแนน {int(top_faq_score)})")
 
     if top_doc_score >= 25:
         confidence_score += 22
@@ -1205,22 +1259,22 @@ def compute_rag_debug_info(user_message, bot_text, good_files, good_links,
     if detected_majors:
         confidence_score += 10
         m_list = ", ".join(sorted(m.upper() for m in detected_majors))
-        reasons.append(f"ตรวจพบสาขาวิชาตรง {m_list} และ Boost เอกสารหลักสูตรเฉพาะทาง")
+        reasons.append(f"ตรวจพบสาขาวิชา {m_list} และคัดกรองเอกสารหลักสูตรเฉพาะทาง")
 
     if is_fallback:
         confidence_score -= 30
-        reasons.append("⚠️ ไม่พบเอกสารตรงเป้า ระบบจำเป็นต้องใช้เอกสารภาพรวมสำรอง (Fallback Docs)")
+        reasons.append("ไม่พบเอกสารตรงเป้า ระบบจำเป็นต้องใช้เอกสารภาพรวมสำรอง")
     elif is_overview:
-        reasons.append("คำถามภาพรวมระบบ (Overview Mode)")
+        reasons.append("คำถามภาพรวมทั่วไป")
 
     combined_ctx = (context_str or "") + " " + (faq_str or "")
     faith_res = evaluate_faithfulness(bot_text, combined_ctx)
     if faith_res["unsupported_facts"]:
         confidence_score -= 20
-        reasons.append(f"⚠️ ตรวจพบข้อมูลตัวเลข {len(faith_res['unsupported_facts'])} จุดที่ไม่ปรากฏใน Context เสี่ยงต่อการตอบหลอน")
+        reasons.append(f"ตรวจพบข้อมูลตัวเลข {len(faith_res['unsupported_facts'])} จุดที่ไม่ปรากฏในเอกสารอ้างอิง")
     elif faith_res["grounded_facts"]:
         confidence_score += 10
-        reasons.append("ข้อมูลตัวเลขและเงื่อนไขสำคัญในคำตอบ มีหลักฐานยืนยันใน Context ครบถ้วน")
+        reasons.append("ข้อมูลตัวเลขและเงื่อนไขสำคัญในคำตอบ มีหลักฐานยืนยันในเอกสารอ้างอิงครบถ้วน")
 
     confidence_score = max(20, min(98, confidence_score))
 
@@ -1231,7 +1285,7 @@ def compute_rag_debug_info(user_message, bot_text, good_files, good_links,
     else:
         confidence_level = "LOW"
 
-    if top_faq_score >= 8 and top_faq_score >= top_doc_score:
+    if faq_actually_cited and top_faq_score >= 10 and top_faq_score >= top_doc_score:
         route = "faq_grounded"
     elif is_fallback:
         route = "no_context_fallback"
@@ -1299,7 +1353,7 @@ def generate_chat_debug_analysis(user_message, bot_answer=None):
             "route": "direct_rule",
             "confidence_score": 100,
             "confidence_level": "HIGH",
-            "confidence_reasons": ["ตรงกับคำทักทายมาตรฐานของระบบ (Pre-LLM Guard) ตอบทันทีด้วยความมั่นใจ 100%"],
+            "confidence_reasons": ["ตรงกับคำทักทายมาตรฐาน ตอบกลับทันที"],
             "faithfulness": {"status": "grounded", "score": 1.0, "grounded_facts": [], "unsupported_facts": []},
             "retrieved_sources": [],
             "matched_faq": [],
@@ -1323,7 +1377,7 @@ def generate_chat_debug_analysis(user_message, bot_answer=None):
             "route": "direct_rule",
             "confidence_score": 100,
             "confidence_level": "HIGH",
-            "confidence_reasons": ["ตรงกับคำขอบคุณมาตรฐาน (Pre-LLM Guard) ตอบทันทีด้วยความมั่นใจ 100%"],
+            "confidence_reasons": ["ตรงกับคำขอบคุณมาตรฐาน ตอบกลับทันที"],
             "faithfulness": {"status": "grounded", "score": 1.0, "grounded_facts": [], "unsupported_facts": []},
             "retrieved_sources": [],
             "matched_faq": [],
@@ -1430,7 +1484,7 @@ def ask_gemini(user_message, history=None, return_debug=False):
                 "route": "direct_rule",
                 "confidence_score": 100,
                 "confidence_level": "HIGH",
-                "confidence_reasons": ["ตรงกับคำถามระบุตัวตน/โมเดลของระบบ (Pre-LLM Guard)"],
+                "confidence_reasons": ["ตรงกับคำถามระบุข้อมูลระบบ"],
                 "faithfulness": {"status": "grounded", "score": 1.0, "grounded_facts": [], "unsupported_facts": []},
                 "retrieved_sources": [],
                 "matched_faq": [],
@@ -1466,7 +1520,7 @@ def ask_gemini(user_message, history=None, return_debug=False):
                 "route": "direct_rule",
                 "confidence_score": 100,
                 "confidence_level": "HIGH",
-                "confidence_reasons": ["ตรงกับคำทดสอบระบบ/ข้อความเล่นสั้น (Pre-LLM Guard)"],
+                "confidence_reasons": ["ตรงกับข้อความทดสอบทั่วไป"],
                 "faithfulness": {"status": "grounded", "score": 1.0, "grounded_facts": [], "unsupported_facts": []},
                 "retrieved_sources": [],
                 "matched_faq": [],
@@ -1737,6 +1791,7 @@ def line_login():
         "redirect_uri":  LINE_REDIRECT_URI,
         "scope":         "profile openid",
         "state":         state,
+        "initial_amr_display": "lineqr",
     }
     return redirect("https://access.line.me/oauth2/v2.1/authorize?" + urlencode(params))
 
@@ -2708,6 +2763,107 @@ def api_admin_discovered_links_resync():
         "new": new_count,
         "message": f"สแกนสำเร็จ พบลิงก์ทั้งหมด {total} รายการ (ลิงก์ใหม่ {new_count} รายการ)"
     })
+
+@app.route("/api/admin/discovered-links/auto-verify", methods=["POST"])
+@admin_required
+def api_admin_discovered_links_auto_verify():
+    """
+    Smart Auto-Verification สำหรับ Discovered Links:
+    1. ตรวจสอบสถานะการเชื่อมต่อ (Alive/HTTP Status) แบบ Multi-threaded
+    2. คัดกรองและเปิดใช้งาน (Auto-Activate) เฉพาะบริการและเอกสาร มก. ที่จำเป็นและใช้งานได้จริง
+    3. ซ่อนลิงก์เสียถาวร (HTTP 404, 410 หรือ URL สะกดผิด/ไฟล์วิดีโอ) โดยอัตโนมัติ
+    """
+    try:
+        from concurrent.futures import ThreadPoolExecutor
+
+        unmapped_links = DiscoveredLink.query.filter_by(is_system_mapped=False, is_ignored=False).all()
+        if not unmapped_links:
+            return jsonify({
+                "success": True,
+                "total_checked": 0,
+                "activated_count": 0,
+                "dead_count": 0,
+                "skipped_count": 0,
+                "message": "ไม่มีลิงก์ที่รอการตรวจสอบ (ทุกลิงก์ได้รับการจัดสถานะเรียบร้อยแล้ว)"
+            })
+
+        def is_essential_link(title, url):
+            title = (title or "").lower()
+            url = (url or "").lower()
+            # ข้ามลิงก์ที่ไม่พึงประสงค์
+            if any(bad in url for bad in ("login_admin", "login_c.php", "wp-admin", "wp-login", ".mp4", ".avi", ".mov")):
+                return False
+            if "admissionssrc.ku.ac.th" in url:
+                return False
+            # รับสมัคร / TCAS
+            if any(k in url or k in title for k in ("tcas", "criteria", "announce", "เกณฑ์การรับสมัคร", "โครงการขยายโอกาส", "รับตรง")):
+                return True
+            # ทะเบียน & คำร้อง & เอกสารสำคัญ
+            if any(k in url or k in title for k in ("curriculum", "download.php", "rules", "help_pay", "help_reg", "ข้อบังคับ", "คำร้อง", "ผ่อนผัน", "กยศ", "ปฏิทิน", "table_test", "ตารางคุมสอบ", "กู้ยืม")):
+                return True
+            # หลักสูตรสาขาวิชา มก.
+            if "listcur.aspx" in url and any(k in title for k in ("วิทยาการคอมพิวเตอร์", "เทคโนโลยีสารสนเทศ", "ดิจิทัล", "เคมี", "ฟิสิกส์", "คณิตศาสตร์", "สิ่งแวดล้อม", "วิศวกรรม")):
+                return True
+            # บริการกลาง
+            if any(h in url for h in ("dorms.src.ku.ac.th", "accounts.ku.ac.th", "isea.ku.ac.th", "verify.src.ku.ac.th", "my.ku.th", "nisit.ku.ac.th")):
+                return True
+            # เอกสาร PDF ระเบียบ/คู่มือ
+            if url.endswith(".pdf") and any(k in url or k in title for k in ("ระเบียบ", "ข้อบังคับ", "tcas", "help", "คู่มือ", "คำร้อง", "ประกาศ")):
+                return True
+            return False
+
+        def check_health(link_obj):
+            url = link_obj.url
+            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+            try:
+                r = requests.head(url, timeout=3.5, headers=headers, allow_redirects=True)
+                if r.status_code == 405:
+                    r = requests.get(url, timeout=3.5, headers=headers, stream=True)
+                is_alive = (r.status_code < 400)
+                return link_obj.id, is_alive, r.status_code
+            except Exception:
+                return link_obj.id, False, 0
+
+        with ThreadPoolExecutor(max_workers=15) as executor:
+            check_results = list(executor.map(check_health, unmapped_links))
+
+        status_map = {cid: (alive, code) for cid, alive, code in check_results}
+
+        activated_count = 0
+        dead_count = 0
+        skipped_count = 0
+        now = datetime.utcnow()
+
+        for l in unmapped_links:
+            alive, code = status_map.get(l.id, (False, 0))
+            essential = is_essential_link(l.title, l.url)
+
+            # 1. จำเป็น + เข้าถึงได้ -> Auto-Activate
+            if essential and alive:
+                l.is_system_mapped = True
+                l.is_ignored = False
+                l.mapped_at = now
+                activated_count += 1
+            # 2. ลิงก์เสียถาวร (HTTP 404, 410 หรือโดเมนพิมพ์ผิด/ไฟล์วิดีโอ) -> Auto-Hide
+            elif code in (404, 410) or "admissionssrc.ku.ac.th" in l.url or any(l.url.lower().endswith(ext) for ext in (".mp4", ".avi", ".mov")):
+                l.is_ignored = True
+                dead_count += 1
+            else:
+                skipped_count += 1
+
+        db.session.commit()
+
+        return jsonify({
+            "success": True,
+            "total_checked": len(unmapped_links),
+            "activated_count": activated_count,
+            "dead_count": dead_count,
+            "skipped_count": skipped_count,
+            "message": f"ตรวจสอบสำเร็จ: เปิดใช้งานบริการจำเป็น {activated_count} รายการ, ซ่อนลิงก์เสีย {dead_count} รายการ, คงไว้รอพิจารณา {skipped_count} รายการ"
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"เกิดข้อผิดพลาดในการตรวจสอบ: {str(e)}"}), 500
 
 # ──────────────────────────────────────────
 # Seed Data Initialization

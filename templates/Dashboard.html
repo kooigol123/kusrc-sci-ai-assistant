@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="th">
 <head>
 <meta charset="UTF-8">
@@ -10,264 +10,717 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Sarabun',sans-serif;background:#f3f4f6;color:#1f2937}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Sarabun", sans-serif;
+  background: #f3f4f6;
+  color: #1f2937;
+}
+
 /* Sidebar */
-.sidebar{position:fixed;left:0;top:0;width:220px;height:100vh;background:linear-gradient(160deg,#1a5f3f,#2d8659);color:white;display:flex;flex-direction:column;z-index:100}
-.sidebar-logo{padding:24px 20px;border-bottom:1px solid rgba(255,255,255,.15)}
-.sidebar-logo h2{font-size:1rem;font-weight:700}
-.sidebar-logo p{font-size:.75rem;opacity:.8;margin-top:2px}
-.nav-item{display:flex;align-items:center;gap:12px;padding:12px 20px;cursor:pointer;transition:.2s;font-size:.9rem;text-decoration:none;color:white}
-.nav-item:hover,.nav-item.active{background:rgba(255,255,255,.15)}
-.nav-item i{width:18px;text-align:center}
-.sidebar-footer{margin-top:auto;padding:16px 20px;border-top:1px solid rgba(255,255,255,.15)}
-.logout-btn{display:flex;align-items:center;gap:10px;color:rgba(255,255,255,.8);text-decoration:none;font-size:.875rem}
-.logout-btn:hover{color:white}
+
+.sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 220px;
+  height: 100vh;
+  background: linear-gradient(160deg, #1a5f3f, #2d8659);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+}
+
+.sidebar-logo {
+  padding: 24px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.sidebar-logo h2 {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.sidebar-logo p {
+  font-size: 0.75rem;
+  opacity: 0.8;
+  margin-top: 2px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  cursor: pointer;
+  transition: 0.2s;
+  font-size: 0.9rem;
+  text-decoration: none;
+  color: white;
+}
+
+.nav-item:hover,
+.nav-item.active {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.nav-item i {
+  width: 18px;
+  text-align: center;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 16px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  font-size: 0.875rem;
+}
+
+.logout-btn:hover {
+  color: white;
+}
+
 /* Main */
-.main{margin-left:220px;min-height:100vh}
-.topbar{background:white;padding:16px 28px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;box-shadow:0 1px 3px rgba(0,0,0,.05)}
-.topbar h1{font-size:1.2rem;color:#1a5f3f;font-weight:700}
-.page{display:none;padding:28px}
-.page.active{display:block}
+
+.main {
+  margin-left: 220px;
+  min-height: 100vh;
+}
+
+.topbar {
+  background: white;
+  padding: 16px 28px;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.topbar h1 {
+  font-size: 1.2rem;
+  color: #1a5f3f;
+  font-weight: 700;
+}
+
+.page {
+  display: none;
+  padding: 28px;
+}
+
+.page.active {
+  display: block;
+}
+
 /* Stat cards */
-.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
-.stat-card{background:white;border-radius:10px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.07);display:flex;align-items:center;gap:16px}
-.stat-icon{width:48px;height:48px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0}
-.stat-icon.green{background:#dcfce7;color:#16a34a}
-.stat-icon.blue{background:#dbeafe;color:#2563eb}
-.stat-icon.purple{background:#ede9fe;color:#7c3aed}
-.stat-icon.orange{background:#ffedd5;color:#ea580c}
-.stat-value{font-size:1.8rem;font-weight:700;color:#111827}
-.stat-label{font-size:.8rem;color:#6b7280;margin-top:2px}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  background: white;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.07);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.stat-icon.green {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.stat-icon.blue {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.stat-icon.purple {
+  background: #ede9fe;
+  color: #7c3aed;
+}
+
+.stat-icon.orange {
+  background: #ffedd5;
+  color: #ea580c;
+}
+
+.stat-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
 /* Charts / tables */
-.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
-.card{background:white;border-radius:10px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
-.card-title{font-size:1rem;font-weight:600;color:#1a5f3f;margin-bottom:16px;display:flex;align-items:center;gap:8px}
-table{width:100%;border-collapse:collapse;font-size:.875rem}
-th{text-align:left;padding:10px 12px;background:#f9fafb;color:#374151;font-weight:600;border-bottom:2px solid #e5e7eb}
-td{padding:10px 12px;border-bottom:1px solid #f3f4f6;color:#374151}
-tr:hover td{background:#f9fafb}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.card {
+  background: white;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.07);
+}
+
+.card-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1a5f3f;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+th {
+  text-align: left;
+  padding: 10px 12px;
+  background: #f9fafb;
+  color: #374151;
+  font-weight: 600;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f3f4f6;
+  color: #374151;
+}
+
+tr:hover td {
+  background: #f9fafb;
+}
+
 /* Badge */
-.badge{display:inline-block;padding:2px 10px;border-radius:99px;font-size:.75rem;font-weight:600}
-.badge.done{background:#dcfce7;color:#16a34a}
-.badge.running{background:#dbeafe;color:#2563eb}
-.badge.error{background:#fee2e2;color:#dc2626}
-.badge.mapped{background:#dcfce7;color:#16a34a;border:1px solid #bbf7d0}
-.badge.unmapped{background:#ffedd5;color:#c2410c;border:1px solid #fed7aa}
+
+.badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badge.done {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.badge.running {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.badge.error {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.badge.mapped {
+  background: #dcfce7;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+}
+
+.badge.unmapped {
+  background: #ffedd5;
+  color: #c2410c;
+  border: 1px solid #fed7aa;
+}
+
 /* Buttons */
-.btn{display:inline-flex;align-items:center;gap:8px;padding:9px 18px;border-radius:7px;font-size:.875rem;font-weight:600;cursor:pointer;border:none;transition:.2s}
-.btn-primary{background:linear-gradient(135deg,#1a5f3f,#2d8659);color:white}
-.btn-primary:hover{opacity:.9}
-.btn-danger{background:#fee2e2;color:#dc2626}
-.btn-danger:hover{background:#fecaca}
-.btn-export{background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  border-radius: 7px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: 0.2s;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #1a5f3f, #2d8659);
+  color: white;
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+}
+
+.btn-danger {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.btn-danger:hover {
+  background: #fecaca;
+}
+
+.btn-export {
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+}
+
 /* Scrape status */
-.scrape-status{display:flex;align-items:center;gap:8px;padding:12px 16px;background:#f9fafb;border-radius:8px;border:1px solid #e5e7eb;margin-bottom:16px}
+
+.scrape-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  margin-bottom: 16px;
+}
+
 /* Pagination */
-.pagination{display:flex;gap:6px;margin-top:16px;justify-content:center}
-.page-btn{padding:6px 14px;border-radius:6px;border:1px solid #e5e7eb;background:white;cursor:pointer;font-size:.85rem;transition:.2s}
-.page-btn:hover,.page-btn.active{background:#1a5f3f;color:white;border-color:#1a5f3f}
+
+.pagination {
+  display: flex;
+  gap: 6px;
+  margin-top: 16px;
+  justify-content: center;
+}
+
+.page-btn {
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: 0.2s;
+}
+
+.page-btn:hover,
+.page-btn.active {
+  background: #1a5f3f;
+  color: white;
+  border-color: #1a5f3f;
+}
+
 /* Search */
-.search-bar{display:flex;gap:10px;margin-bottom:16px}
-.search-bar input{flex:1;padding:9px 14px;border:1px solid #e5e7eb;border-radius:7px;font-size:.875rem;outline:none;font-family:inherit}
-.search-bar input:focus{border-color:#1a5f3f}
+
+.search-bar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.search-bar input {
+  flex: 1;
+  padding: 9px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 7px;
+  font-size: 0.875rem;
+  outline: none;
+  font-family: inherit;
+}
+
+.search-bar input:focus {
+  border-color: #1a5f3f;
+}
+
 /* Top questions list */
-.top-q-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f3f4f6}
-.top-q-rank{width:26px;height:26px;border-radius:50%;background:#f0fdf4;color:#1a5f3f;font-size:.8rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.top-q-text{flex:1;font-size:.875rem;color:#374151}
-.top-q-count{font-size:.8rem;font-weight:600;color:#6b7280}
+
+.top-q-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.top-q-rank {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #f0fdf4;
+  color: #1a5f3f;
+  font-size: 0.8rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.top-q-text {
+  flex: 1;
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+.top-q-count {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #6b7280;
+}
+
 /* Table responsive wrapper */
+
 .table-responsive {
   width: 100%;
+
   overflow-x: auto;
+
   -webkit-overflow-scrolling: touch;
+
   margin-bottom: 12px;
+
   border-radius: 8px;
 }
+
 .table-responsive table {
   min-width: 580px;
 }
 
 /* Mobile Hamburger Menu Button */
+
 .admin-menu-btn {
   display: none;
+
   background: white;
+
   border: 1.5px solid #e5e7eb;
+
   color: #1a5f3f;
+
   font-size: 1.15rem;
+
   width: 40px;
+
   height: 40px;
+
   min-width: 40px;
+
   min-height: 40px;
+
   border-radius: 8px;
+
   cursor: pointer;
+
   align-items: center;
+
   justify-content: center;
+
   transition: all 0.2s;
+
   flex-shrink: 0;
 }
+
 .admin-menu-btn:hover {
   background: #f0fdf4;
+
   border-color: #86efac;
 }
 
 /* Sidebar Backdrop */
+
 .sidebar-backdrop {
   display: none;
+
   position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
+
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+
   background: rgba(0, 0, 0, 0.45);
+
   backdrop-filter: blur(2px);
+
   z-index: 99;
 }
 
 /* Responsive Media Queries */
+
 @media (max-width: 900px) {
-  .stat-grid { grid-template-columns: 1fr 1fr; }
-  .grid-2 { grid-template-columns: 1fr; }
+  .stat-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 768px) {
   .admin-menu-btn {
     display: inline-flex;
   }
+
   .sidebar {
     transform: translate3d(-100%, 0, 0);
+
     will-change: transform;
+
     transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+
     box-shadow: 4px 0 24px rgba(0, 0, 0, 0.25);
   }
+
   .sidebar.open {
     transform: translate3d(0, 0, 0);
   }
+
   .sidebar-backdrop.active {
     display: block;
   }
+
   .main {
     margin-left: 0 !important;
+
     width: 100% !important;
+
     min-width: 0;
   }
+
   .topbar {
     padding: max(14px, env(safe-area-inset-top, 14px)) 16px 12px;
   }
+
   .topbar h1 {
     font-size: 1.05rem;
   }
+
   #last-update {
     display: none;
   }
+
   .page {
     padding: 16px 14px;
   }
+
   .stat-grid {
     grid-template-columns: repeat(2, 1fr) !important;
+
     gap: 12px;
+
     margin-bottom: 16px;
   }
+
   .stat-card {
     padding: 14px;
+
     gap: 10px;
   }
+
   .stat-icon {
     width: 40px;
+
     height: 40px;
+
     font-size: 1.1rem;
+
     border-radius: 8px;
   }
+
   .stat-value {
     font-size: 1.35rem;
   }
+
   .stat-label {
     font-size: 0.75rem;
   }
+
   .grid-2 {
     grid-template-columns: 1fr !important;
+
     gap: 14px;
   }
+
   .card {
     padding: 16px 14px;
+
     border-radius: 12px;
   }
+
   .search-bar {
     flex-direction: column;
+
     gap: 8px;
   }
+
   .search-bar input {
     font-size: 16px; /* ป้องกัน iOS ซูม */
   }
+
   .table-responsive th,
   .table-responsive td {
     padding: 8px 10px !important;
+
     font-size: 0.85rem !important;
   }
+
   .modal-box {
     max-width: 92vw !important;
+
     max-height: 85vh;
+
     padding: 20px 16px;
+
     overflow-y: auto;
   }
+
   .modal-box .btn {
     min-height: 44px;
+
     flex: 1;
+
     justify-content: center;
   }
 }
 
 /* Guest Mode Card & Banner Responsive */
+
 .guest-mode-banner {
   margin-bottom: 20px;
+
   padding: 16px 20px;
+
   border: 1px solid #e5e7eb;
+
   background: white;
+
   border-radius: 12px;
 }
+
 .guest-mode-header {
   display: flex;
+
   align-items: center;
+
   justify-content: space-between;
+
   gap: 12px;
+
   margin-bottom: 6px;
 }
+
 .guest-mode-title-wrap {
   display: flex;
+
   align-items: center;
+
   gap: 12px;
+
   min-width: 0;
 }
+
 .guest-mode-icon {
   width: 40px;
+
   height: 40px;
+
   border-radius: 10px;
+
   background: #ecfdf5;
+
   color: #059669;
+
   display: flex;
+
   align-items: center;
+
   justify-content: center;
+
   font-size: 1.15rem;
+
   flex-shrink: 0;
 }
+
 .guest-mode-title {
   font-size: 0.95rem;
+
   font-weight: 700;
+
   color: #111827;
+
   display: flex;
+
   align-items: center;
+
   flex-wrap: wrap;
+
   gap: 6px;
 }
+
 .guest-mode-desc {
   font-size: 0.82rem;
+
   color: #6b7280;
+
   line-height: 1.5;
+
   padding-left: 52px;
 }
+
 @media (max-width: 640px) {
   .guest-mode-banner {
     padding: 14px 16px;
   }
+
   .guest-mode-desc {
     padding-left: 0 !important;
+
     margin-top: 6px;
   }
 }
@@ -275,437 +728,774 @@ tr:hover td{background:#f9fafb}
 @media (max-width: 480px) {
   .stat-grid {
     grid-template-columns: repeat(2, 1fr) !important;
+
     gap: 8px !important;
   }
+
   .stat-card {
     padding: 10px 8px !important;
+
     gap: 8px !important;
   }
+
   .stat-icon {
     width: 36px !important;
+
     height: 36px !important;
+
     font-size: 1rem !important;
+
     border-radius: 8px !important;
   }
+
   .stat-value {
     font-size: 1.15rem !important;
+
     line-height: 1.2;
   }
+
   .stat-label {
     font-size: 0.72rem !important;
+
     line-height: 1.25;
+
     letter-spacing: -0.2px;
   }
+
   .stat-sub {
     font-size: 0.68rem !important;
+
     letter-spacing: -0.2px;
+
     line-height: 1.2;
+
     white-space: nowrap;
   }
+
   .topbar h1 {
     font-size: 0.95rem;
   }
+
   .btn {
     min-height: 42px;
+
     padding: 9px 14px;
+
     font-size: 0.82rem;
   }
 }
+
 /* Toggle Switch */
+
 .toggle-switch {
   position: relative;
+
   display: inline-block;
+
   width: 48px;
+
   height: 26px;
 }
+
 .toggle-switch input {
   opacity: 0;
+
   width: 0;
+
   height: 0;
 }
+
 .toggle-slider {
   position: absolute;
+
   cursor: pointer;
-  top: 0; left: 0; right: 0; bottom: 0;
+
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+
   background-color: #cbd5e1;
-  transition: .3s;
+
+  transition: 0.3s;
+
   border-radius: 26px;
 }
+
 .toggle-slider:before {
   position: absolute;
+
   content: "";
+
   height: 18px;
+
   width: 18px;
+
   left: 4px;
+
   bottom: 4px;
+
   background-color: white;
-  transition: .3s;
+
+  transition: 0.3s;
+
   border-radius: 50%;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
+
 input:checked + .toggle-slider {
   background-color: #10b981;
 }
+
 input:checked + .toggle-slider:before {
   transform: translateX(22px);
 }
 
 /* ── External Links Management Enhancements ── */
+
 .stat-card.clickable {
   cursor: pointer;
+
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
   border: 2px solid transparent;
+
   user-select: none;
 }
+
 .stat-card.clickable:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
 }
+
 .stat-card.clickable.active-blue {
   border-color: #2563eb;
+
   background: #f0f7ff;
 }
+
 .stat-card.clickable.active-green {
   border-color: #16a34a;
+
   background: #f0fdf4;
 }
+
 .stat-card.clickable.active-orange {
   border-color: #ea580c;
+
   background: #fff7ed;
 }
+
 .badge.ignored {
   background: #f3f4f6;
+
   color: #6b7280;
+
   border: 1px solid #d1d5db;
 }
+
 .discovered-table {
   width: 100%;
+
   table-layout: fixed;
+
   border-collapse: collapse;
+
   min-width: 1100px;
 }
+
 .discovered-table th,
 .discovered-table td {
   padding: 10px 12px;
+
   vertical-align: middle;
 }
+
 .discovered-table th {
   background: #f8fafc;
+
   color: #475569;
+
   font-size: 0.82rem;
+
   font-weight: 600;
+
   border-bottom: 2px solid #e2e8f0;
 }
+
 .discovered-table td {
   border-bottom: 1px solid #f1f5f9;
+
   font-size: 0.85rem;
 }
+
 .discovered-table tr:hover td {
   background: #f8fafc;
 }
+
 .truncate-title {
   max-width: calc(100% - 24px);
+
   overflow: hidden;
+
   text-overflow: ellipsis;
+
   white-space: nowrap;
+
   display: inline-block;
+
   vertical-align: middle;
+
   font-weight: 600;
+
   color: #111827;
 }
+
 .truncate-url {
   max-width: 520px;
+
   overflow: hidden;
+
   text-overflow: ellipsis;
+
   white-space: nowrap;
+
   display: inline-block;
+
   vertical-align: middle;
 }
+
 .truncate-source {
   max-width: calc(100% - 18px);
+
   overflow: hidden;
+
   text-overflow: ellipsis;
+
   white-space: nowrap;
+
   display: inline-block;
+
   vertical-align: middle;
 }
+
 .btn-xs {
   padding: 5px 9px;
+
   font-size: 0.76rem;
+
   border-radius: 6px;
+
   font-weight: 600;
+
   display: inline-flex;
+
   align-items: center;
+
   gap: 4px;
+
   text-decoration: none;
+
   cursor: pointer;
+
   border: 1px solid transparent;
+
   transition: all 0.15s ease;
+
   font-family: inherit;
 }
+
 .btn-map-edit {
   background: #f0fdf4;
+
   color: #15803d;
+
   border-color: #bbf7d0;
 }
+
 .btn-map-edit:hover {
   background: #dcfce7;
+
   border-color: #86efac;
 }
+
 .btn-edit-mapped {
   background: #f8fafc;
+
   color: #475569;
+
   border-color: #cbd5e1;
 }
+
 .btn-edit-mapped:hover {
   background: #f1f5f9;
+
   color: #1e293b;
+
   border-color: #94a3b8;
 }
+
 .btn-ignore {
   background: #f3f4f6;
+
   color: #6b7280;
+
   border-color: #e5e7eb;
 }
+
 .btn-ignore:hover {
   background: #fee2e2;
+
   color: #dc2626;
+
   border-color: #fecaca;
 }
+
 .btn-restore {
   background: #eff6ff;
+
   color: #2563eb;
+
   border-color: #bfdbfe;
 }
+
 .btn-restore:hover {
   background: #dbeafe;
 }
 
 /* Category Filter Pills (My-UI-Skill) */
+
 .category-pills-bar {
   display: flex;
+
   gap: 8px;
+
   margin-bottom: 14px;
+
   flex-wrap: wrap;
+
   align-items: center;
 }
+
 .category-pill {
   padding: 6px 13px;
+
   font-size: 0.82rem;
+
   border-radius: 9999px;
+
   border: 1px solid #e2e8f0;
+
   background: #ffffff;
+
   color: #475569;
+
   cursor: pointer;
+
   display: inline-flex;
+
   align-items: center;
+
   gap: 6px;
+
   font-weight: 500;
+
   transition: all 0.15s ease;
+
   font-family: inherit;
+
   outline: none;
 }
+
 .category-pill:hover {
   background: #f8fafc;
+
   border-color: #cbd5e1;
+
   color: #1e293b;
 }
+
 .category-pill.active {
   background: #1b4332;
+
   color: #ffffff;
+
   border-color: #1b4332;
+
   box-shadow: 0 1px 3px rgba(27, 67, 50, 0.18);
+
   font-weight: 600;
 }
+
 .category-pill .pill-count {
   font-size: 0.72rem;
+
   padding: 1px 7px;
+
   border-radius: 9999px;
+
   background: rgba(0, 0, 0, 0.05);
+
   color: inherit;
+
   font-weight: 600;
 }
+
 .category-pill.active .pill-count {
   background: rgba(255, 255, 255, 0.25);
+
   color: #ffffff;
 }
 
 /* Pagination (My-UI-Skill) */
+
 .pagination-wrapper {
   display: flex;
+
   justify-content: space-between;
+
   align-items: center;
+
   margin-top: 16px;
+
   padding-top: 14px;
+
   border-top: 1px solid #f1f5f9;
+
   flex-wrap: wrap;
+
   gap: 12px;
 }
+
 .pagination-info {
   font-size: 0.85rem;
+
   color: #64748b;
+
   display: flex;
+
   align-items: center;
+
   gap: 12px;
+
   flex-wrap: wrap;
 }
+
 .pagination-controls {
   display: flex;
+
   align-items: center;
+
   gap: 4px;
+
   flex-wrap: wrap;
 }
+
 .page-btn {
   min-width: 34px;
+
   height: 34px;
+
   padding: 0 9px;
+
   border: 1px solid #e2e8f0;
+
   background: #ffffff;
+
   color: #475569;
+
   border-radius: 7px;
+
   font-size: 0.82rem;
+
   font-weight: 600;
+
   cursor: pointer;
+
   display: inline-flex;
+
   align-items: center;
+
   justify-content: center;
+
   transition: all 0.15s ease;
+
   font-family: inherit;
+
   outline: none;
 }
+
 .page-btn:hover:not(:disabled) {
   background: #f1f5f9;
+
   border-color: #cbd5e1;
+
   color: #1e293b;
 }
+
 .page-btn.active {
   background: #1b4332;
+
   color: #ffffff;
+
   border-color: #1b4332;
 }
+
 .page-btn:disabled {
   opacity: 0.35;
+
   cursor: not-allowed;
+
   background: #f8fafc;
+
   border-color: #e2e8f0;
+
   color: #94a3b8;
 }
+
 .page-size-select {
   padding: 5px 10px;
+
   border: 1px solid #e2e8f0;
+
   border-radius: 6px;
+
   font-size: 0.82rem;
+
   color: #374151;
+
   background: white;
+
   cursor: pointer;
+
   outline: none;
+
   font-family: inherit;
 }
+
 .bulk-toolbar {
   display: none;
+
   align-items: center;
+
   gap: 10px;
+
   padding: 10px 16px;
+
   background: #f8fafc;
+
   border: 1.5px dashed #cbd5e1;
+
   border-radius: 8px;
+
   margin-bottom: 14px;
+
   font-size: 0.85rem;
 }
+
 .bulk-toolbar.visible {
   display: flex;
 }
+
 .modal-overlay {
   display: none;
+
   position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
+
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+
   background: rgba(17, 24, 39, 0.45);
+
   backdrop-filter: blur(2px);
+
   z-index: 1000;
+
   align-items: center;
+
   justify-content: center;
+
   padding: 16px;
 }
+
 .modal-overlay.open {
   display: flex;
 }
+
 .modal-box {
   background: white;
+
   border-radius: 14px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.15),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
   width: 100%;
+
   max-width: 520px;
+
   max-height: 90vh;
+
   overflow-y: auto;
+
   border: 1px solid #e5e7eb;
+
   animation: modalPop 0.15s ease-out;
 }
+
 @keyframes modalPop {
-  from { transform: scale(0.96); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+  from {
+    transform: scale(0.96);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
+
 .modal-header {
   padding: 16px 20px;
+
   border-bottom: 1px solid #f3f4f6;
+
   display: flex;
+
   align-items: center;
+
   justify-content: space-between;
 }
+
 .modal-header h3 {
   font-size: 1rem;
+
   font-weight: 700;
+
   color: #111827;
+
   display: flex;
+
   align-items: center;
+
   gap: 8px;
 }
+
 .modal-close {
   background: none;
+
   border: none;
+
   font-size: 1.3rem;
+
   color: #9ca3af;
+
   cursor: pointer;
+
   padding: 4px;
+
   border-radius: 6px;
+
   line-height: 1;
 }
-.modal-close:hover { color: #111827; background: #f3f4f6; }
+
+.modal-close:hover {
+  color: #111827;
+  background: #f3f4f6;
+}
+
 .modal-body {
   padding: 20px;
+
   display: flex;
+
   flex-direction: column;
+
   gap: 14px;
 }
+
 .modal-footer {
   padding: 14px 20px;
+
   background: #f9fafb;
+
   border-top: 1px solid #f3f4f6;
+
   display: flex;
+
   justify-content: flex-end;
+
   gap: 10px;
 }
+
 .form-group {
   display: flex;
+
   flex-direction: column;
+
   gap: 6px;
 }
+
 .form-group label {
   font-size: 0.85rem;
+
   font-weight: 600;
+
   color: #374151;
 }
-.form-group input, .form-group select {
+
+.form-group input,
+.form-group select {
   padding: 9px 12px;
+
   border: 1px solid #d1d5db;
+
   border-radius: 8px;
+
   font-size: 0.875rem;
+
   font-family: inherit;
+
   outline: none;
-  transition: border-color .15s;
+
+  transition: border-color 0.15s;
 }
-.form-group input:focus, .form-group select:focus {
+
+.form-group input:focus,
+.form-group select:focus {
   border-color: #1a5f3f;
 }
+/* Responsive Table Columns for Discovered Links */
+@media (max-width: 1280px) {
+  .col-source,
+  .col-scan-time {
+    display: none !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .col-mapped-time {
+    display: none !important;
+  }
+}
+
+.badge {
+  white-space: nowrap !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+
+.btn-xs {
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+}
+
 </style>
 </head>
 <body>
@@ -729,7 +1519,7 @@ input:checked + .toggle-slider:before {
     <i class="fas fa-question-circle"></i> จัดการ FAQ
   </a>
   <a class="nav-item" onclick="showPage('scraper')" href="#">
-    <i class="fas fa-sync-alt"></i> จัดการ Scraper
+    <i class="fas fa-sync-alt"></i> ดึงข้อมูลเว็บไซต์
   </a>
   <a class="nav-item" onclick="showPage('links')" href="#" id="nav-links">
     <i class="fas fa-link"></i> จัดการลิงก์
@@ -860,7 +1650,7 @@ input:checked + .toggle-slider:before {
         <div class="card-title" style="margin:0"><i class="fas fa-list"></i> ประวัติการสนทนา</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button type="button" class="btn btn-secondary" onclick="openLiveDebuggerModal()" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;font-size:.85rem;border-radius:8px;background:#f8fafc;border:1px solid #cbd5e1;color:#334155;cursor:pointer;font-weight:600;">
-            <i class="fas fa-vial" style="color:#0ea5e9"></i> ทดสอบวิเคราะห์สด (Live Sandbox)
+            <i class="fas fa-vial" style="color:#0ea5e9"></i> ทดสอบคำถาม
           </button>
           <a href="/api/admin/chatlogs/export" class="btn btn-export">
             <i class="fas fa-download"></i> Export CSV
@@ -871,7 +1661,7 @@ input:checked + .toggle-slider:before {
         <input type="text" id="log-search" placeholder="ค้นหาคำถามหรือคำตอบ..." oninput="filterLogs()" style="flex:1;min-width:240px;">
         <label style="display:inline-flex;align-items:center;gap:6px;font-size:0.85rem;color:#475569;cursor:pointer;background:#f8fafc;padding:8px 14px;border:1px solid #cbd5e1;border-radius:8px;user-select:none;">
           <input type="checkbox" id="filter-needs-review" onchange="filterLogs()" style="cursor:pointer;accent-color:#dc2626;">
-          <span style="font-weight:600;color:#dc2626;"><i class="fas fa-exclamation-triangle"></i> เฉพาะที่ต้องตรวจสอบ\</span>
+          <span style="font-weight:600;color:#dc2626;"><i class="fas fa-exclamation-triangle"></i> เฉพาะที่ต้องตรวจสอบ</span>
         </label>
       </div>
       <div class="table-responsive">
@@ -883,7 +1673,7 @@ input:checked + .toggle-slider:before {
               <th>Session</th>
               <th>คำถาม</th>
               <th>คำตอบ (ย่อ)</th>
-              <th style="text-align:center;">ตรวจที่มา & ความมั่นใจ</th>
+              <th style="text-align:center;">ตรวจสอบคำตอบ</th>
             </tr>
           </thead>
           <tbody id="log-table"></tbody>
@@ -993,7 +1783,7 @@ input:checked + .toggle-slider:before {
         <i class="fas fa-spinner fa-spin"></i> กำลังโหลด...
       </div>
       <button class="btn btn-primary" onclick="triggerScrape()" id="scrape-btn">
-        <i class="fas fa-sync-alt"></i> Scrape ข้อมูลใหม่ทันที
+        <i class="fas fa-sync-alt"></i> อัปเดตข้อมูลเว็บทันที
       </button>
     </div>
 
@@ -1072,7 +1862,10 @@ input:checked + .toggle-slider:before {
         <div class="card-title" style="margin:0">
           <i class="fas fa-network-wired"></i> รายการลิงก์ภายนอกที่ค้นพบจากการ Scraper และ FAQ
         </div>
-        <div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <button class="btn btn-secondary" onclick="autoVerifyDiscoveredLinks()" id="auto-verify-links-btn" style="display:inline-flex;align-items:center;gap:6px;font-size:0.85rem;padding:8px 14px;background:#f8fafc;color:#1e293b;border:1px solid #cbd5e1;border-radius:8px;font-weight:600;cursor:pointer;transition:all .15s ease;">
+            <i class="fas fa-check-double" style="color:#16a34a;"></i> ตรวจสอบและคัดกรองอัตโนมัติ
+          </button>
           <button class="btn btn-primary" onclick="resyncDiscoveredLinks()" id="resync-links-btn">
             <i class="fas fa-sync-alt"></i> สแกนหาลิงก์ใหม่จากฐานข้อมูล
           </button>
@@ -1135,13 +1928,13 @@ input:checked + .toggle-slider:before {
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
           <button type="button" class="btn" onclick="selectRecommendedCoreLinks()" style="min-height:38px;padding:6px 14px;font-size:0.85rem;background:#fffbeb;color:#b45309;border:1px solid #fde68a;display:inline-flex;align-items:center;gap:6px;" id="bulk-core-btn" title="เลือกติ๊กลิงก์จำเป็นยอดนิยม (คำร้อง, ลงทะเบียน, ค่าธรรมเนียม, กยศ.) อัตโนมัติ">
-            <i class="fas fa-star" style="color:#f59e0b;"></i> เลือกเฉพาะลิงก์แนะนำ (Core Links)
+            <i class="fas fa-star" style="color:#f59e0b;"></i> เลือกเฉพาะลิงก์สำคัญ
           </button>
           <button type="button" class="btn btn-primary" onclick="bulkActionLinks('map')" style="min-height:38px;padding:6px 14px;font-size:0.85rem;background:#16a34a;border:none;display:inline-flex;align-items:center;gap:6px;" id="bulk-enable-btn">
-            <i class="fas fa-check-circle"></i> เปิดใช้งานที่เลือก (Bulk Enable)
+            <i class="fas fa-check-circle"></i> เปิดใช้งานที่เลือก
           </button>
           <button type="button" class="btn" onclick="bulkActionLinks('ignore')" style="min-height:38px;padding:6px 14px;font-size:0.85rem;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;display:inline-flex;align-items:center;gap:6px;" id="bulk-hide-btn">
-            <i class="fas fa-eye-slash"></i> ซ่อนที่เลือก (Bulk Hide)
+            <i class="fas fa-eye-slash"></i> ซ่อนที่เลือก
           </button>
           <button type="button" class="btn" onclick="bulkActionLinks('unignore')" style="min-height:38px;padding:6px 14px;font-size:0.85rem;background:#f8fafc;color:#475569;border:1px solid #cbd5e1;display:inline-flex;align-items:center;gap:6px;" id="bulk-unhide-btn">
             <i class="fas fa-eye"></i> เลิกซ่อน
@@ -1154,17 +1947,17 @@ input:checked + .toggle-slider:before {
         <table class="discovered-table">
           <thead>
             <tr>
-              <th style="width:38px;text-align:center;">
+              <th style="width:36px;text-align:center;">
                 <input type="checkbox" id="links-select-all" onchange="toggleSelectAllLinks(this.checked)" title="เลือกทั้งหมดในหน้านี้" style="cursor:pointer;width:17px;height:17px;">
               </th>
-              <th style="width:38px;text-align:center;">#</th>
-              <th style="width:20%;">ชื่อบริการ / ป้ายกำกับ</th>
-              <th style="width:28%;">URL เป้าหมาย</th>
-              <th style="width:15%;">พบจากแหล่งข้อมูล</th>
-              <th style="width:110px;text-align:center;">สแกนล่าสุด</th>
-              <th style="width:125px;text-align:center;">เวลาเปิดใช้งาน</th>
-              <th style="width:120px;text-align:center;">สถานะ</th>
-              <th style="width:130px;text-align:center;">จัดการ</th>
+              <th style="width:36px;text-align:center;">#</th>
+              <th style="min-width:160px;">ชื่อบริการ / ป้ายกำกับ</th>
+              <th style="min-width:180px;">URL เป้าหมาย</th>
+              <th class="col-source" style="min-width:130px;">พบจากแหล่งข้อมูล</th>
+              <th class="col-scan-time" style="width:100px;text-align:center;">สแกนล่าสุด</th>
+              <th class="col-mapped-time" style="width:110px;text-align:center;">เวลาเปิดใช้งาน</th>
+              <th style="width:135px;text-align:center;white-space:nowrap;">สถานะ</th>
+              <th style="width:155px;text-align:center;white-space:nowrap;">จัดการ</th>
             </tr>
           </thead>
           <tbody id="links-table"></tbody>
@@ -1207,7 +2000,7 @@ const pageTitles = {
   chatlogs: '<i class="fas fa-comments"></i> ประวัติการสนทนา',
   users:    '<i class="fas fa-users"></i> ผู้ใช้งาน LINE',
   faq:      '<i class="fas fa-question-circle"></i> จัดการ FAQ',
-  scraper:  '<i class="fas fa-sync-alt"></i> จัดการ Scraper',
+  scraper:  '<i class="fas fa-sync-alt"></i> ดึงข้อมูลเว็บไซต์',
   links:    '<i class="fas fa-link"></i> ลิงก์ภายนอกที่ค้นพบ (Discovered Links)',
 };
 function toggleAdminSidebar(open) {
@@ -1354,13 +2147,15 @@ function renderLogs(logs) {
         ${reviewBadges}
         <span>${escHtml(l.user_message.length > 60 ? l.user_message.slice(0,60)+'...' : l.user_message)}</span>
       </td>
-      <td style="color:#6b7280">${escHtml(l.bot_answer)}</td>
+      <td style="color:#6b7280" title="${escHtml(l.raw_answer || l.bot_answer || '')}">
+        ${escHtml((l.bot_answer || '').length > 70 ? (l.bot_answer.slice(0, 70) + '...') : (l.bot_answer || '-'))}
+      </td>
       <td style="text-align:center;white-space:nowrap;">
         <button onclick="openDebugModal(${l.id})" class="btn-inspect" style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;font-size:.78rem;font-weight:600;border-radius:99px;background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;cursor:pointer;transition:all .15s ease;" onmouseover="this.style.background='#dcfce7'" onmouseout="this.style.background='#f0fdf4'">
-          <i class="fas fa-stethoscope"></i> ตรวจที่มา
+          <i class="fas fa-stethoscope"></i> ตรวจสอบ
         </button>
-        <button onclick="openConvertFaqModalFromLog(${l.id})" style="display:inline-flex;align-items:center;gap:4px;padding:5px 10px;font-size:.78rem;font-weight:600;border-radius:99px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;cursor:pointer;margin-left:5px;transition:all .15s ease;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'" title="แก้คำตอบ & บันทึกเป็น FAQ ทันที">
-          <i class="fas fa-file-signature"></i> +FAQ
+        <button onclick="openConvertFaqModalFromLog(${l.id})" style="display:inline-flex;align-items:center;gap:4px;padding:5px 10px;font-size:.78rem;font-weight:600;border-radius:99px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;cursor:pointer;margin-left:5px;transition:all .15s ease;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'" title="แก้ไขและบันทึกเป็น FAQ">
+          <i class="fas fa-file-signature"></i> บันทึก FAQ
         </button>
       </td>
     </tr>`;
@@ -1421,7 +2216,7 @@ async function triggerScrape() {
   } catch(e) { alert('เกิดข้อผิดพลาด'); }
   setTimeout(() => {
     btn.disabled = false;
-    btn.innerHTML = '<i class="fas fa-sync-alt"></i> Scrape ข้อมูลใหม่ทันที';
+    btn.innerHTML = '<i class="fas fa-sync-alt"></i> อัปเดตข้อมูลเว็บทันที';
     loadScraperStatus();
   }, 3000);
 }
@@ -2134,7 +2929,7 @@ function renderDiscoveredLinks(pageItems, totalFiltered, startIndex, endIndex, t
       </button>`;
     }
 
-    let actionBtns = `<div style="display:flex;gap:6px;justify-content:center;align-items:center;">
+    let actionBtns = `<div style="display:inline-flex;gap:5px;justify-content:center;align-items:center;white-space:nowrap;">
       ${editBtn}`;
 
     if (l.is_ignored) {
@@ -2170,11 +2965,11 @@ function renderDiscoveredLinks(pageItems, totalFiltered, startIndex, endIndex, t
           <i class="fas fa-external-link-alt" style="font-size:0.75rem;flex-shrink:0;opacity:0.75;"></i>
         </a>
       </td>
-      <td>${sourceDisplay}</td>
-      <td style="font-size:0.8rem;color:#64748b;white-space:nowrap;text-align:center;">${escapeHtml(l.last_seen)}</td>
-      <td style="white-space:nowrap;text-align:center;">${mappedDisplay}</td>
-      <td style="text-align:center;">${statusBadge}</td>
-      <td style="text-align:center;">${actionBtns}</td>
+      <td class="col-source">${sourceDisplay}</td>
+      <td class="col-scan-time" style="font-size:0.8rem;color:#64748b;white-space:nowrap;text-align:center;">${escapeHtml(l.last_seen)}</td>
+      <td class="col-mapped-time" style="white-space:nowrap;text-align:center;">${mappedDisplay}</td>
+      <td style="text-align:center;white-space:nowrap;">${statusBadge}</td>
+      <td style="text-align:center;white-space:nowrap;">${actionBtns}</td>
     </tr>`;
   });
   tbody.innerHTML = html;
@@ -2289,6 +3084,28 @@ async function toggleIgnoreLink(id, ignored) {
   } catch (err) {
     console.error('toggleIgnoreLink error:', err);
     alert('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้');
+  }
+}
+
+async function autoVerifyDiscoveredLinks() {
+  const btn = document.getElementById('auto-verify-links-btn');
+  if (!confirm('ต้องการเริ่มตรวจสอบสถานะความพร้อมใช้งาน (HTTP 200) และเปิดใช้งานบริการ มก. ที่จำเป็นให้อัตโนมัติหรือไม่?')) {
+    return;
+  }
+  btn.disabled = true;
+  const originalHtml = btn.innerHTML;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin" style="color:#16a34a;"></i> กำลังตรวจสอบ...';
+  try {
+    const res = await fetch('/api/admin/discovered-links/auto-verify', { method: 'POST' });
+    const data = await res.json();
+    alert(data.message || 'ตรวจสอบสำเร็จ');
+    await loadDiscoveredLinks();
+  } catch (err) {
+    console.error('autoVerifyDiscoveredLinks error:', err);
+    alert('เกิดข้อผิดพลาดในการตรวจสอบลิงก์');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalHtml;
   }
 }
 
@@ -2497,8 +3314,8 @@ async function openDebugModal(logId) {
   body.innerHTML = `
     <div style="text-align:center;padding:40px 20px;color:#6b7280;">
       <i class="fas fa-spinner fa-spin" style="font-size:2rem;color:#16a34a;margin-bottom:12px;"></i>
-      <div style="font-size:0.95rem;font-weight:600;">กำลังวิเคราะห์ที่มาและความมั่นใจของคำตอบ...</div>
-      <div style="font-size:0.8rem;color:#9ca3af;margin-top:4px;">ดึงข้อมูล The RAG Triad (Grounding, Chunks, FAQ)...</div>
+      <div style="font-size:0.95rem;font-weight:600;">กำลังตรวจสอบคำตอบและแหล่งข้อมูล...</div>
+      <div style="font-size:0.8rem;color:#9ca3af;margin-top:4px;">ดึงข้อมูลอ้างอิงและความมั่นใจของคำตอบ...</div>
     </div>`;
   modal.classList.add('open');
 
@@ -2649,7 +3466,7 @@ function renderDebugInspector(data, containerId) {
         <span><i class="fas fa-user"></i> ${data.is_guest ? 'Guest' : 'ผู้ใช้ LINE'}</span>
       </div>
       <div>
-        ${isRecon ? '<span style="background:#fef3c7;color:#b45309;padding:3px 8px;border-radius:99px;font-size:.72rem;font-weight:600;"><i class="fas fa-history"></i> ประเมินย้อนหลังสด</span>' : '<span style="background:#dcfce7;color:#15803d;padding:3px 8px;border-radius:99px;font-size:.72rem;font-weight:600;"><i class="fas fa-check-circle"></i> ข้อมูลบันทึกขณะรันจริง</span>'}
+        ${isRecon ? '<span style="background:#fef3c7;color:#b45309;padding:3px 8px;border-radius:99px;font-size:.72rem;font-weight:600;"><i class="fas fa-history"></i> ตรวจสอบย้อนหลัง</span>' : '<span style="background:#dcfce7;color:#15803d;padding:3px 8px;border-radius:99px;font-size:.72rem;font-weight:600;"><i class="fas fa-check-circle"></i> บันทึกเมื่อใช้งานจริง</span>'}
       </div>
     </div>
 
@@ -2677,7 +3494,7 @@ function renderDebugInspector(data, containerId) {
     <!-- Reason Checklist -->
     ${reasons.length ? `
       <div style="background:#ffffff;border:1px solid #e5e7eb;border-radius:10px;padding:12px 16px;margin-bottom:14px;">
-        <div style="font-size:0.82rem;font-weight:700;color:#1e293b;margin-bottom:6px;"><i class="fas fa-clipboard-check" style="color:#16a34a;"></i> สรุปผลการประเมิน The RAG Triad:</div>
+        <div style="font-size:0.82rem;font-weight:700;color:#1e293b;margin-bottom:6px;"><i class="fas fa-clipboard-check" style="color:#16a34a;"></i> สรุปผลการตรวจสอบคำตอบ:</div>
         <ul style="font-size:0.8rem;color:#475569;margin:0;padding-left:20px;line-height:1.5;">
           ${reasonsHtml}
         </ul>
@@ -2698,18 +3515,13 @@ function renderDebugInspector(data, containerId) {
         </div>
         <div style="font-size:0.85rem;color:#1e293b;line-height:1.6;white-space:pre-wrap;">${escHtml(data.bot_answer || '-')}</div>
       </div>
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:2px;">
-        <button type="button" onclick="openConvertFaqModal(currentDebugData ? currentDebugData.user_message : '', currentDebugData ? currentDebugData.bot_answer : '')" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:#16a34a;color:#ffffff;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;transition:all .15s ease;" onmouseover="this.style.background='#15803d'" onmouseout="this.style.background='#16a34a'">
-          <i class="fas fa-file-signature"></i> ✏️ แก้คำตอบ & บันทึกเป็น FAQ ทันที
-        </button>
-        <span style="font-size:0.75rem;color:#64748b;">(บันทึกลงคลัง FAQ ทางการ เพื่อให้ AI ตอบคำตอบนี้ 100% ในอนาคต)</span>
-      </div>
+
     </div>
 
     <!-- Entities & Tags -->
     <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;background:#f8fafc;padding:10px 14px;border-radius:10px;border:1px solid #e2e8f0;">
       <div style="font-size:0.78rem;font-weight:700;color:#475569;display:flex;align-items:center;gap:6px;width:100%;margin-bottom:2px;">
-        <i class="fas fa-tags" style="color:#0ea5e9;"></i> เอนทิตีและไฟล์ที่ระบบตรวจพบ:
+        <i class="fas fa-tags" style="color:#0ea5e9;"></i> สาขาวิชาและไฟล์ที่เกี่ยวข้อง:
       </div>
       <div>
         <span style="font-size:0.75rem;color:#64748b;">สาขาวิชา: </span>
@@ -2791,8 +3603,8 @@ async function runLiveInspect() {
   resultBox.innerHTML = `
     <div style="text-align:center;padding:40px 20px;color:#6b7280;">
       <i class="fas fa-spinner fa-spin" style="font-size:2rem;color:#0ea5e9;margin-bottom:12px;"></i>
-      <div style="font-weight:600;">กำลังรันการสืบค้นและคำนวณ The RAG Triad...</div>
-      <div style="font-size:0.8rem;color:#9ca3af;margin-top:4px;">${runLLM ? 'กำลังเรียกโมเดล Gemini สร้างคำตอบสด...' : 'จำลองกระบวนการ Retrieval โดยไม่เสียโควตา LLM'}</div>
+      <div style="font-weight:600;">กำลังค้นหาข้อมูลอ้างอิงและตรวจสอบคำตอบ...</div>
+      <div style="font-size:0.8rem;color:#9ca3af;margin-top:4px;">${runLLM ? 'กำลังสร้างคำตอบจากโมเดล...' : 'จำลองการค้นหาข้อมูลโดยไม่เสียโควตา API'}</div>
     </div>`;
 
   try {
@@ -2869,23 +3681,34 @@ setInterval(loadStats, 60000); // refresh ทุก 1 นาที
 </div>
 <!-- Modal: AI Answer & Grounding Inspector -->
 <div id="debug-inspector-modal" class="modal-overlay">
-  <div class="modal-box" style="max-width:860px;width:95%;">
+  <div class="modal-box"
+       style="max-width:860px;width:95%;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;">
     <div class="modal-header" style="background:#f0fdf4;border-bottom:1px solid #bbf7d0;">
       <h3 style="color:#16a34a;margin:0;">
-        <i class="fas fa-stethoscope"></i> ตรวจสอบที่มาของคำตอบ & ความมั่นใจ (AI Grounding Inspector)
+        <i class="fas fa-stethoscope"></i> รายละเอียดการตรวจสอบคำตอบ
       </h3>
       <button class="modal-close" onclick="closeDebugModal()">&times;</button>
     </div>
-    <div class="modal-body" id="debug-modal-content" style="max-height:78vh;overflow-y:auto;padding:18px 22px;">
+    <div class="modal-body" id="debug-modal-content" style="flex:1 1 auto;overflow-y:auto;padding:16px 20px;min-height:0;">
       <!-- Dynamic content from renderDebugInspector -->
     </div>
-    <div class="modal-footer" style="display:flex;justify-content:space-between;align-items:center;">
+    <div class="modal-footer"
+         style="display:flex;justify-content:space-between;align-items:center;flex-shrink:0;padding:12px 20px;background:#f9fafb;border-top:1px solid #e5e7eb;">
       <button type="button" class="btn btn-secondary" onclick="reanalyzeCurrentLog()" style="font-size:.82rem;padding:7px 14px;">
-        <i class="fas fa-sync-alt"></i> วิเคราะห์ซ้ำตามฐานข้อมูลล่าสุด
+        <i class="fas fa-sync-alt"></i> ตรวจสอบซ้ำด้วยข้อมูลล่าสุด
       </button>
-      <button type="button" class="btn" style="background:#e2e8f0;color:#334155;font-size:.82rem;padding:7px 16px;" onclick="closeDebugModal()">
-        ปิดหน้าต่าง
-      </button>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <button type="button"
+                onclick="openConvertFaqModal(currentDebugData ? currentDebugData.user_message : '', currentDebugData ? currentDebugData.bot_answer : '')"
+                style="display:inline-flex;align-items:center;gap:6px;padding:7px 16px;background:#16a34a;color:#ffffff;border:none;border-radius:6px;font-size:0.82rem;font-weight:600;cursor:pointer;transition:all .15s ease;"
+                onmouseover="this.style.background='#15803d'"
+                onmouseout="this.style.background='#16a34a'">
+          <i class="fas fa-file-signature"></i> แก้ไขและบันทึกเป็น FAQ
+        </button>
+        <button type="button" class="btn" style="background:#e2e8f0;color:#334155;font-size:.82rem;padding:7px 16px;" onclick="closeDebugModal()">
+          ปิดหน้าต่าง
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -2895,7 +3718,7 @@ setInterval(loadStats, 60000); // refresh ทุก 1 นาที
   <div class="modal-box" style="max-width:680px;width:95%;">
     <div class="modal-header" style="background:#f0fdf4;border-bottom:1px solid #bbf7d0;">
       <h3 style="color:#16a34a;margin:0;">
-        <i class="fas fa-file-signature"></i> ✏️ แก้คำตอบ & บันทึกเป็น FAQ ทันที
+        <i class="fas fa-file-signature"></i> แก้ไขและบันทึกเป็น FAQ
       </h3>
       <button class="modal-close" onclick="closeConvertFaqModal()">&times;</button>
     </div>
@@ -3010,22 +3833,22 @@ async function submitConvertFaq() {
 
 <!-- Modal: Live RAG Sandbox -->
 <div id="live-sandbox-modal" class="modal-overlay">
-  <div class="modal-box" style="max-width:860px;width:95%;">
+  <div class="modal-box" style="max-width:860px;width:95%;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;">
     <div class="modal-header" style="background:#f0f9ff;border-bottom:1px solid #bae6fd;">
       <h3 style="color:#0284c7;margin:0;">
-        <i class="fas fa-vial"></i> ทดสอบและตรวจสอบ AI สด (Live RAG Debugger)
+        <i class="fas fa-vial"></i> ทดสอบคำถามและตรวจสอบคำตอบ
       </h3>
       <button class="modal-close" onclick="closeLiveDebuggerModal()">&times;</button>
     </div>
     <div class="modal-body" style="max-height:80vh;overflow-y:auto;padding:18px 22px;">
       <div style="margin-bottom:12px;">
         <label style="font-size:0.85rem;font-weight:700;color:#1e293b;display:block;margin-bottom:6px;">
-          พิมพ์คำถามที่ต้องการทดสอบการค้นหาและตรวจสอบที่มา:
+          พิมพ์คำถามที่ต้องการทดสอบ:
         </label>
         <div style="display:flex;gap:8px;">
           <input type="text" id="live-sandbox-input" placeholder="เช่น ค่าเทอม CS, ป่วยตอนสอบทำไง, ดรอปวิชา..." style="flex:1;padding:10px 14px;border:1px solid #cbd5e1;border-radius:8px;font-size:0.9rem;" onkeydown="if(event.key==='Enter') runLiveInspect()">
           <button type="button" class="btn btn-primary" onclick="runLiveInspect()" style="padding:10px 20px;white-space:nowrap;background:#0284c7;">
-            <i class="fas fa-search"></i> ตรวจสอบ
+            <i class="fas fa-search"></i> ทดสอบคำถาม
           </button>
         </div>
       </div>
@@ -3052,7 +3875,7 @@ async function submitConvertFaq() {
       <div id="live-sandbox-result">
         <div style="text-align:center;padding:40px 20px;color:#94a3b8;border:2px dashed #e2e8f0;border-radius:12px;">
           <i class="fas fa-microscope" style="font-size:2.2rem;margin-bottom:10px;color:#cbd5e1;"></i>
-          <div style="font-weight:600;color:#64748b;">พิมพ์คำถามด้านบน หรือคลิกตัวอย่างคำถาม เพื่อเริ่มวิเคราะห์ระบบ RAG สด</div>
+          <div style="font-weight:600;color:#64748b;">พิมพ์คำถามด้านบน หรือคลิกตัวอย่างคำถาม เพื่อเริ่มทดสอบและตรวจสอบคำตอบ</div>
         </div>
       </div>
     </div>
