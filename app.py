@@ -1777,6 +1777,39 @@ def ask_gemini(user_message, history=None, return_debug=False):
 def ping():
     return "pong", 200
 
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
+
+_OAUTH_STATE_MAX_AGE = 600  # อายุ OAuth state สูงสุด 10 นาที
+_USED_OAUTH_STATES = {}     # ป้องกัน Replay Attack เมื่อสลับเบราว์เซอร์บนมือถือ
+
+def _generate_oauth_state():
+    """สร้าง OAuth state ที่ลงลายเซ็น HMAC เพื่อให้ตรวจสอบได้แม้ iOS/Android สลับเบราว์เซอร์ตอน Callback"""
+    s = URLSafeTimedSerializer(app.config["SECRET_KEY"], salt="line-oauth-state")
+    state = s.dumps({"n": secrets.token_hex(8)})
+    flask_session["oauth_state"] = state
+    return state
+
+def _verify_oauth_state(state, saved_state):
+    """ตรวจสอบ OAuth state ทั้งจาก Session Cookie และลายเซ็น HMAC พร้อมป้องกันการใช้ซ้ำ"""
+    if not state:
+        return False
+    now = time.time()
+    expired_keys = [k for k, ts in _USED_OAUTH_STATES.items() if now - ts > _OAUTH_STATE_MAX_AGE]
+    for k in expired_keys:
+        _USED_OAUTH_STATES.pop(k, None)
+    if state in _USED_OAUTH_STATES:
+        return False
+    if saved_state and hmac.compare_digest(state, saved_state):
+        _USED_OAUTH_STATES[state] = now
+        return True
+    try:
+        s = URLSafeTimedSerializer(app.config["SECRET_KEY"], salt="line-oauth-state")
+        s.loads(state, max_age=_OAUTH_STATE_MAX_AGE)
+        _USED_OAUTH_STATES[state] = now
+        return True
+    except (BadSignature, SignatureExpired):
+        return False
+
 @app.route("/login")
 def login_page():
     # ถ้าล็อกอินด้วย LINE ตัวจริงแล้ว ให้ redirect ไปหน้าแชท
@@ -1787,8 +1820,7 @@ def login_page():
     # สร้าง Direct Universal Link สำหรับเปิดแอป LINE ในเครื่องอัตโนมัติบนมือถือ
     line_auth_url = None
     if LINE_CLIENT_ID:
-        state = secrets.token_hex(16)
-        flask_session["oauth_state"] = state
+        state = _generate_oauth_state()
         params = {
             "response_type": "code",
             "client_id":     LINE_CLIENT_ID,
@@ -1819,15 +1851,14 @@ def guest_login():
 def line_login():
     if not LINE_CLIENT_ID:
         return redirect(url_for("login_page"))
-    state = secrets.token_hex(16)
-    flask_session["oauth_state"] = state
+    state = _generate_oauth_state()
     params = {
         "response_type": "code",
         "client_id":     LINE_CLIENT_ID,
         "redirect_uri":  LINE_REDIRECT_URI,
         "scope":         "profile openid",
         "state":         state,
-        "initial_amr_display": "lineqr",
+        "bot_prompt":    "normal",
     }
     return redirect("https://access.line.me/oauth2/v2.1/authorize?" + urlencode(params))
 
@@ -1838,7 +1869,7 @@ def line_callback():
     state = request.args.get("state")
     saved_state = flask_session.pop("oauth_state", None)
     # บังคับตรวจ OAuth state เสมอ ป้องกัน Login CSRF / Session Fixation
-    if not code or not saved_state or state != saved_state:
+    if not code or not _verify_oauth_state(state, saved_state):
         return redirect(url_for("login_page"))
 
     try:
@@ -2685,7 +2716,7 @@ def api_admin_discovered_links():
                 "is_system_mapped": bool(l.is_system_mapped),
                 "is_ignored": bool(getattr(l, "is_ignored", False)),
                 "mapped_at": to_thai_time(l.mapped_at) if getattr(l, "mapped_at", None) else "-",
-                "last_seen": to_thai_time(l.last_seen) if l.last_seen else "-"
+                "last_seen": to_thai_time(l.last_seen).split(" ")[0] if l.last_seen else "-"
             }
             for l in links
         ]
