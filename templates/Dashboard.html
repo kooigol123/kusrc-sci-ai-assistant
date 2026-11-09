@@ -2966,7 +2966,7 @@ function renderDiscoveredLinks(pageItems, totalFiltered, startIndex, endIndex, t
         </a>
       </td>
       <td class="col-source">${sourceDisplay}</td>
-      <td class="col-scan-time" style="font-size:0.8rem;color:#64748b;white-space:nowrap;text-align:center;">${escapeHtml(l.last_seen)}</td>
+      <td class="col-scan-time" style="font-size:0.8rem;color:#64748b;white-space:nowrap;text-align:center;">${escapeHtml((l.last_seen || '-').split(' ')[0])}</td>
       <td class="col-mapped-time" style="white-space:nowrap;text-align:center;">${mappedDisplay}</td>
       <td style="text-align:center;white-space:nowrap;">${statusBadge}</td>
       <td style="text-align:center;white-space:nowrap;">${actionBtns}</td>
