@@ -1034,9 +1034,25 @@ def evaluate_faithfulness(bot_text, context_text):
         "unsupported_facts": unsupported_facts
     }
 
-def _perform_retrieval(user_message):
+def _perform_retrieval(user_message, history=None):
     """ดำเนินการสืบค้นข้อมูลในคลังเอกสารและ FAQ (Core RAG Retrieval)"""
     msg_lower = user_message.lower()
+    prev_user_text = ""
+    if history and isinstance(history, list):
+        prev_user_msgs = []
+        for h in history[-4:]:
+            if isinstance(h, dict) and h.get("role") == "user":
+                p = h.get("parts")
+                if isinstance(p, str):
+                    txt = p.strip()
+                elif isinstance(p, list) and p and isinstance(p[0], dict):
+                    txt = p[0].get("text", "").strip()
+                else:
+                    txt = str(p or "").strip()
+                if txt:
+                    prev_user_msgs.append(txt)
+        if prev_user_msgs:
+            prev_user_text = " ".join(prev_user_msgs[-2:]).lower()
     _stop_words = (
         "คณะวิทยาศาสตร์", "มหาวิทยาลัยเกษตรศาสตร์", "วิทยาเขตศรีราชา",
         "ม.เกษตร", "ศรีราชา", "เกษตร", "ต้องทำยังไง", "ทำยังไง", "ยังไง",
@@ -1054,7 +1070,23 @@ def _perform_retrieval(user_message):
     kw = [w for w in search_src.split() if len(w) > 1]
     compact = search_src.replace(" ", "")
     kw += [compact[i:i+3] for i in range(len(compact) - 2)]
-    kw = list(dict.fromkeys(kw))
+    if prev_user_text:
+        cleaned_prev = prev_user_text
+        for sw in _stop_words:
+            cleaned_prev = cleaned_prev.replace(sw, " ")
+        cleaned_prev = cleaned_prev.strip()
+        prev_kw = [w for w in cleaned_prev.split() if len(w) > 1]
+        compact_prev = cleaned_prev.replace(" ", "")
+        prev_kw += [compact_prev[i:i+3] for i in range(len(compact_prev) - 2)]
+
+        _topic_kws = ("วิชา", "หลักสูตร", "ค่าเทอม", "ทุน", "ปฏิทิน", "สอบ", "ลงทะเบียน", "คำร้อง", "เอกสาร", "หอพัก", "เกรด", "ปี", "เทอม")
+        is_follow_up = len(cleaned_msg) < 30 or not any(k in cleaned_msg for k in _topic_kws) or any(k in msg_lower for k in ("บอกผม", "บอกได้", "สาขา", "ภาค", "แล้ว", "ต่อ", "เพิ่มเติม"))
+        if is_follow_up and prev_kw:
+            kw = list(dict.fromkeys(kw + prev_kw))
+        else:
+            kw = list(dict.fromkeys(kw))
+    else:
+        kw = list(dict.fromkeys(kw))
 
     def _score(text):
         if not kw or not text:
@@ -1100,6 +1132,10 @@ def _perform_retrieval(user_message):
     for m_key, m_info in _MAJOR_MAP.items():
         if any(k in msg_lower for k in m_info["keywords"]):
             detected_majors.add(m_key)
+    if not detected_majors and prev_user_text:
+        for m_key, m_info in _MAJOR_MAP.items():
+            if any(k in prev_user_text for k in m_info["keywords"]):
+                detected_majors.add(m_key)
 
     context_str = ""
     docs_to_use = []
@@ -1535,7 +1571,7 @@ def ask_gemini(user_message, history=None, return_debug=False):
             return resp, [], [], dbg
         return resp, [], []
 
-    ret = _perform_retrieval(user_message)
+    ret = _perform_retrieval(user_message, history=history)
     kw = ret["kw"]
     detected_majors = ret["detected_majors"]
     docs_to_use = ret["docs_to_use"]
