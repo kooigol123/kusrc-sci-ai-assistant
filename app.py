@@ -56,6 +56,8 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_pre_ping": True,
     "pool_recycle": 300,
+    "pool_size": 5,
+    "max_overflow": 5,
 }
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY") or secrets.token_hex(32)
 app.config["PERMANENT_SESSION_LIFETIME"] = _td(minutes=30)  # Session หมดอายุหลังจากไม่ได้ใช้งาน 30 นาที
@@ -94,7 +96,7 @@ def login_required(f):
     def decorated(*args, **kwargs):
         is_api = request.is_json or request.path.startswith("/api/") or request.path == "/chat"
         if flask_session.get("is_guest"):
-            if get_setting("guest_mode", "false") == "true":
+            if get_setting("guest_mode", "true") == "true":
                 if not flask_session.get("line_picture"):
                     flask_session["line_picture"] = "/static/img/guest_avatar.png"
                 return f(*args, **kwargs)
@@ -407,7 +409,7 @@ SYSTEM_LINKS_REGISTRY = [
         "title": "รวมหลักสูตรทั้งหมด คณะวิทยาศาสตร์ ศรีราชา",
         "url": "https://sci.src.ku.ac.th/en/program/",
         "desc": "รายละเอียดหลักสูตรระดับปริญญาตรีและบัณฑิตศึกษาทุกสาขาวิชา",
-        "keywords": ("รวมหลักสูตร", "ทุกหลักสูตร", "ทุกสาขา", "มีสาขาอะไรบ้าง", "มีหลักสูตรอะไรบ้าง"),
+        "keywords": ("รวมหลักสูตร", "ทุกหลักสูตร", "ทุกสาขา", "มีสาขาอะไรบ้าง", "มีหลักสูตรอะไรบ้าง", "มีกี่สาขา", "เปิดสอนสาขาอะไร", "สาขาอะไรบ้าง", "เปิดสอนอะไรบ้าง", "มีสาขาอะไร", "มีกี่หลักสูตร"),
         "check_target": "user",
         "is_curriculum": True,
     },
@@ -583,6 +585,10 @@ def get_matching_system_links(user_message, bot_text="", history=None, initial_l
                 if is_admission_q and any(p in url.lower() for p in ("/course/", "/program/", "/department/")):
                     continue
 
+                # ถ้าเป็นคำถามหลักสูตร/มีสาขาอะไรบ้าง แต่ไม่ได้ถามรับสมัคร ห้ามดึงลิงก์รับสมัครที่โมเดลส่งมา
+                if not is_admission_q and any(k in user_q for k in ("มีสาขาอะไร", "สาขาอะไรบ้าง", "มีกี่สาขา", "เปิดสอนสาขา", "มีหลักสูตรอะไร", "หลักสูตรอะไรบ้าง")) and "admissions.src.ku.ac.th" in url:
+                    continue
+
                 # ถ้าถามเรื่องทุน ไม่เอาลิงก์รับสมัครที่โมเดลส่งมา
                 if is_scholarship_q and "admissions.src.ku.ac.th" in url:
                     continue
@@ -617,7 +623,7 @@ def get_matching_system_links(user_message, bot_text="", history=None, initial_l
         if item.get("is_curriculum"):
             has_curriculum_intent = (
                 is_curriculum_query or
-                any(k in user_q for k in ("หลักสูตร", "แผนการเรียน", "วิชาที่ต้องเรียน", "เรียนอะไรบ้าง", "program", "curriculum", "เน้นอะไร", "ต่างจาก", "รวมหลักสูตร", "ทุกหลักสูตร", "ทุกสาขา", "มีสาขาอะไรบ้าง"))
+                any(k in user_q for k in ("หลักสูตร", "แผนการเรียน", "วิชาที่ต้องเรียน", "เรียนอะไรบ้าง", "program", "curriculum", "เน้นอะไร", "ต่างจาก", "รวมหลักสูตร", "ทุกหลักสูตร", "ทุกสาขา", "มีสาขาอะไรบ้าง", "มีกี่สาขา", "เปิดสอนสาขา", "สาขาอะไรบ้าง", "มีสาขาอะไร", "มีกี่หลักสูตร"))
             )
             if not has_curriculum_intent:
                 continue
@@ -1014,6 +1020,18 @@ def evaluate_faithfulness(bot_text, context_text):
         else:
             unsupported_facts.append(f)
 
+    # ตรวจจับชื่อวันทำการ/ช่วงเวลา/สถานที่/สิ่งอำนวยความสะดวกในคำตอบ ว่ามีหลักฐานใน Context หรือไม่
+    claim_patterns = re.findall(
+        r'(?:วันจันทร์|วันอังคาร|วันพุธ|วันพฤหัสบดี|วันศุกร์|วันเสาร์|วันอาทิตย์|เสาร์-อาทิตย์|จันทร์-ศุกร์|เวลาราชการ|โรงอาหาร(?:กลาง|ชาย|หญิง)?|โรงชาย|โรงหญิง|ตลาดนัด|รถราง|สระว่ายน้ำ|สนามกีฬา|ฟิตเนส|โรงพยาบาล|คลินิก|ห้องพยาบาล|สหกรณ์|ร้านค้า|เซเว่น|7-eleven|ธนาคาร)',
+        bot_text,
+        flags=re.I
+    )
+    for c in dict.fromkeys([p.strip() for p in claim_patterns if p.strip()]):
+        if c.lower() in combined_ctx:
+            grounded_facts.append(c)
+        else:
+            unsupported_facts.append(c)
+
     total_facts = len(grounded_facts) + len(unsupported_facts)
     if total_facts == 0:
         score = 1.0
@@ -1142,11 +1160,17 @@ def _perform_retrieval(user_message, history=None):
     doc_score_map = {}
     scored_docs = []
     is_fallback = False
-    is_overview = any(p in compact for p in (
+    raw_compact = msg_lower.replace(" ", "")
+    is_overview = any(p in raw_compact for p in (
         "มีข้อมูลอะไรบ้าง", "มีข้อมูลด้านไหน", "มีข้อมูลเรื่องอะไร", "มีข้อมูลอะไร",
         "ช่วยอะไรได้บ้าง", "ช่วยเรื่องอะไรได้บ้าง", "ทำอะไรได้บ้าง", "ถามอะไรได้บ้าง",
         "มีบริการอะไรบ้าง", "ค้นหาอะไรได้บ้าง", "รู้เรื่องอะไรบ้าง", "มีอะไรให้ถามบ้าง",
         "ในระบบมีข้อมูลอะไร", "มีข้อมูลเกี่ยวกับอะไร"
+    ))
+    is_all_programs_q = any(p in raw_compact for p in (
+        "มีสาขาอะไร", "สาขาอะไรบ้าง", "มีกี่สาขา", "เปิดสอนสาขา", "สาขาวิชาอะไรบ้าง",
+        "มีหลักสูตรอะไร", "หลักสูตรอะไรบ้าง", "มีกี่หลักสูตร", "รวมหลักสูตร", "ทุกสาขา", "ทุกหลักสูตร",
+        "สาขาทั้งหมด", "หลักสูตรทั้งหมด", "เรียนสาขาไหนดี", "แนะนำสาขา", "มีสาขา"
     ))
 
     if CHAT_CONTEXT:
@@ -1165,6 +1189,12 @@ def _perform_retrieval(user_message, history=None):
                     is_target_major = any(any(f in src_lower for f in _MAJOR_MAP[m_key]["files"]) for m_key in detected_majors)
                     if not is_target_major:
                         sc -= 15
+
+            if is_all_programs_q:
+                if "program" in src_lower or "curriculum" in cat_lower or "regis_curriculum" in cat_lower:
+                    sc += 35
+                elif ".txt" in src_lower:
+                    sc = min(sc, 5)
 
             doc_score_map[id(d)] = sc
             if sc > 0:
@@ -1246,6 +1276,7 @@ def _perform_retrieval(user_message, history=None):
         "scored_faq": scored_faq,
         "is_fallback": is_fallback,
         "is_overview": is_overview,
+        "is_all_programs_q": is_all_programs_q,
         "context_str": context_str,
         "faq_str": faq_str
     }
@@ -1253,7 +1284,7 @@ def _perform_retrieval(user_message, history=None):
 def compute_rag_debug_info(user_message, bot_text, good_files, good_links,
                            docs_to_use, scored_docs_map, scored_faq,
                            detected_majors, kw, is_fallback, is_overview,
-                           context_str="", faq_str=""):
+                           context_str="", faq_str="", is_all_programs_q=False):
     """คำนวณระดับความมั่นใจ และรวบรวมที่มาของข้อมูล (The RAG Triad Analysis)"""
     top_doc_score = max(scored_docs_map.values()) if scored_docs_map else 0
     top_faq_score = scored_faq[0][0] if scored_faq else 0
@@ -1297,6 +1328,10 @@ def compute_rag_debug_info(user_message, bot_text, good_files, good_links,
         m_list = ", ".join(sorted(m.upper() for m in detected_majors))
         reasons.append(f"ตรวจพบสาขาวิชา {m_list} และคัดกรองเอกสารหลักสูตรเฉพาะทาง")
 
+    if is_all_programs_q:
+        confidence_score += 10
+        reasons.append("ตรวจพบคำถามภาพรวมหลักสูตร/สาขาวิชา และดึงข้อมูลหลักสูตรทั้งหมดของคณะโดยตรง")
+
     if is_fallback:
         confidence_score -= 30
         reasons.append("ไม่พบเอกสารตรงเป้า ระบบจำเป็นต้องใช้เอกสารภาพรวมสำรอง")
@@ -1307,10 +1342,10 @@ def compute_rag_debug_info(user_message, bot_text, good_files, good_links,
     faith_res = evaluate_faithfulness(bot_text, combined_ctx)
     if faith_res["unsupported_facts"]:
         confidence_score -= 20
-        reasons.append(f"ตรวจพบข้อมูลตัวเลข {len(faith_res['unsupported_facts'])} จุดที่ไม่ปรากฏในเอกสารอ้างอิง")
+        reasons.append(f"ตรวจพบข้อมูลหรือสถานที่ {len(faith_res['unsupported_facts'])} จุดที่ไม่ปรากฏในเอกสารอ้างอิง ({', '.join(faith_res['unsupported_facts'])})")
     elif faith_res["grounded_facts"]:
         confidence_score += 10
-        reasons.append("ข้อมูลตัวเลขและเงื่อนไขสำคัญในคำตอบ มีหลักฐานยืนยันในเอกสารอ้างอิงครบถ้วน")
+        reasons.append("ข้อมูลและเงื่อนไขสำคัญในคำตอบ มีหลักฐานยืนยันในเอกสารอ้างอิงครบถ้วน")
 
     confidence_score = max(20, min(98, confidence_score))
 
@@ -1440,7 +1475,8 @@ def generate_chat_debug_analysis(user_message, bot_answer=None):
         is_fallback=ret["is_fallback"],
         is_overview=ret["is_overview"],
         context_str=ret["context_str"],
-        faq_str=ret["faq_str"]
+        faq_str=ret["faq_str"],
+        is_all_programs_q=ret.get("is_all_programs_q", False)
     )
     debug_data["is_reconstructed"] = True
     return debug_data
@@ -1581,6 +1617,7 @@ def ask_gemini(user_message, history=None, return_debug=False):
     is_overview = ret["is_overview"]
     context_str = ret["context_str"]
     faq_str = ret["faq_str"]
+    is_all_programs_q = ret.get("is_all_programs_q", False)
 
     system = f"""{prompt}
 {context_str}{faq_str}
@@ -1764,7 +1801,8 @@ def ask_gemini(user_message, history=None, return_debug=False):
             is_fallback=is_fallback,
             is_overview=is_overview,
             context_str=context_str,
-            faq_str=faq_str
+            faq_str=faq_str,
+            is_all_programs_q=is_all_programs_q
         )
         return bot_text, good_files, good_links, debug_info
 
@@ -1815,7 +1853,7 @@ def login_page():
     # ถ้าล็อกอินด้วย LINE ตัวจริงแล้ว ให้ redirect ไปหน้าแชท
     if flask_session.get("line_user_id") and not flask_session.get("is_guest"):
         return redirect(url_for("index"))
-    guest_mode = (get_setting("guest_mode", "false") == "true")
+    guest_mode = (get_setting("guest_mode", "true") == "true")
 
     # สร้าง Direct Universal Link สำหรับเปิดแอป LINE ในเครื่องอัตโนมัติบนมือถือ
     line_auth_url = None
@@ -1835,7 +1873,7 @@ def login_page():
 
 @app.route("/auth/guest")
 def guest_login():
-    if get_setting("guest_mode", "false") != "true":
+    if get_setting("guest_mode", "true") != "true":
         return redirect(url_for("login_page"))
     guest_id = f"guest_{secrets.token_hex(6)}"
     flask_session.permanent = True
@@ -2357,7 +2395,7 @@ def api_admin_stats():
                 "started_at":  to_thai_time(l.started_at),
                 "finished_at": to_thai_time(l.finished_at),
             } for l in scrape_logs],
-            "guest_mode": (get_setting("guest_mode", "false") == "true"),
+            "guest_mode": (get_setting("guest_mode", "true") == "true"),
             "faq_enabled": (get_setting("faq_enabled", "true") == "true"),
         })
     except Exception as e:
@@ -3042,8 +3080,8 @@ def initialize_app():
                 cl_columns = [col['name'] for col in inspector.get_columns('chat_log')]
                 with db.engine.connect() as conn:
                     if "is_guest" not in cl_columns:
-                        conn.execute(text("ALTER TABLE chat_log ADD COLUMN is_guest BOOLEAN DEFAULT 0"))
-                        conn.execute(text("UPDATE chat_log SET is_guest = 1 WHERE user_id IS NULL AND (session_id LIKE 'guest_%' OR session_id = 'anonymous')"))
+                        conn.execute(text("ALTER TABLE chat_log ADD COLUMN is_guest BOOLEAN DEFAULT FALSE"))
+                        conn.execute(text("UPDATE chat_log SET is_guest = TRUE WHERE user_id IS NULL AND (session_id LIKE 'guest_%' OR session_id = 'anonymous')"))
                         conn.commit()
                         print("[Migration] Added column: is_guest to chat_log and backfilled")
         except Exception as e:
@@ -3056,13 +3094,13 @@ def initialize_app():
                 dl_columns = [col['name'] for col in inspector.get_columns('discovered_links')]
                 with db.engine.connect() as conn:
                     if "is_ignored" not in dl_columns:
-                        conn.execute(text("ALTER TABLE discovered_links ADD COLUMN is_ignored BOOLEAN DEFAULT 0"))
+                        conn.execute(text("ALTER TABLE discovered_links ADD COLUMN is_ignored BOOLEAN DEFAULT FALSE"))
                         print("[Migration] Added column: is_ignored to discovered_links")
                     if "link_type" not in dl_columns:
                         conn.execute(text("ALTER TABLE discovered_links ADD COLUMN link_type VARCHAR(50) DEFAULT 'website'"))
                         print("[Migration] Added column: link_type to discovered_links")
                     if "mapped_at" not in dl_columns:
-                        conn.execute(text("ALTER TABLE discovered_links ADD COLUMN mapped_at DATETIME"))
+                        conn.execute(text("ALTER TABLE discovered_links ADD COLUMN mapped_at TIMESTAMP"))
                         print("[Migration] Added column: mapped_at to discovered_links")
                     conn.commit()
         except Exception as e:
