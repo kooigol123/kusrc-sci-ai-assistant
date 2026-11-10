@@ -2051,6 +2051,9 @@ async function loadStats() {
     }
     document.getElementById('stat-sessions').textContent = d.total_sessions.toLocaleString();
     document.getElementById('stat-pages').textContent    = d.scraped_pages.toLocaleString();
+    if (d.unmapped_links_count !== undefined) {
+      updateUnmappedBadge(d.unmapped_links_count);
+    }
     const sat = d.satisfaction;
     const fbTotal = d.feedback_total || 0;
     const positive = d.feedback_positive ?? 0;
@@ -2534,7 +2537,7 @@ function updateUnmappedBadge(count) {
 
 async function fetchUnmappedCount() {
   try {
-    const res = await fetch('/api/admin/discovered-links');
+    const res = await fetch('/api/admin/discovered-links?summary_only=1');
     if (!res.ok) return;
     const data = await res.json();
     updateUnmappedBadge(data.unmapped_count || 0);
