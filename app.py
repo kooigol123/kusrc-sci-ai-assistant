@@ -194,14 +194,47 @@ class SystemSetting(db.Model):
     key   = db.Column(db.String(100), primary_key=True)
     value = db.Column(db.String(255), nullable=False)
 
+# ── In-Memory Caches ──────────────────────
+_SETTINGS_CACHE = {}
+_IGNORED_URLS_CACHE = None
+_STATS_CACHE = {"data": None, "ts": 0}
+_STATS_CACHE_TTL = 15  # seconds
+_TOP_QUESTIONS_CACHE = {"data": None, "ts": 0}
+_DOCUMENTS_CACHE = None
+
+def invalidate_stats_cache():
+    global _STATS_CACHE
+    _STATS_CACHE = {"data": None, "ts": 0}
+
+def invalidate_links_cache():
+    global _IGNORED_URLS_CACHE
+    _IGNORED_URLS_CACHE = None
+    invalidate_stats_cache()
+
+def get_ignored_urls():
+    global _IGNORED_URLS_CACHE
+    if _IGNORED_URLS_CACHE is not None:
+        return _IGNORED_URLS_CACHE
+    try:
+        _IGNORED_URLS_CACHE = {l.url.rstrip("/").lower() for l in DiscoveredLink.query.filter_by(is_ignored=True).all()}
+    except Exception:
+        _IGNORED_URLS_CACHE = set()
+    return _IGNORED_URLS_CACHE
+
 def get_setting(key, default="false"):
+    global _SETTINGS_CACHE
+    if key in _SETTINGS_CACHE:
+        return _SETTINGS_CACHE[key]
     try:
         s = SystemSetting.query.filter_by(key=key).first()
-        return s.value if s else default
+        val = s.value if s else default
+        _SETTINGS_CACHE[key] = val
+        return val
     except Exception:
         return default
 
 def set_setting(key, value):
+    global _SETTINGS_CACHE
     try:
         s = SystemSetting.query.filter_by(key=key).first()
         if not s:
@@ -210,6 +243,8 @@ def set_setting(key, value):
         else:
             s.value = str(value)
         db.session.commit()
+        _SETTINGS_CACHE[key] = str(value)
+        invalidate_stats_cache()
         return True
     except Exception as e:
         db.session.rollback()
@@ -221,6 +256,8 @@ def set_setting(key, value):
 # ──────────────────────────────────────────
 CHAT_CONTEXT = []
 FAQ_CONTEXT = []
+_LAST_FAQ_CHECK_TS = 0.0     # เวลาที่ตรวจสอบฐานข้อมูลล่าสุด
+_FAQ_CHECK_INTERVAL = 60.0   # ตรวจสอบทุก 60 วินาทีเพื่อรองรับการแก้ DB โดยตรงบนเครื่องมหาลัย
 
 _FAQ_EXCEL_PATH = os.path.join(os.path.dirname(__file__), "FAQ_AI_updated.xlsx")
 
@@ -526,10 +563,7 @@ def get_matching_system_links(user_message, bot_text="", history=None, initial_l
         "login.asp",
     )
 
-    try:
-        ignored_db_urls = {l.url.rstrip("/").lower() for l in DiscoveredLink.query.filter_by(is_ignored=True).all()}
-    except Exception:
-        ignored_db_urls = set()
+    ignored_db_urls = get_ignored_urls()
 
     hist_user_context = ""
     # ใช้ประวัติการสนทนาเฉพาะเมื่อผู้ใช้ถามประโยคสั้นต่อเนื่อง (Follow-up) เท่านั้น ป้องกัน Context Leak ข้ามหัวข้อ
@@ -733,11 +767,18 @@ def sync_discovered_links_from_db():
 
         now = datetime.utcnow()
         new_count = 0
+        existing_list = DiscoveredLink.query.all()
+        existing_map = {}
+        for l in existing_list:
+            existing_map[l.url] = l
+            existing_map[l.url.rstrip("/") + "/"] = l
+            existing_map[l.url.rstrip("/")] = l
+
         for url, data in discovered.items():
-            existing = DiscoveredLink.query.filter_by(url=url).first()
+            existing = existing_map.get(url)
             if not existing:
                 alt_url = url + "/" if not url.endswith("/") else url.rstrip("/")
-                existing = DiscoveredLink.query.filter_by(url=alt_url).first()
+                existing = existing_map.get(alt_url)
                 if existing:
                     existing.url = url
             norm_url = url.rstrip("/").lower()
@@ -784,7 +825,8 @@ def sync_discovered_links_from_db():
                 new_count += 1
 
         db.session.commit()
-        total_links = DiscoveredLink.query.count()
+        invalidate_links_cache()
+        total_links = len(existing_list) + new_count
         print(f"[DiscoveredLinks] Synced {total_links} links ({new_count} new).")
         return total_links, new_count
     except Exception as e:
@@ -1520,13 +1562,17 @@ def ask_gemini(user_message, history=None, return_debug=False):
             return resp, [], [], dbg
         return resp, [], []
 
-    # ตรวจสอบและรีเฟรช FAQ จากฐานข้อมูลเสมอ หากมีข้อมูลใหม่เข้ามาในระบบ
-    try:
-        faq_count = FAQ.query.count()
-        if len(FAQ_CONTEXT) != faq_count:
-            load_faq_from_db()
-    except Exception:
-        pass
+    # ตรวจสอบและรีเฟรช FAQ จากฐานข้อมูล (เช็คใน RAM ทันที และซิงค์กับ DB ทุก 60 วินาทีเพื่อรองรับเครื่องเซิร์ฟเวอร์มหาลัย)
+    global _LAST_FAQ_CHECK_TS
+    now_ts = time.time()
+    if not FAQ_CONTEXT or (now_ts - _LAST_FAQ_CHECK_TS > _FAQ_CHECK_INTERVAL):
+        _LAST_FAQ_CHECK_TS = now_ts
+        try:
+            faq_count = FAQ.query.count()
+            if len(FAQ_CONTEXT) != faq_count:
+                load_faq_from_db()
+        except Exception:
+            pass
 
     _curriculum_guard = ("เรียน", "สอน", "วิชา", "สาขา", "หลักสูตร", "แผนการเรียน", "ศึกษา")
     is_curriculum_query = any(w in msg_lower for w in _curriculum_guard)
@@ -1968,7 +2014,12 @@ def line_logout():
 
 @app.route("/api/top_questions")
 def api_top_questions():
-    """Top 5 คำถามยอดนิยม — public endpoint"""
+    """Top 5 คำถามยอดนิยม — public endpoint (แคชในหน่วยความจำ 5 นาที)"""
+    global _TOP_QUESTIONS_CACHE
+    now_ts = time.time()
+    if _TOP_QUESTIONS_CACHE["data"] and (now_ts - _TOP_QUESTIONS_CACHE["ts"] < 300):
+        return jsonify(_TOP_QUESTIONS_CACHE["data"])
+
     default_chips = [
         "มีสาขาอะไรบ้าง",
         "ค่าเทอมเท่าไหร่",
@@ -2003,9 +2054,27 @@ def api_top_questions():
                 break
             if q not in seen:
                 top5.append({"question": q, "count": 0})
-        return jsonify({"questions": top5})
+        result = {"questions": top5}
+        _TOP_QUESTIONS_CACHE = {"data": result, "ts": now_ts}
+        return jsonify(result)
     except Exception:
         return jsonify({"questions": [{"question": q, "count": 0} for q in default_chips]})
+
+# ── In-Memory Rate Limiter ต่อบัญชีผู้ใช้/เซสชัน (ไม่ใช้ IP เพื่อรองรับ Campus Wi-Fi NAT) ──
+_chat_rate_buckets = {}   # session_key -> [timestamps ภายใน 60 วินาทีล่าสุด]
+_CHAT_RATE_LIMIT = 10     # สูงสุด 10 ข้อความต่อนาทีต่อคน (ป้องกันชนเพดาน Gemini 15 RPM)
+_CHAT_RATE_WINDOW = 60
+
+def _check_chat_rate_limit(session_key: str) -> bool:
+    """ตรวจสอบความถี่การส่งแชทใน RAM (True = ผ่าน, False = ส่งถี่เกินไป)"""
+    now = time.time()
+    timestamps = [t for t in _chat_rate_buckets.get(session_key, []) if now - t < _CHAT_RATE_WINDOW]
+    if len(timestamps) >= _CHAT_RATE_LIMIT:
+        _chat_rate_buckets[session_key] = timestamps
+        return False
+    timestamps.append(now)
+    _chat_rate_buckets[session_key] = timestamps
+    return True
 
 # ──────────────────────────────────────────
 # Routes — ต้อง login LINE
@@ -2036,15 +2105,9 @@ def chat():
             db_user_id = u.id
             flask_session["db_user_id"] = u.id
 
-    # จำกัด 10 ข้อความ/นาที ต่อบัญชีผู้ใช้ กันโควต้า Gemini 15 RPM เต็ม
-    now = datetime.utcnow()
-    one_min_ago = now - _td(minutes=1)
-    rate_q = ChatLog.query.filter(ChatLog.timestamp >= one_min_ago)
-    if db_user_id:
-        rate_q = rate_q.filter(ChatLog.user_id == db_user_id)
-    else:
-        rate_q = rate_q.filter(ChatLog.session_id == session_id)
-    if rate_q.count() >= 10:
+    # จำกัด 10 ข้อความ/นาที ต่อบัญชีผู้ใช้/เซสชัน ในหน่วยความจำ (ไม่ใช้ IP เพื่อรองรับ Wi-Fi มหาลัย และลด SQL Query ข้าม Supabase)
+    rate_key = f"user_{db_user_id}" if db_user_id else f"guest_{flask_session.get('line_user_id', session_id)}"
+    if not _check_chat_rate_limit(rate_key):
         return jsonify({"response": "ขออภัยครับ คุณส่งข้อความถี่เกินไป กรุณารอสักครู่แล้วลองใหม่ครับ", "suggested_files": []})
 
     # ── ตรวจสอบโควตาสำหรับโหมดทดลองใช้งาน (Guest Mode: จำกัด 5 ข้อ) ──
@@ -2098,6 +2161,7 @@ def chat():
             )
             db.session.add(log)
             db.session.commit()
+            invalidate_stats_cache()
         except Exception as db_err:
             print(f"[ChatLog] Save error: {db_err}")
             db.session.rollback()
@@ -2182,11 +2246,15 @@ def api_documents_search():
 @app.route("/api/documents")
 @login_required
 def api_documents():
+    global _DOCUMENTS_CACHE
+    if _DOCUMENTS_CACHE is not None:
+        return jsonify(_DOCUMENTS_CACHE)
     docs = []
     if os.path.exists(PDF_DIR):
         for fn in sorted(os.listdir(PDF_DIR)):
             if fn.endswith(".pdf"):
                 docs.append({"id": len(docs)+1, "name": fn, "category": get_pdf_category(fn)})
+    _DOCUMENTS_CACHE = docs
     return jsonify(docs)
 
 @app.route("/api/feedback", methods=["POST"])
@@ -2202,6 +2270,7 @@ def save_feedback():
         return jsonify({"error": "not found"}), 404
     log.feedback = score
     db.session.commit()
+    invalidate_stats_cache()
     return jsonify({"ok": True})
 
 # ──────────────────────────────────────────
@@ -2323,27 +2392,54 @@ def to_thai_time(dt):
 @app.route("/api/admin/stats")
 @admin_required
 def api_admin_stats():
+    global _STATS_CACHE
+    now_ts = time.time()
+    if _STATS_CACHE["data"] and (now_ts - _STATS_CACHE["ts"] < _STATS_CACHE_TTL):
+        return jsonify(_STATS_CACHE["data"])
+
     try:
-        from sqlalchemy import func
+        from sqlalchemy import func, case
         from datetime import timedelta
         from collections import Counter
         thai_now = datetime.utcnow() + timedelta(hours=7)
         thai_today = thai_now.date()
-        total_chats   = ChatLog.query.count()
-        student_chats = ChatLog.query.filter_by(is_guest=False).count()
-        guest_chats   = ChatLog.query.filter_by(is_guest=True).count()
         today_start_utc = datetime(thai_today.year, thai_today.month, thai_today.day) - timedelta(hours=7)
-        today_chats  = ChatLog.query.filter(ChatLog.timestamp >= today_start_utc).count()
-        today_student_chats = ChatLog.query.filter(ChatLog.timestamp >= today_start_utc, ChatLog.is_guest == False).count()
-        today_guest_chats   = ChatLog.query.filter(ChatLog.timestamp >= today_start_utc, ChatLog.is_guest == True).count()
+        seven_days_start_utc = today_start_utc - timedelta(days=6)
+
+        # 1. ยุบรวมการนับจำนวนแชท สถิติวันนี้ feedback และ session ทั้งหมดใน 1 คิวรี
+        stats_agg = db.session.query(
+            func.count(ChatLog.id).label("total_chats"),
+            func.count(case((ChatLog.is_guest == False, ChatLog.id))).label("student_chats"),
+            func.count(case((ChatLog.is_guest == True, ChatLog.id))).label("guest_chats"),
+            func.count(case((ChatLog.timestamp >= today_start_utc, ChatLog.id))).label("today_chats"),
+            func.count(case(((ChatLog.timestamp >= today_start_utc) & (ChatLog.is_guest == False), ChatLog.id))).label("today_student_chats"),
+            func.count(case(((ChatLog.timestamp >= today_start_utc) & (ChatLog.is_guest == True), ChatLog.id))).label("today_guest_chats"),
+            func.count(case(((ChatLog.is_guest == False) & (ChatLog.feedback.isnot(None)), ChatLog.id))).label("total_fb"),
+            func.count(case(((ChatLog.is_guest == False) & (ChatLog.feedback == 1), ChatLog.id))).label("positive_fb"),
+            func.count(func.distinct(ChatLog.session_id)).label("total_sessions")
+        ).first()
+
+        total_chats         = stats_agg.total_chats if stats_agg else 0
+        student_chats       = stats_agg.student_chats if stats_agg else 0
+        guest_chats         = stats_agg.guest_chats if stats_agg else 0
+        today_chats         = stats_agg.today_chats if stats_agg else 0
+        today_student_chats = stats_agg.today_student_chats if stats_agg else 0
+        today_guest_chats   = stats_agg.today_guest_chats if stats_agg else 0
+        total_fb            = stats_agg.total_fb if stats_agg else 0
+        positive            = stats_agg.positive_fb if stats_agg else 0
+        total_sessions      = stats_agg.total_sessions if stats_agg else 0
+        satisfaction        = round(positive / total_fb * 100, 1) if total_fb > 0 else None
+
+        # 2. ยุบรวมกราฟย้อนหลัง 7 วัน ดึง timestamp ครั้งเดียวแล้วนับใน Python
+        recent_ts = db.session.query(ChatLog.timestamp).filter(ChatLog.timestamp >= seven_days_start_utc).all()
+        daily_counts = Counter((t[0] + timedelta(hours=7)).strftime("%d/%m") for t in recent_ts if t[0])
         daily = []
         for i in range(6, -1, -1):
             d = thai_today - timedelta(days=i)
-            start_utc = datetime(d.year, d.month, d.day) - timedelta(hours=7)
-            end_utc = start_utc + timedelta(days=1)
-            cnt = ChatLog.query.filter(ChatLog.timestamp >= start_utc, ChatLog.timestamp < end_utc).count()
-            daily.append({"date": d.strftime("%d/%m"), "count": cnt})
+            d_str = d.strftime("%d/%m")
+            daily.append({"date": d_str, "count": daily_counts.get(d_str, 0)})
 
+        # 3. คำถามยอดนิยม (จำกัด 500 แถวล่าสุด)
         import re as _re
         def normalize_q(text):
             text = text.strip().lower()
@@ -2360,18 +2456,23 @@ def api_admin_stats():
             if _re.search(r'(สอบ|ชดเชย|make-up)', text): return 'การสอบและขอสอบชดเชย'
             return text[:90]
 
-        # กรองเฉพาะคำถามจากนิสิตจริง เพื่อไม่ให้คำถามลองของจากโหมดทดลองมาทำลายสถิติ
-        student_msgs = [r.user_message for r in ChatLog.query.with_entities(ChatLog.user_message).filter_by(is_guest=False).all()]
-        if not student_msgs:
-            student_msgs = [r.user_message for r in ChatLog.query.with_entities(ChatLog.user_message).all()]
-        top_questions = Counter([normalize_q(m) for m in student_msgs]).most_common(15)
-        last_scrape  = ScrapeLog.query.order_by(ScrapeLog.started_at.desc()).first()
+        student_rows = ChatLog.query.with_entities(ChatLog.user_message)\
+            .filter_by(is_guest=False)\
+            .order_by(ChatLog.id.desc()).limit(500).all()
+        if not student_rows:
+            student_rows = ChatLog.query.with_entities(ChatLog.user_message)\
+                .order_by(ChatLog.id.desc()).limit(500).all()
+        top_questions = Counter([normalize_q(r.user_message) for r in student_rows]).most_common(15)
+
+        # 4. ประวัติ Scrape (ดึง 5 รายการแล้วใช้ index 0 เป็นตัวล่าสุด)
         scrape_logs  = ScrapeLog.query.order_by(ScrapeLog.started_at.desc()).limit(5).all()
-        # กรองความพึงพอใจเฉพาะนิสิตจริง
-        total_fb     = ChatLog.query.filter(ChatLog.is_guest == False, ChatLog.feedback != None).count()
-        positive     = ChatLog.query.filter(ChatLog.is_guest == False, ChatLog.feedback == 1).count()
-        satisfaction = round(positive / total_fb * 100, 1) if total_fb > 0 else None
-        return jsonify({
+        last_scrape  = scrape_logs[0] if scrape_logs else None
+
+        # 5. จำนวนหน้าที่ดึงแล้ว และจำนวนลิงก์ที่ยังไม่ได้เปิดใช้งาน
+        scraped_pages_count = ScrapedPage.query.count()
+        unmapped_links_count = DiscoveredLink.query.filter_by(is_system_mapped=False, is_ignored=False).count()
+
+        result = {
             "total_chats":       total_chats,
             "student_chats":     student_chats,
             "guest_chats":       guest_chats,
@@ -2379,8 +2480,9 @@ def api_admin_stats():
             "today_student_chats": today_student_chats,
             "today_guest_chats":   today_guest_chats,
             "feedback_positive": positive,
-            "scraped_pages":     ScrapedPage.query.count(),
-            "total_sessions":    db.session.query(func.count(func.distinct(ChatLog.session_id))).scalar() or 0,
+            "scraped_pages":     scraped_pages_count,
+            "unmapped_links_count": unmapped_links_count,
+            "total_sessions":    total_sessions,
             "feedback_total":    total_fb,
             "satisfaction":      satisfaction,
             "daily_chart":       daily,
@@ -2397,7 +2499,9 @@ def api_admin_stats():
             } for l in scrape_logs],
             "guest_mode": (get_setting("guest_mode", "true") == "true"),
             "faq_enabled": (get_setting("faq_enabled", "true") == "true"),
-        })
+        }
+        _STATS_CACHE = {"data": result, "ts": now_ts}
+        return jsonify(result)
     except Exception as e:
         print(f"[Stats Error] {e}")
         return jsonify({"error": str(e)}), 500
@@ -2703,6 +2807,23 @@ def import_knowledge():
 @app.route("/api/admin/discovered-links")
 @admin_required
 def api_admin_discovered_links():
+    summary_only = bool(request.args.get("summary_only", 0, type=int))
+    if summary_only:
+        from sqlalchemy import case, func
+        row = db.session.query(
+            func.count(case((DiscoveredLink.is_ignored == False, DiscoveredLink.id))).label("total"),
+            func.count(case(((DiscoveredLink.is_system_mapped == False) & (DiscoveredLink.is_ignored == False), DiscoveredLink.id))).label("unmapped_count"),
+            func.count(case(((DiscoveredLink.is_system_mapped == True) & (DiscoveredLink.is_ignored == False), DiscoveredLink.id))).label("mapped_count"),
+            func.count(case((DiscoveredLink.is_ignored == True, DiscoveredLink.id))).label("ignored_count")
+        ).first()
+        return jsonify({
+            "total": row.total if row else 0,
+            "unmapped_count": row.unmapped_count if row else 0,
+            "mapped_count": row.mapped_count if row else 0,
+            "ignored_count": row.ignored_count if row else 0,
+            "links": []
+        })
+
     search = request.args.get("search", "").strip()
     status_filter = request.args.get("status", "all")
 
@@ -2731,10 +2852,23 @@ def api_admin_discovered_links():
         DiscoveredLink.last_seen.desc()
     ).all()
 
-    total = DiscoveredLink.query.filter_by(is_ignored=False).count()
-    unmapped_count = DiscoveredLink.query.filter_by(is_system_mapped=False, is_ignored=False).count()
-    mapped_count = DiscoveredLink.query.filter_by(is_system_mapped=True, is_ignored=False).count()
-    ignored_count = DiscoveredLink.query.filter_by(is_ignored=True).count()
+    if status_filter == "all" and not search:
+        total = sum(1 for l in links if not l.is_ignored)
+        unmapped_count = sum(1 for l in links if not l.is_system_mapped and not l.is_ignored)
+        mapped_count = sum(1 for l in links if l.is_system_mapped and not l.is_ignored)
+        ignored_count = sum(1 for l in links if l.is_ignored)
+    else:
+        from sqlalchemy import case, func
+        row = db.session.query(
+            func.count(case((DiscoveredLink.is_ignored == False, DiscoveredLink.id))).label("total"),
+            func.count(case(((DiscoveredLink.is_system_mapped == False) & (DiscoveredLink.is_ignored == False), DiscoveredLink.id))).label("unmapped_count"),
+            func.count(case(((DiscoveredLink.is_system_mapped == True) & (DiscoveredLink.is_ignored == False), DiscoveredLink.id))).label("mapped_count"),
+            func.count(case((DiscoveredLink.is_ignored == True, DiscoveredLink.id))).label("ignored_count")
+        ).first()
+        total = row.total if row else 0
+        unmapped_count = row.unmapped_count if row else 0
+        mapped_count = row.mapped_count if row else 0
+        ignored_count = row.ignored_count if row else 0
 
     return jsonify({
         "total": total,
@@ -2790,6 +2924,7 @@ def api_admin_update_discovered_link(link_id):
     link.is_ignored = bool(is_ignored)
 
     db.session.commit()
+    invalidate_links_cache()
     return jsonify({
         "success": True,
         "message": "บันทึกข้อมูลเรียบร้อยแล้ว",
@@ -2818,6 +2953,7 @@ def api_admin_ignore_discovered_link(link_id):
         link.is_ignored = not bool(link.is_ignored)
 
     db.session.commit()
+    invalidate_links_cache()
     return jsonify({
         "success": True,
         "is_ignored": link.is_ignored,
@@ -2856,6 +2992,7 @@ def api_admin_bulk_discovered_links():
         return jsonify({"error": "Action ไม่ถูกต้อง"}), 400
 
     db.session.commit()
+    invalidate_links_cache()
     return jsonify({"success": True, "count": count, "message": msg})
 
 @app.route("/api/admin/discovered-links/resync", methods=["POST"])
@@ -2957,6 +3094,7 @@ def api_admin_discovered_links_auto_verify():
                 skipped_count += 1
 
         db.session.commit()
+        invalidate_links_cache()
 
         return jsonify({
             "success": True,
@@ -2982,19 +3120,19 @@ def seed_initial_scraped_pages():
         with open(seed_path, "r", encoding="utf-8") as f:
             pages = json.load(f)
         added = 0
+        existing_urls = {p.url for p in ScrapedPage.query.with_entities(ScrapedPage.url).all()}
         for item in pages:
             url = item.get("source") or item.get("url")
-            if not url:
+            if not url or url in existing_urls:
                 continue
-            existing = ScrapedPage.query.filter_by(url=url).first()
-            if not existing:
-                db.session.add(ScrapedPage(
-                    url=url,
-                    category=item.get("category", "auto"),
-                    content=item.get("content", ""),
-                    last_scraped=datetime.utcnow()
-                ))
-                added += 1
+            db.session.add(ScrapedPage(
+                url=url,
+                category=item.get("category", "auto"),
+                content=item.get("content", ""),
+                last_scraped=datetime.utcnow()
+            ))
+            existing_urls.add(url)
+            added += 1
         if added > 0:
             db.session.commit()
             print(f"[Seed] โหลดหน้าเว็บเริ่มต้น {added} หน้าเข้า DB เรียบร้อย")
