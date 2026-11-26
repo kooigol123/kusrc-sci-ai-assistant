@@ -8,4 +8,5 @@ requests
 beautifulsoup4
 PyPDF2
 psycopg2-binary
+psycopg[binary]
 openpyxl
