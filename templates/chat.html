@@ -2415,9 +2415,11 @@
                     if (lastBot && data.log_id) {
                         msgLogMap[lastBot.dataset.msgId] = data.log_id;
                     }
-                    // บันทึก history (user + model)
-                    addToHistory("user",  message);
-                    addToHistory("model", data.response);
+                    // บันทึก history (user + model) — ข้ามข้อความ "กรุณารอ" ตอนโควต้าเต็ม ไม่ให้ไปปนบริบทของคำถามถัดไป
+                    if (!data.rate_limited) {
+                        addToHistory("user",  message);
+                        addToHistory("model", data.response);
+                    }
                     // If bot suggested files, show them in sidebar
                     if (data.suggested_files && data.suggested_files.length > 0) {
                         showSuggestedFiles(data.suggested_files);

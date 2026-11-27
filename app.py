@@ -2240,17 +2240,38 @@ def ask_gemini(user_message, history=None, return_debug=False):
             )
         return err_msg, [], []
 
+    def _rate_limited_reply(wait_secs: float):
+        """ทุกคีย์ติดโควต้า: บอกผู้ใช้ให้รอแบบมีตัวเลข แทนข้อความ "ระบบขัดข้องชั่วคราว" กว้างๆ"""
+        wait_txt = max(5, int(math.ceil(wait_secs / 5.0)) * 5)
+        msg = (f"ขออภัยครับ ตอนนี้มีผู้ใช้งานพร้อมกันจำนวนมาก ระบบตอบไม่ทัน "
+               f"กรุณารอประมาณ {wait_txt} วินาทีแล้วถามใหม่อีกครั้งครับ")
+        print(f"[Gemini] All keys rate-limited. Asked user to wait ~{wait_txt}s.")
+        if return_debug:
+            return msg, [], [], _build_system_debug_info(
+                "rate_limited", f"ทุก API Key ติดโควต้า Gemini (429) ต้องรอประมาณ {wait_txt} วินาที",
+                kw=kw, detected_majors=detected_majors,
+            )
+        return msg, [], []
+
+    def _cooldown_left(key) -> float:
+        return max(0.0, _KEY_COOLDOWNS.get(key, 0) - time.time())
+
     now_ts = time.time()
     ready_keys = [item for item in valid_keys if now_ts >= _KEY_COOLDOWNS.get(item[1], 0)]
-    cooling_keys = [item for item in valid_keys if now_ts < _KEY_COOLDOWNS.get(item[1], 0)]
-    cooling_keys.sort(key=lambda item: _KEY_COOLDOWNS.get(item[1], 0))
 
-    # ลำดับที่จะเรียก: เลือกคีย์ที่พร้อมก่อน หากทุกคีย์ติด Cooldown ให้ลองคีย์ที่ใกล้พ้นโทษที่สุด
-    attempt_order = ready_keys if ready_keys else cooling_keys
+    # ทุกคีย์ยังติด cooldown: ยิงไปก็โดน 429 ซ้ำ (และอาจโดนพักนานขึ้น) จึงตอบให้รอเลย
+    if not ready_keys:
+        return _rate_limited_reply(min(_cooldown_left(k) for _, k in valid_keys))
+
+    _SHORT_RETRY_MAX_SECS = 6.0   # ถ้ารอไม่เกินนี้ ลองใหม่ให้อัตโนมัติ 1 ครั้ง (ไม่บล็อก worker นานเกินไป)
 
     raw = None
     last_err = None
-    for label, key in attempt_order:
+    only_rate_limits = True
+    retried = False
+    attempt_order = list(ready_keys)
+    while attempt_order:
+        label, key = attempt_order.pop(0)
         try:
             raw = _call_gemini(key)
             # สำเร็จ: ปลดสถานะ cooldown ของคีย์นี้ออกทันที
@@ -2259,7 +2280,7 @@ def ask_gemini(user_message, history=None, return_debug=False):
         except Exception as exc:
             last_err = exc
             err_str = str(exc)
-            is_rate_limit = any(indicator in err_str.lower() for indicator in ("429", "quota", "resourceexhausted", "rate limit"))
+            is_rate_limit = any(indicator in err_str.lower() for indicator in ("429", "quota", "resourceexhausted", "resource_exhausted", "rate limit"))
             if is_rate_limit:
                 delay = 30.0
                 match = re.search(r'retry in\s+([\d\.]+)\s*s', err_str, re.I)
@@ -2278,9 +2299,22 @@ def ask_gemini(user_message, history=None, return_debug=False):
                 _KEY_COOLDOWNS[key] = time.time() + delay
                 print(f"[Gemini] {label} hit 429/Quota limit. Cooldown set for {delay:.1f}s.")
             else:
+                only_rate_limits = False
                 print(f"[Gemini] {label} failed: {exc}")
 
+        # คีย์หมดแล้วและล้มเพราะโควต้าทั้งหมด: ถ้ารอสั้นๆ ก็พอ ให้รอแล้วลองคีย์ที่ใกล้พ้นโทษที่สุดอีก 1 ครั้ง
+        if raw is None and not attempt_order and only_rate_limits and not retried:
+            soonest_label, soonest_key = min(valid_keys, key=lambda item: _KEY_COOLDOWNS.get(item[1], 0))
+            wait = _cooldown_left(soonest_key)
+            if wait <= _SHORT_RETRY_MAX_SECS:
+                retried = True
+                print(f"[Gemini] Waiting {wait:.1f}s then retrying {soonest_label} once.")
+                time.sleep(wait)
+                attempt_order.append((soonest_label, soonest_key))
+
     if raw is None:
+        if last_err and only_rate_limits:
+            return _rate_limited_reply(min(_cooldown_left(k) for _, k in valid_keys))
         if last_err:
             raise last_err
         err_msg = "ขออภัยค่ะ ระบบไม่สามารถตอบได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง"
@@ -2777,6 +2811,17 @@ def chat():
     try:
         bot_text, files, links, debug_data = ask_gemini(user_msg, history=history, return_debug=True)
         print(f"[DEBUG] suggested_files={files} | ALL_PDFS_count={len(ALL_PDFS)}")
+
+        # โควต้า Gemini เต็ม: ข้อความ "กรุณารอ" ไม่นับเป็นคำถามของ Guest และไม่บันทึกเป็นคำตอบในประวัติแชต
+        if (debug_data or {}).get("route") == "rate_limited":
+            return jsonify({
+                "response": bot_text,
+                "suggested_files": [],
+                "suggested_links": [],
+                "log_id": None,
+                "is_guest": is_guest,
+                "rate_limited": True,
+            })
 
         if is_guest:
             guest_count = flask_session.get("guest_question_count", 0) + 1
