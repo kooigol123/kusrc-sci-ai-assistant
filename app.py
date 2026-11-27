@@ -2344,7 +2344,8 @@ def ask_gemini(user_message, history=None, return_debug=False):
             plan_note = ("\n[หมายเหตุระบบ] คำถามนี้เป็นคำถามแผนการเรียนรายชั้นปี/เทอม และ Context ด้านบนมีตารางแผนการศึกษา"
                          f"ของปี/เทอมที่ถามจากไฟล์: {', '.join(ret['plan_sources'])} "
                          "ให้ตอบรายวิชา (รหัส ชื่อวิชา หน่วยกิต) จากตารางนี้ทันทีตามกฎข้อ 10 "
-                         "ห้ามตอบแค่ให้ไปตรวจสอบเอง\n")
+                         "ห้ามตอบแค่ให้ไปตรวจสอบเอง และต้องบอกว่าเป็นแผนตามเล่มหลักสูตร "
+                         "พร้อมแนะนำให้ตรวจสอบรายวิชาที่เปิดสอนจริงในเทอมนั้นตามกฎข้อ 10 ข้อ 5-6\n")
 
     calendar_status_note = ""
     if ret.get("has_cal_match") or any("ปฏิทิน" in d.get("category", "") for d in docs_to_use):
@@ -2584,6 +2585,16 @@ def ask_gemini(user_message, history=None, return_debug=False):
         is_curriculum_query=is_curriculum_query,
         has_pdf=bool(good_files)
     )
+
+    # คำตอบแผนการเรียนรายปี/เทอมมาจากเล่มหลักสูตร ซึ่งอาจต่างจากวิชาที่เปิดจริงในเทอมนั้น
+    # จึงแนบลิงก์ "ตรวจสอบรายวิชาที่เปิดสอน" ของสำนักทะเบียนไว้ปุ่มแรกเสมอ (ไม่พึ่งให้โมเดลจำใส่เอง)
+    if ret.get("is_plan_q") and ret.get("plan_sources") and detected_majors:
+        _open_courses = next((it for it in SYSTEM_LINKS_REGISTRY if it.get("id") == "open_courses"), None)
+        if _open_courses:
+            _oc_url = _open_courses["url"].rstrip("/").lower()
+            good_links = [l for l in good_links if (l.get("url") or "").rstrip("/").lower() != _oc_url]
+            good_links = ([{"title": _open_courses["title"], "url": _open_courses["url"],
+                            "desc": _open_courses.get("desc", "")}] + good_links)[:2]
 
     query_context = (user_message + " " + bot_text).lower()
     bot_text = sanitize_bot_output(bot_text, has_links=bool(good_links), query_context=query_context)
