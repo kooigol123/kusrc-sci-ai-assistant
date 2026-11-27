@@ -1451,6 +1451,7 @@ def _perform_retrieval(user_message, history=None):
     doc_score_map = {}
     scored_docs = []
     is_fallback = False
+    has_cal_match = False
     raw_compact = msg_lower.replace(" ", "")
     is_overview = any(p in raw_compact for p in (
         "มีข้อมูลอะไรบ้าง", "มีข้อมูลด้านไหน", "มีข้อมูลเรื่องอะไร", "มีข้อมูลอะไร",
@@ -1730,6 +1731,7 @@ def _perform_retrieval(user_message, history=None):
         "is_fallback": is_fallback,
         "is_overview": is_overview,
         "is_all_programs_q": is_all_programs_q,
+        "has_cal_match": has_cal_match,
         "context_str": context_str,
         "faq_str": faq_str
     }
@@ -1978,6 +1980,168 @@ def generate_chat_debug_analysis(user_message, bot_answer=None):
 _TH_DAYS = ("จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์", "อาทิตย์")
 _TH_MONTHS = ("มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
               "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม")
+_TH_MONTH_MAP = {
+    "ม.ค.": 1, "มกราคม": 1, "ก.พ.": 2, "กุมภาพันธ์": 2,
+    "มี.ค.": 3, "มีนาคม": 3, "เม.ย.": 4, "เมษายน": 4,
+    "พ.ค.": 5, "พฤษภาคม": 5, "มิ.ย.": 6, "มิถุนายน": 6,
+    "ก.ค.": 7, "กรกฎาคม": 7, "ส.ค.": 8, "สิงหาคม": 8,
+    "ก.ย.": 9, "กันยายน": 9, "ต.ค.": 10, "ตุลาคม": 10,
+    "พ.ย.": 11, "พฤศจิกายน": 11, "ธ.ค.": 12, "ธันวาคม": 12,
+}
+_TH_MONTH_PAT = "|".join(re.escape(m) for m in sorted(_TH_MONTH_MAP.keys(), key=len, reverse=True))
+_TH_RANGE_SAME_MONTH_RE = re.compile(
+    rf"(?<!\d)(\d{{1,2}})\s*-\s*(?:[ก-๙]+\.?\s*)?(\d{{1,2}})\s*({_TH_MONTH_PAT})\s*(\d{{2,4}})"
+)
+_TH_DATE_TOKEN_RE = re.compile(rf"(?<!\d)(\d{{1,2}})\s*({_TH_MONTH_PAT})\s*(\d{{2,4}})?")
+
+def _be_to_ce_year(year_num: int) -> int:
+    """แปลงเลขปี พ.ศ. 2 หลัก/4 หลัก หรือ ค.ศ. เป็นปี ค.ศ."""
+    if year_num < 100:
+        return (2500 + year_num) - 543
+    if year_num >= 2400:
+        return year_num - 543
+    return year_num
+
+def _parse_thai_calendar_date_range(date_str: str):
+    """แปลงช่วงวันที่ภาษาไทยจากตารางปฏิทินเป็น (start_date, end_date) แบบค.ศ."""
+    from datetime import date
+    if not date_str or not isinstance(date_str, str):
+        return None
+    norm = re.sub(r"[–—]", "-", date_str)
+    norm = re.sub(r"\s+", " ", norm).strip()
+
+    m_same = _TH_RANGE_SAME_MONTH_RE.search(norm)
+    if m_same:
+        d1, d2, m_name, y_str = m_same.groups()
+        month = _TH_MONTH_MAP[m_name]
+        ce_y = _be_to_ce_year(int(y_str))
+        try:
+            s_d, e_d = date(ce_y, month, int(d1)), date(ce_y, month, int(d2))
+            return (s_d, e_d) if s_d <= e_d else (e_d, s_d)
+        except ValueError:
+            return None
+
+    tokens = _TH_DATE_TOKEN_RE.findall(norm)
+    if not tokens:
+        return None
+    try:
+        if len(tokens) >= 2 and (tokens[0][2] or tokens[1][2]):
+            d1, m1, y1 = tokens[0]
+            d2, m2, y2 = tokens[1]
+            ce2 = _be_to_ce_year(int(y2 or y1))
+            if y1:
+                ce1 = _be_to_ce_year(int(y1))
+            else:
+                # ข้ามปี พ.ศ./ค.ศ. เช่น จ.25 ธ.ค. - ศ.5 ม.ค.70 ให้ลดปีเริ่มต้นลง 1 ปี
+                ce1 = ce2 - 1 if _TH_MONTH_MAP[m2] < _TH_MONTH_MAP[m1] else ce2
+            return date(ce1, _TH_MONTH_MAP[m1], int(d1)), date(ce2, _TH_MONTH_MAP[m2], int(d2))
+        if len(tokens) == 1 and tokens[0][2]:
+            d1, m1, y1 = tokens[0]
+            ce1 = _be_to_ce_year(int(y1))
+            d_obj = date(ce1, _TH_MONTH_MAP[m1], int(d1))
+            return d_obj, d_obj
+    except ValueError:
+        return None
+    return None
+
+def _format_thai_date_range(start_d, end_d) -> str:
+    """จัดรูปแบบช่วงวันที่ภาษาไทยให้อ่านตรงกันทั้งวันเดียว เดือนเดียวกัน และข้ามเดือน/ปี"""
+    if start_d == end_d:
+        return f"{start_d.day} {_TH_MONTHS[start_d.month - 1]} {start_d.year + 543}"
+    if start_d.year == end_d.year and start_d.month == end_d.month:
+        return f"{start_d.day} - {end_d.day} {_TH_MONTHS[end_d.month - 1]} {end_d.year + 543}"
+    if start_d.year == end_d.year:
+        return f"{start_d.day} {_TH_MONTHS[start_d.month - 1]} - {end_d.day} {_TH_MONTHS[end_d.month - 1]} {end_d.year + 543}"
+    return (
+        f"{start_d.day} {_TH_MONTHS[start_d.month - 1]} {start_d.year + 543} - "
+        f"{end_d.day} {_TH_MONTHS[end_d.month - 1]} {end_d.year + 543}"
+    )
+
+def _build_calendar_status_note(docs_to_use, today_date=None) -> str:
+    """สรุปสถานะปฏิทินวันนี้ (เปิดอยู่/รอบถัดไป) จากเอกสารปฏิทินใน Context แบบ Dynamic"""
+    from datetime import timedelta
+    if not docs_to_use:
+        return ""
+    if today_date is None:
+        today_date = (utc_now() + timedelta(hours=7)).date()
+
+    cal_docs = [
+        d for d in docs_to_use
+        if ("ปฏิทิน" in d.get("category", "") or "calender" in d.get("source", "").lower())
+        and "#inter" not in d.get("source", "").lower()
+    ]
+    if not cal_docs:
+        return ""
+
+    # จัดลำดับให้ calender.php#home (ภาคปกติภาษาไทย) มาก่อน
+    cal_docs.sort(key=lambda d: (0 if "#home" in d.get("source", "").lower() else 1))
+
+    active_items = []
+    upcoming_items = []
+    seen_rows = set()
+    _UPCOMING_KWS = (
+        "เปลี่ยนแปลงรายวิชา", "add/drop", "add – drop", "ถอนวิชา",
+        "ลงทะเบียน", "สอบกลางภาค", "สอบไล่", "ผ่อนผัน", "ลาพัก", "คัดชื่อออก", "ปิดภาค",
+    )
+
+    for doc in cal_docs:
+        rows = []
+        buf = ""
+        for raw_line in doc.get("content", "").splitlines():
+            s = raw_line.strip()
+            if not s or s.startswith(("ที่มา:", "# |", "ปฏิทินการศึกษา ")):
+                continue
+            if re.match(r"^\d+\s*\|", s):
+                if buf:
+                    rows.append(buf)
+                buf = s
+            elif buf:
+                buf += " " + s
+        if buf:
+            rows.append(buf)
+
+        for row in rows:
+            parts = [p.strip() for p in row.split("|")]
+            if len(parts) < 3:
+                continue
+            desc = " | ".join(parts[1:-1]).strip()
+            date_cell = parts[-1].strip()
+            parsed = _parse_thai_calendar_date_range(date_cell)
+            if not parsed:
+                continue
+            start_d, end_d = parsed
+            row_key = (desc[:80], start_d, end_d)
+            if row_key in seen_rows:
+                continue
+            seen_rows.add(row_key)
+
+            desc_short = re.sub(r"\s+", " ", desc)[:180]
+            range_th = _format_thai_date_range(start_d, end_d)
+            desc_l = desc_short.lower()
+            is_add_drop = ("เปลี่ยนแปลงรายวิชา" in desc_l or "add/drop" in desc_l or "add – drop" in desc_l)
+            extra = " -> [สำคัญ: Add/Drop สามารถเพิ่มและลด/ถอนรายวิชาได้ทันทีโดยไม่บันทึกอักษร W]" if is_add_drop else ""
+
+            if start_d <= today_date <= end_d:
+                active_items.append(f"- {desc_short} (ช่วงวันที่ {range_th}){extra}")
+            elif today_date < start_d and any(k in desc_l for k in _UPCOMING_KWS):
+                upcoming_items.append((start_d, f"- {desc_short} (ช่วงวันที่ {range_th})"))
+
+    if not active_items and not upcoming_items:
+        return ""
+
+    today_th = f"{today_date.day} {_TH_MONTHS[today_date.month - 1]} {today_date.year + 543}"
+    lines = [f"\n[หมายเหตุสถานะปฏิทินวันนี้ ({today_th}) - คำนวณจากตารางจริงอัตโนมัติ]"]
+    if active_items:
+        lines.append("รายการที่กำลังเปิดดำเนินการอยู่ในวันนี้:")
+        lines.extend(active_items[:6])
+    else:
+        lines.append("รายการที่กำลังเปิดดำเนินการอยู่ในวันนี้: ไม่มีช่วงเปลี่ยนแปลงรายวิชา/ถอนวิชาที่เปิดอยู่ในวันนี้")
+    if upcoming_items:
+        upcoming_items.sort(key=lambda x: x[0])
+        lines.append("กำหนดการสำคัญรอบถัดไป (เรียงตามวันที่):")
+        lines.extend(item for _, item in upcoming_items[:10])
+    lines.append("ให้ยึดสถานะข้างต้นฟันธงตั้งแต่ประโยคแรกว่าขณะนี้ดำเนินการได้หรือไม่ และห้ามข้ามช่วงที่กำลังเปิดอยู่ในวันนี้\n")
+    return "\n".join(lines)
 
 def get_thai_now_str():
     """ส่งคืนวันเวลาไทยปัจจุบัน UTC+7 สำหรับแนบใน System Context (คำนวณสดเสมอ รองรับทั้ง Render และเครื่องมหาลัย)"""
@@ -2182,10 +2346,14 @@ def ask_gemini(user_message, history=None, return_debug=False):
                          "ให้ตอบรายวิชา (รหัส ชื่อวิชา หน่วยกิต) จากตารางนี้ทันทีตามกฎข้อ 10 "
                          "ห้ามตอบแค่ให้ไปตรวจสอบเอง\n")
 
+    calendar_status_note = ""
+    if ret.get("has_cal_match") or any("ปฏิทิน" in d.get("category", "") for d in docs_to_use):
+        calendar_status_note = _build_calendar_status_note(docs_to_use)
+
     system = f"""{prompt}
 
 [วันเวลาปัจจุบัน]: {thai_now}
-{context_str}{faq_str}{plan_note}
+{context_str}{faq_str}{plan_note}{calendar_status_note}
 ---
 รายชื่อไฟล์ PDF ที่มีในระบบ (ใช้ชื่อเหล่านี้เท่านั้น):
 {PDF_LIST_STR}
