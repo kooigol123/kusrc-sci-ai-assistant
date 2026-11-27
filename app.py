@@ -1476,6 +1476,15 @@ def _perform_retrieval(user_message, history=None):
         "ทั้งหมดกี่", "เรียนกี่", "หลักสูตร", "แผนการเรียน"
     ))
     is_master_q = any(k in msg_lower for k in ("ป.โท", "ปริญญาโท", "มหาบัณฑิต", "บัณฑิตศึกษา"))
+    # คำถามตรวจสอบวิชาที่ยังขาด/เรียนครบหลักสูตรหรือยัง (เช่น "เช็คหน่อยว่ายังขาดวิชาอะไร")
+    # ไม่มีคำบอกหมวดเดิมอย่าง "หลักสูตร"/"รายวิชา" จึงโดนตัวกรองคำถามนอกเรื่องตัดเอกสารทิ้ง
+    is_grad_check_q = any(k in raw_compact for k in (
+        "ขาดวิชา", "วิชาที่ขาด", "วิชาที่เหลือ", "เหลือวิชา", "วิชาไหนเหลือ", "วิชาอะไรเหลือ",
+        "เรียนครบ", "ครบหลักสูตร", "ครบหน่วยกิต", "ครบถ้วนของหลักสูตร", "ครบตามหลักสูตร",
+        "ตรวจสอบจบ", "เช็คจบ", "เช็กจบ", "จบได้ยัง", "จบหรือยัง", "ครบจบ",
+    ))
+    if is_grad_check_q and detected_majors:
+        is_credit_or_struct_q = True
 
     _ALL_STAFF_CATS = (
         "dean", "cs_staff", "it_staff", "env_staff", "env_master",
@@ -1541,6 +1550,11 @@ def _perform_retrieval(user_message, history=None):
                         sc += (45 if ("_master" in cat_lower and not is_master_q) else 65)
                     elif ".txt" in src_lower and any(k in content_lower for k in ("โครงสร้างหลักสูตร", "จำนวนหน่วยกิตรวม", "หมวดวิชาศึกษาทั่วไป")):
                         sc += 15
+
+            # ตรวจสอบวิชาที่ขาด: หน้าหลักสูตร/โครงสร้างหลักสูตรของคณะคือเอกสารที่เกี่ยวข้อง
+            if is_grad_check_q and not detected_majors:
+                if "program" in cat_lower or "/program" in src_lower or "โครงสร้างหลักสูตร" in content_lower:
+                    sc += 20
 
             if is_master_q:
                 if cat_lower in ("env_master", "env_master_program", "chem_master_program") or any(u in src_lower for u in ("natural-product-science-technology", "applied-chemical-technology")):
@@ -1628,7 +1642,7 @@ def _perform_retrieval(user_message, history=None):
             detected_majors or is_exec_q or is_staff_q or is_all_programs_q
             or is_credit_or_struct_q or is_master_q or is_tuition_q
             or has_cal_match or allow_curriculum_txt or allow_tcas
-            or is_plan_q or slang_terms
+            or is_plan_q or slang_terms or is_grad_check_q
         )
         top_doc_score = max((doc_score_map.get(id(d), 0) for d in filtered), default=0)
         top_doc_ratio = top_doc_score / max(1, len(kw))
